@@ -6,8 +6,8 @@
         "context": "..",
         "dockerfile": "Dockerfile"
     },
-    "workspaceFolder": "/workspaces/project",
-    "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/project,type=bind",
+    "workspaceFolder": "/workspace/",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace/,type=bind",
     "customizations": {
         "vscode": {
             "extensions": [
