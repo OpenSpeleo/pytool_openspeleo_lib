@@ -1,0 +1,3 @@
+
+class DuplicateNameError(ValueError):
+    pass
