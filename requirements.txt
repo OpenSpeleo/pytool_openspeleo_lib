@@ -1,2 +1,0 @@
-pydantic==2.8.2
-iteration_utilities==0.12.1
