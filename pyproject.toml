@@ -5,6 +5,9 @@ build-backend = "setuptools.build_meta"
 [tool.distutils.bdist_wheel]
 universal = true
 
+[tool.setuptools.package-dir]
+openspeleo_lib = "openspeleo_lib"
+
 [project]
 name = "openspeleo_lib"
 version = "0.0.1"
@@ -53,6 +56,8 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
 ]
 dependencies = [
+    "pydantic==2.8.2",
+    "iteration_utilities==0.12.1"
 ]
 
 [project.optional-dependencies]
@@ -217,6 +222,7 @@ ignore = [
   "PLR0913", # Checks for function definitions that include too many arguments.
   "S311",    # Checks for uses of cryptographically weak pseudo-random number generators.
   "ERA001",  # Checks for commented-out Python code.
+  "N815"     # Checks for class variable names that follow the mixedCase convention.
 ]
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
