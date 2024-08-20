@@ -75,29 +75,28 @@ class TestCaveDataModel(unittest.TestCase):
         }
 
     def test_create_cave_data_model(self):
-        cave_data = Shot(**self.valid_data)
-        # json_data = cave_data.to_json()
-        assert cave_data.azimut == 0.0
+        cave_data = Shot.from_ariane(self.valid_data)
+        assert cave_data.azimuth == 0.0
         assert cave_data.closure_to_id == -1
         assert cave_data.color == "0x00ffffff"
         assert cave_data.date == date(2024, 4, 22)
         assert cave_data.depth == 0.0
         assert not cave_data.excluded
         assert cave_data.explorer == "Ariane"
-        assert not cave_data.shape.hasProfileAzimut
-        assert cave_data.shape.RadiusCollection.RadiusVector[0].TensionCorridor == 1.0
+        assert not cave_data.shape.has_profile_azimuth
+        assert cave_data.shape.radius_collection.radius_vector[0].tension_corridor == 1.0
 
     def test_invalid_data(self):
         invalid_data = self.valid_data.copy()
         invalid_data["Azimut"] = "not_a_float"
         with pytest.raises(ValueError):  # noqa: PT011
-            Shot(**invalid_data)
+            Shot.from_ariane(invalid_data)
 
     def test_optional_fields(self):
         partial_data = self.valid_data.copy()
         partial_data["Comment"] = None
         partial_data["Name"] = None
-        cave_data = Shot(**partial_data)
+        cave_data = Shot.from_ariane(partial_data)
         assert cave_data.comment is None
         assert cave_data.name is not None
 
