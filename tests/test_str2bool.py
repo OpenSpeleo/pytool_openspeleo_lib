@@ -62,5 +62,6 @@ class TestStr2Bool(unittest.TestCase):
         else:
             raise AssertionError("Dict input should raise a ValueError.")
 
+
 if __name__ == "__main__":
     unittest.main()

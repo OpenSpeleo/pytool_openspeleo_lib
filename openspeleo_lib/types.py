@@ -1,6 +1,5 @@
 import uuid
 from datetime import date
-from pathlib import Path
 
 from pydantic import UUID4
 from pydantic import BaseModel
@@ -8,16 +7,20 @@ from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import field_validator
 
+from openspeleo_lib.formats.ariane import ARIANE_MAPPING
 from openspeleo_lib.mixins import BaseMixin
 from openspeleo_lib.mixins import UniqueSubFieldMixin
+from openspeleo_lib.utils import apply_key_mapping
 from openspeleo_lib.utils import str2bool
 
 
 class RadiusVector(BaseModel):
-    TensionCorridor: float = Field(..., alias="TensionCorridor")
-    TensionProfile: float = Field(..., alias="TensionProfile")
+    tension_corridor: float
+    tension_profile: float
     angle: float
-    length: float
+    norm: float  # Euclidian Norm aka. length
+
+    model_config = ConfigDict(extra="forbid")
 
     @field_validator("*", mode="before")
     @classmethod
@@ -26,35 +29,100 @@ class RadiusVector(BaseModel):
             return float(v)
         return v
 
+
 class RadiusCollection(BaseModel):
-    RadiusVector: list[RadiusVector]
+    radius_vector: list[RadiusVector] = []
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("radius_vector", mode="before")
+    @classmethod
+    def ensure_list_type(cls, v):
+        if isinstance(v, dict):
+            return [v]
+        return v
+
 
 class Shape(BaseModel):
-    RadiusCollection: RadiusCollection
-    hasProfileAzimut: bool
-    hasProfileTilt: bool
-    profileAzimut: float
-    profileTilt: float
+    radius_collection: RadiusCollection
+    has_profile_azimuth: bool
+    has_profile_tilt: bool
+    profile_azimuth: float
+    profile_tilt: float
 
-    @field_validator("hasProfileAzimut", "hasProfileTilt", mode="before")
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("has_profile_azimuth", "has_profile_tilt", mode="before")
     @classmethod
     def convert_to_bool(cls, v):
         if isinstance(v, str):
             return str2bool(v)
         return v
 
-    @field_validator("profileAzimut", "profileTilt", mode="before")
+    @field_validator("profile_azimuth", "profile_tilt", mode="before")
     @classmethod
     def convert_to_float(cls, v):
         if isinstance(v, str):
             return float(v)
         return v
 
+
+class LayerStyle(BaseModel):
+    dash_scale: float
+    fill_color_string: str
+    line_type: str
+    line_type_scale: float
+    opacity: float
+    size_mode: str
+    stroke_color_string: str
+    stroke_thickness: float
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("dash_scale", "line_type_scale", "opacity", "stroke_thickness",
+                     mode="before")
+    @classmethod
+    def convert_to_float(cls, v):
+        if isinstance(v, str):
+            return float(v)
+        return v
+
+
+class Layer(BaseModel):
+    constant: bool = True
+    locked_layer: bool = False
+    layer_name: str
+    style: LayerStyle
+    visible: bool = True
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("constant", "locked_layer", "visible", mode="before")
+    @classmethod
+    def convert_to_bool(cls, v):
+        if isinstance(v, str):
+            return str2bool(v)
+        return v
+
+
+class LayerCollection(BaseModel):
+    layer_list: list[Layer] = []
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("layer_list", mode="before")
+    @classmethod
+    def ensure_list_type(cls, v):
+        if isinstance(v, dict):
+            return [v]
+        return v
+
+
 class Shot(BaseMixin, UniqueSubFieldMixin, BaseModel):
-    azimut: float
+    azimuth: float
     closure_to_id: int
     color: str
-    comment: str | None
+    comment: str | None = None
     date: date
     depth: float
     depth_in: float
@@ -69,8 +137,10 @@ class Shot(BaseMixin, UniqueSubFieldMixin, BaseModel):
     longitude: float
     profiletype: str
     section: str
-    shape: Shape
     type: str
+
+    # SubModel
+    shape: Shape
 
     # LRUD
     left: float
@@ -78,9 +148,11 @@ class Shot(BaseMixin, UniqueSubFieldMixin, BaseModel):
     up: float
     down: float
 
-    model_config = ConfigDict(use_enum_values=True)
+    model_config = ConfigDict(extra="forbid")
 
-    @field_validator("azimut", "depth", "depth_in", "down", "inclination", "latitude",
+    # model_config = ConfigDict(use_enum_values=True)
+
+    @field_validator("azimuth", "depth", "depth_in", "down", "inclination", "latitude",
                      "left", "length", "longitude", "right", "up", mode="before")
     @classmethod
     def convert_to_float(cls, v):
@@ -109,56 +181,94 @@ class Shot(BaseMixin, UniqueSubFieldMixin, BaseModel):
             return date.fromisoformat(v)
         return v
 
-
-
-class Section(BaseMixin, UniqueSubFieldMixin, BaseModel):
-    id: int
-    shots: list[Shot] = []
-
-    @field_validator("shots")
     @classmethod
-    def validate_shots_unique(cls, values: list[Shot]):
-        return cls.validate_unique(field="id", values=values)
+    def from_ariane(cls, data):
+        data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
+        return cls(**data)
+
+# class Section(BaseMixin, UniqueSubFieldMixin, BaseModel):
+#     id: int
+#     shots: list[Shot] = []
+
+#     @field_validator("shots")
+#     @classmethod
+#     def validate_shots_unique(cls, values: list[Shot]):
+#         return cls.validate_unique(field="id", values=values)
+
+class ShotCollection(BaseModel):
+    shot_list: list[Shot] = []
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("shot_list", mode="before")
+    @classmethod
+    def ensure_list_type(cls, v):
+        if isinstance(v, dict):
+            return [v]
+        return v
 
 
 class Survey(UniqueSubFieldMixin, BaseModel):
-    id: UUID4 = Field(default_factory=uuid.uuid4)
-    name: str
-    sections: list[Section] = []
+    speleodb_id: UUID4 = Field(default_factory=uuid.uuid4)
+    cave_name: str
+    unit: str = "m"
+    data: ShotCollection = Field(default_factory=lambda: ShotCollection())
+    layers: LayerCollection = Field(default_factory=lambda: LayerCollection())
+    first_start_absolute_elevation: float = 0.0
+    use_magnetic_azimuth: bool = True
 
-    @property
-    def shots(self):
-        return [
-            shot
-            for section in self.sections
-            for shot in section.shots
-        ]
+    carto_ellipse: str | None = None
+    carto_line: str | None = None
+    carto_linked_surface: str | None = None
+    carto_overlay: str | None = None
+    carto_page: str | None = None
+    carto_rectangle: str | None = None
+    carto_selection: str | None = None
+    carto_spline: str | None = None
+    constraints: str | None = None
+    list_annotation: str | None = None
 
-    @field_validator("sections")
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("use_magnetic_azimuth", mode="before")
     @classmethod
-    def validate_shots_unique(cls, values):
+    def convert_to_bool(cls, v):
+        if isinstance(v, str):
+            return str2bool(v)
+        return v
 
-        # 1. validate shots are unique
-        shots = [shot for section in values for shot in section.shots]
-        _ = cls.validate_unique(field="id", values=shots)
-        _ = cls.validate_unique(field="name", values=shots)
-
-        # 2. validate sections are unique
-        _ = cls.validate_unique(field="id", values=values)
-        _ = cls.validate_unique(field="name", values=values)
-
-        return values
-
+    @field_validator("first_start_absolute_elevation", mode="before")
     @classmethod
-    def from_compass_file(cls, filepath: Path):
-        from compass_lib.parser import CompassParser
+    def convert_to_float(cls, v):
+        if isinstance(v, str):
+            return float(v)
+        return v
 
-        if not filepath.exists():
-                raise FileNotFoundError(f"File not found: `{filepath}`")
+    # @classmethod
+    # def from_compass_file(cls, filepath: Path):
+    #     from compass_lib.parser import CompassParser
 
-        survey = CompassParser(filepath)
+    #     if not filepath.exists():
+    #             raise FileNotFoundError(f"File not found: `{filepath}`")
 
-        return cls(name="")
+    #     survey = CompassParser(filepath)
+
+    #     return cls(name="")
+
+    # @classmethod
+    # def from_ariane_file(cls, filepath):
+    #     from ariane_lib.parser import ArianeParser
+
+    #     if not filepath.exists():
+    #             raise FileNotFoundError(f"File not found: `{filepath}`")
+    #     survey = ArianeParser(filepath)
+
+    #     sections = []
+    #     for section in survey.sections:
+    #         shots = [Shot(name=shot.name) for shot in section.shots]
+    #         sections.append(Section(name=section.name, shots=shots))
+
+    #     return cls(name=survey.name, sections=sections)
 
     @classmethod
     def from_ariane_file(cls, filepath):
@@ -168,11 +278,10 @@ class Survey(UniqueSubFieldMixin, BaseModel):
                 raise FileNotFoundError(f"File not found: `{filepath}`")
         survey = ArianeParser(filepath)
 
-        sections = []
-        for section in survey.sections:
-            shots = [Shot(name=shot.name) for shot in section.shots]
-            sections.append(Section(name=section.name, shots=shots))
-
-        return cls(name=survey.name, sections=sections)
+        return cls.from_ariane(survey.data)
 
 
+    @classmethod
+    def from_ariane(cls, data):
+        data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
+        return cls(**data)

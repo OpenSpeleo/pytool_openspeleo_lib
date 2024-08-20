@@ -24,9 +24,6 @@ class UniqueNameGenerator:
         cls._used_names.add(name)
 
 
-# def camel2snakecase(value: str) -> str:
-#     # Breaks on uppercase letters or the start of a sequence of digits
-#     return re.sub(r"(?<!^)(?=[A-Z])|(?<=\D)(?=\d)", "_", value).lower()
 def camel2snakecase(value: str) -> str:
     # Breaks before sequences of uppercase letters (but not for acronyms) or digits
     return re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=\D)(?=\d)", "_", value).lower()
@@ -53,3 +50,31 @@ def str2bool(value: str) -> bool:
             return False
 
     raise ValueError(f"Cannot convert {value!r} to boolean")
+
+
+def apply_key_mapping(data: dict | list | tuple, mapping: dict) -> dict | list:
+
+    if isinstance(data, dict):
+        rslt = {}
+        for key, val in data.items():
+            key = mapping.get(key, key)  # noqa: PLW2901
+
+            if isinstance(val, (dict, list, tuple)):
+                rslt[key] = apply_key_mapping(val, mapping)
+            else:
+                rslt[key] = val
+
+        return rslt
+
+    if isinstance(data, (list, tuple)):
+        rslt = []
+        for val in data:
+            if isinstance(val, (dict, list, tuple)):
+                rslt.append(apply_key_mapping(val, mapping))
+            else:
+                rslt.append(val)
+
+        return rslt
+
+    raise TypeError(f"Unexpected type received: {type(data)}")
+

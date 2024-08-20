@@ -64,27 +64,27 @@ class TestBaseMixin(unittest.TestCase):
             SubModel(id=1, name="invalid_name^")
         assert "The character `^` is not allowed as `name`." in str(exc_info.value)
 
-    def test_enforce_snake_and_remove_none(self):
+    # def test_enforce_snake_and_remove_none(self):
 
-        class TestModel(BaseMixin, BaseModel):
-            id: int
-            some_field: str | None = None
-            another_field: str
+    #     class TestModel(BaseMixin, BaseModel):
+    #         id: int
+    #         some_field: str | None = None
+    #         another_field: str
 
-        model = TestModel(ID=1, SomeField=None, AnotherField="test")
-        model_dict = model.model_dump()
+    #     model = TestModel(ID=1, SomeField=None, AnotherField="test")
+    #     model_dict = model.model_dump()
 
-        assert "id" in model_dict
-        assert "ID" not in model_dict
-        assert model_dict["id"] == 1
+    #     assert "id" in model_dict
+    #     assert "ID" not in model_dict
+    #     assert model_dict["id"] == 1
 
-        assert "some_field" in model_dict
-        assert "SomeField" not in model_dict
-        assert model_dict["some_field"] is None
+    #     assert "some_field" in model_dict
+    #     assert "SomeField" not in model_dict
+    #     assert model_dict["some_field"] is None
 
-        assert "another_field" in model_dict
-        assert "AnotherField" not in model_dict
-        assert model_dict["another_field"] == "test"
+    #     assert "another_field" in model_dict
+    #     assert "AnotherField" not in model_dict
+    #     assert model_dict["another_field"] == "test"
 
 
 class TestIntegration(unittest.TestCase):

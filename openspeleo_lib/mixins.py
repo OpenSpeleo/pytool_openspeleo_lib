@@ -7,7 +7,6 @@ from pydantic import model_validator
 
 from openspeleo_lib.errors import DuplicateValueError
 from openspeleo_lib.utils import UniqueNameGenerator
-from openspeleo_lib.utils import camel2snakecase
 
 
 class UniqueSubFieldMixin:
@@ -33,7 +32,8 @@ class BaseMixin:
     @model_validator(mode="before")
     @classmethod
     def enforce_snake_and_remove_none(cls, data: dict) -> dict:
-        return {camel2snakecase(k): v for k, v in data.items()}
+        return {k: v for k, v in data.items() if v is not None}
+        # return {camel2snakecase(k): v for k, v in data.items()}
 
     @field_validator("name", mode="before")
     @classmethod
