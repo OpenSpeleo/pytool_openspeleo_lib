@@ -1,6 +1,6 @@
 import unittest
 
-from openspeleo_lib.errors import DuplicateNameError
+from openspeleo_lib.errors import DuplicateValueError
 from openspeleo_lib.utils import UniqueNameGenerator
 
 
@@ -30,10 +30,10 @@ class TestUniqueNameGenerator(unittest.TestCase):
 
         try:
             UniqueNameGenerator.register(name)
-        except DuplicateNameError:
+        except DuplicateValueError:
             pass
         else:
-            raise AssertionError("DuplicateNameError was not raised when expected.")
+            raise AssertionError("DuplicateValueError was not raised when expected.")
 
     def test_prevent_duplicate_name_generation(self):
         name = "UNIQUE2"

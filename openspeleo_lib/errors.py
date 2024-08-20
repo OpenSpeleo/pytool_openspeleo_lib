@@ -1,3 +1,3 @@
 
-class DuplicateNameError(ValueError):
+class DuplicateValueError(ValueError):
     pass

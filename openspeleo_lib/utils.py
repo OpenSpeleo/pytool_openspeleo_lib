@@ -1,7 +1,7 @@
 import random
 import re
 
-from openspeleo_lib.errors import DuplicateNameError
+from openspeleo_lib.errors import DuplicateValueError
 
 
 class UniqueNameGenerator:
@@ -20,7 +20,7 @@ class UniqueNameGenerator:
     @classmethod
     def register(cls, name):
         if name in cls._used_names:
-            raise DuplicateNameError(f"Name `{name}` has already been allocated.")
+            raise DuplicateValueError(f"Name `{name}` has already been allocated.")
         cls._used_names.add(name)
 
 
@@ -29,7 +29,7 @@ class UniqueNameGenerator:
 #     return re.sub(r"(?<!^)(?=[A-Z])|(?<=\D)(?=\d)", "_", value).lower()
 def camel2snakecase(value: str) -> str:
     # Breaks before sequences of uppercase letters (but not for acronyms) or digits
-    return re.sub(r'(?<=[a-z0-9])(?=[A-Z])|(?<=\D)(?=\d)', '_', value).lower()
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=\D)(?=\d)", "_", value).lower()
 
 def snake2camelcase(value: str) -> str:
     first, *others = value.split("_")
