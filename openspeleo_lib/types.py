@@ -1,10 +1,16 @@
+import datetime
 import uuid
-from datetime import date
+from pathlib import Path
+from typing import Any
+from typing import Self
 
+from defusedxml.minidom import parseString
+from dicttoxml import dicttoxml
 from pydantic import UUID4
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
+from pydantic import field_serializer
 from pydantic import field_validator
 
 from openspeleo_lib.formats.ariane import ARIANE_MAPPING
@@ -21,6 +27,10 @@ class RadiusVector(BaseModel):
     norm: float  # Euclidian Norm aka. length
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_serializer("norm", "angle", "tension_profile", "tension_corridor")
+    def serialize_numeric(self, value: float) -> str:
+        return str(value)
 
     @field_validator("*", mode="before")
     @classmethod
@@ -52,6 +62,14 @@ class Shape(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    @field_serializer("has_profile_tilt", "has_profile_azimuth")
+    def serialize_bool(self, value: bool) -> str:  # noqa: FBT001
+        return "true" if value else "false"
+
+    @field_serializer("profile_tilt", "profile_azimuth")
+    def serialize_numeric(self, value: float) -> str:
+        return str(value)
+
     @field_validator("has_profile_azimuth", "has_profile_tilt", mode="before")
     @classmethod
     def convert_to_bool(cls, v):
@@ -79,6 +97,10 @@ class LayerStyle(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    @field_serializer("stroke_thickness", "opacity", "line_type_scale", "dash_scale")
+    def serialize_numeric(self, value: float) -> str:
+        return str(value)
+
     @field_validator("dash_scale", "line_type_scale", "opacity", "stroke_thickness",
                      mode="before")
     @classmethod
@@ -96,6 +118,10 @@ class Layer(BaseModel):
     visible: bool = True
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_serializer("visible", "locked_layer", "constant")
+    def serialize_bool(self, value: bool) -> str:  # noqa: FBT001
+        return "true" if value else "false"
 
     @field_validator("constant", "locked_layer", "visible", mode="before")
     @classmethod
@@ -123,7 +149,7 @@ class Shot(BaseMixin, UniqueSubFieldMixin, BaseModel):
     closure_to_id: int
     color: str
     comment: str | None = None
-    date: date
+    date: datetime.date
     depth: float
     depth_in: float
     excluded: bool
@@ -149,6 +175,20 @@ class Shot(BaseMixin, UniqueSubFieldMixin, BaseModel):
     down: float
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_serializer("date")
+    def serialize_dt(self, dt: datetime.date, _info):
+        return dt.strftime("%Y-%m-%d")
+
+    @field_serializer("locked", "excluded")
+    def serialize_bool(self, value: bool) -> str:  # noqa: FBT001
+        return "true" if value else "false"
+
+    @field_serializer("left", "right", "up", "down", "longitude", "latitude", "length",
+                      "inclination", "id", "from_id", "depth_in", "depth",
+                      "closure_to_id", "azimuth")
+    def serialize_numeric(self, value: float) -> str:
+        return str(value)
 
     # model_config = ConfigDict(use_enum_values=True)
 
@@ -178,7 +218,7 @@ class Shot(BaseMixin, UniqueSubFieldMixin, BaseModel):
     @classmethod
     def parse_date(cls, v):
         if isinstance(v, str):
-            return date.fromisoformat(v)
+            return datetime.date.fromisoformat(v)
         return v
 
     @classmethod
@@ -228,6 +268,14 @@ class Survey(UniqueSubFieldMixin, BaseModel):
     constraints: str | None = None
     list_annotation: str | None = None
 
+    @field_serializer("use_magnetic_azimuth")
+    def serialize_bool(self, value: bool) -> str:  # noqa: FBT001
+        return "true" if value else "false"
+
+    @field_serializer("speleodb_id", "first_start_absolute_elevation")
+    def serialize_to_str(self, value: Any) -> str:
+        return str(value)
+
     model_config = ConfigDict(extra="forbid")
 
     @field_validator("use_magnetic_azimuth", mode="before")
@@ -271,7 +319,7 @@ class Survey(UniqueSubFieldMixin, BaseModel):
     #     return cls(name=survey.name, sections=sections)
 
     @classmethod
-    def from_ariane_file(cls, filepath):
+    def from_ariane_file(cls, filepath: Path) -> Self:
         from ariane_lib.parser import ArianeParser
 
         if not filepath.exists():
@@ -280,8 +328,27 @@ class Survey(UniqueSubFieldMixin, BaseModel):
 
         return cls.from_ariane(survey.data)
 
+    def to_ariane(self) -> dict:
+        return apply_key_mapping(self.model_dump(), mapping=ARIANE_MAPPING)
+
+    def to_ariane_file(self, filepath: Path) -> None:
+        xml_str = dicttoxml(
+            self.to_ariane(),
+            custom_root="CaveFile",
+            attr_type=False,
+            xml_declaration=False
+        )
+
+        if isinstance(filepath, str):
+            filepath = Path(filepath)
+
+        xml_prettyfied = parseString(xml_str).toprettyxml()
+
+        with filepath.open(mode="w") as f:
+            f.writelines("\n".join(xml_prettyfied.splitlines()[1:]))
 
     @classmethod
-    def from_ariane(cls, data):
+    def from_ariane(cls, data) -> Self:
         data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
         return cls(**data)
+
