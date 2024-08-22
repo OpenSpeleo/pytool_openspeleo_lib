@@ -1,4 +1,5 @@
 import unittest
+
 import pytest
 
 from openspeleo_lib.utils import apply_key_mapping
