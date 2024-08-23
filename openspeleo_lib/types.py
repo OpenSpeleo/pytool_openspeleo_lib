@@ -1,11 +1,14 @@
 import datetime
+import json
+import tempfile
 import uuid
+import zipfile
 from pathlib import Path
 from typing import Any
 from typing import Self
 
 from defusedxml.minidom import parseString
-from dicttoxml import dicttoxml
+from dicttoxml2 import dicttoxml
 from pydantic import UUID4
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -15,7 +18,7 @@ from pydantic import field_validator
 
 from openspeleo_lib.formats.ariane import ARIANE_MAPPING
 from openspeleo_lib.mixins import BaseMixin
-from openspeleo_lib.mixins import UniqueSubFieldMixin
+from openspeleo_lib.mixins import NamedModelMixin
 from openspeleo_lib.utils import apply_key_mapping
 from openspeleo_lib.utils import str2bool
 
@@ -63,7 +66,7 @@ class Shape(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     @field_serializer("has_profile_tilt", "has_profile_azimuth")
-    def serialize_bool(self, value: bool) -> str:  # noqa: FBT001
+    def serialize_bool(self, value: bool) -> str:
         return "true" if value else "false"
 
     @field_serializer("profile_tilt", "profile_azimuth")
@@ -120,7 +123,7 @@ class Layer(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     @field_serializer("visible", "locked_layer", "constant")
-    def serialize_bool(self, value: bool) -> str:  # noqa: FBT001
+    def serialize_bool(self, value: bool) -> str:
         return "true" if value else "false"
 
     @field_validator("constant", "locked_layer", "visible", mode="before")
@@ -144,7 +147,7 @@ class LayerCollection(BaseModel):
         return v
 
 
-class Shot(BaseMixin, UniqueSubFieldMixin, BaseModel):
+class SurveyShot(BaseMixin, NamedModelMixin, BaseModel):
     azimuth: float
     closure_to_id: int
     color: str
@@ -181,7 +184,7 @@ class Shot(BaseMixin, UniqueSubFieldMixin, BaseModel):
         return dt.strftime("%Y-%m-%d")
 
     @field_serializer("locked", "excluded")
-    def serialize_bool(self, value: bool) -> str:  # noqa: FBT001
+    def serialize_bool(self, value: bool) -> str:
         return "true" if value else "false"
 
     @field_serializer("left", "right", "up", "down", "longitude", "latitude", "length",
@@ -191,6 +194,7 @@ class Shot(BaseMixin, UniqueSubFieldMixin, BaseModel):
         return str(value)
 
     # model_config = ConfigDict(use_enum_values=True)
+
 
     @field_validator("azimuth", "depth", "depth_in", "down", "inclination", "latitude",
                      "left", "length", "longitude", "right", "up", mode="before")
@@ -236,7 +240,7 @@ class Shot(BaseMixin, UniqueSubFieldMixin, BaseModel):
 #         return cls.validate_unique(field="id", values=values)
 
 class ShotCollection(BaseModel):
-    shot_list: list[Shot] = []
+    shot_list: list[SurveyShot] = []
 
     model_config = ConfigDict(extra="forbid")
 
@@ -248,7 +252,7 @@ class ShotCollection(BaseModel):
         return v
 
 
-class Survey(UniqueSubFieldMixin, BaseModel):
+class Survey(BaseMixin, BaseModel):
     speleodb_id: UUID4 = Field(default_factory=uuid.uuid4)
     cave_name: str
     unit: str = "m"
@@ -269,7 +273,7 @@ class Survey(UniqueSubFieldMixin, BaseModel):
     list_annotation: str | None = None
 
     @field_serializer("use_magnetic_azimuth")
-    def serialize_bool(self, value: bool) -> str:  # noqa: FBT001
+    def serialize_bool(self, value: bool) -> str:
         return "true" if value else "false"
 
     @field_serializer("speleodb_id", "first_start_absolute_elevation")
@@ -319,36 +323,73 @@ class Survey(UniqueSubFieldMixin, BaseModel):
     #     return cls(name=survey.name, sections=sections)
 
     @classmethod
-    def from_ariane_file(cls, filepath: Path) -> Self:
+    def from_ariane_file(cls, filepath: Path, debug=False) -> Self:
         from ariane_lib.parser import ArianeParser
 
         if not filepath.exists():
                 raise FileNotFoundError(f"File not found: `{filepath}`")
+
         survey = ArianeParser(filepath)
 
-        return cls.from_ariane(survey.data)
+        return cls.from_ariane(survey.data, debug=debug)
 
-    def to_ariane(self) -> dict:
-        return apply_key_mapping(self.model_dump(), mapping=ARIANE_MAPPING)
+    @classmethod
+    def from_ariane(cls, data, debug=False) -> Self:
+        if debug:
+            with open("data.import.before.json", mode="w") as f:  # noqa: PTH123
+                f.write(json.dumps(data, indent=4, sort_keys=True))
+        data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
+        if debug:
+            with open("data.import.after.json", mode="w") as f:  # noqa: PTH123
+                f.write(json.dumps(data, indent=4, sort_keys=True))
+        return cls(**data)
 
-    def to_ariane_file(self, filepath: Path) -> None:
-        xml_str = dicttoxml(
-            self.to_ariane(),
-            custom_root="CaveFile",
-            attr_type=False,
-            xml_declaration=False
-        )
+    def to_ariane(self, debug=False) -> dict:
+        data = self.model_dump()
+
+        if debug:
+            with open("data.export.before.json", mode="w") as f:  # noqa: PTH123
+                f.write(json.dumps(data, indent=4, sort_keys=True))
+
+        data = apply_key_mapping(self.model_dump(), mapping=ARIANE_MAPPING)
+
+        if debug:
+            with open("data.export.after.json", mode="w") as f:  # noqa: PTH123
+                f.write(json.dumps(data, indent=4, sort_keys=True))
+
+        return data
+
+    def to_ariane_file(self, filepath: Path, debug=False) -> None:
 
         if isinstance(filepath, str):
             filepath = Path(filepath)
 
-        xml_prettyfied = parseString(xml_str).toprettyxml()
+        if filepath.suffix != ".tml":
+            raise ValueError(f"Received unexpected extension `{filepath.suffix}`."
+                             "Expected: `.tml`.")
 
-        with filepath.open(mode="w") as f:
-            f.writelines("\n".join(xml_prettyfied.splitlines()[1:]))
+        ariane_data = self.to_ariane(debug=debug)
+        # del ariane_data["speleodb_id"]
 
-    @classmethod
-    def from_ariane(cls, data) -> Self:
-        data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
-        return cls(**data)
+        xml_str = dicttoxml(
+            ariane_data,
+            custom_root="CaveFile",
+            attr_type=False,
+            fold_list=False
+        )
 
+        xml_prettyfied = parseString(xml_str).toprettyxml(
+            indent=" " * 4, encoding="utf-8", standalone=True
+        ).decode("utf-8")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            xml_f = Path(tmp_dir) / "Data.xml"
+            with xml_f.open(mode="w") as f:
+                f.write(xml_prettyfied)
+
+            if debug:
+                with open("Data.xml", mode="w") as f:  # noqa: PTH123
+                    f.write(xml_prettyfied)
+
+            with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_STORED) as zipf:
+                zipf.write(f.name, "Data.xml")
