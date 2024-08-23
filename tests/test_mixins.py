@@ -8,16 +8,16 @@ from pydantic import ValidationError
 from pydantic import model_validator
 
 from openspeleo_lib.mixins import BaseMixin
-from openspeleo_lib.mixins import UniqueSubFieldMixin
+from openspeleo_lib.mixins import NamedModelMixin
 from openspeleo_lib.utils import UniqueNameGenerator
 
 
 # Sample model using the mixins
-class SubModel(UniqueSubFieldMixin, BaseMixin, BaseModel):
+class SubModel(BaseMixin, NamedModelMixin, BaseModel):
     id: int
 
 # Another model to test uniqueness in lists
-class ContainerModel(UniqueSubFieldMixin, BaseModel):
+class ContainerModel(BaseMixin, BaseModel):
     items: list[SubModel]
 
     @model_validator(mode="before")
@@ -28,6 +28,7 @@ class ContainerModel(UniqueSubFieldMixin, BaseModel):
 
 
 class NestedModel(BaseMixin, BaseModel):
+    name: str
     nested: SubModel
 
 
@@ -43,9 +44,8 @@ class TestUniqueSubFieldMixin(unittest.TestCase):
 
     def test_validate_unique_with_duplicates(self):
         _ = SubModel(id=1, name="test1")
-        with pytest.raises(ValidationError) as exc_info:
-            _ = SubModel(id=1, name="test1")
-        assert "has already been allocated" in str(exc_info.value)
+        mdl2 = SubModel(id=1, name="test1")
+        assert mdl2.name == "test1-1"
 
 
 class TestBaseMixin(unittest.TestCase):
@@ -63,6 +63,24 @@ class TestBaseMixin(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             SubModel(id=1, name="invalid_name^")
         assert "The character `^` is not allowed as `name`." in str(exc_info.value)
+
+    def test_container_model_with_unique_items(self):
+        # Test ContainerModel with unique items
+        items = [
+            SubModel(id=1, name="test1"),
+            SubModel(id=2, name="test2"),
+            SubModel(id=3, name="test3"),
+        ]
+
+        _ = ContainerModel(items=items)
+
+    def test_container_model_with_duplicate_items(self):
+        # Test ContainerModel with duplicate items
+        item = SubModel(id=1, name="test1")
+
+        with pytest.raises(ValidationError) as exc_info:
+            ContainerModel(items=[item, item, item])
+        assert "Duplicate value found" in str(exc_info.value)
 
     # def test_enforce_snake_and_remove_none(self):
 
@@ -85,31 +103,6 @@ class TestBaseMixin(unittest.TestCase):
     #     assert "another_field" in model_dict
     #     assert "AnotherField" not in model_dict
     #     assert model_dict["another_field"] == "test"
-
-
-class TestIntegration(unittest.TestCase):
-
-    def setUp(self) -> None:
-        # Clear already used names
-        UniqueNameGenerator._used_names.clear()  # noqa: SLF001
-
-    def test_container_model_with_unique_items(self):
-        # Test ContainerModel with unique items
-        items = [
-            SubModel(id=1, name="test1"),
-            SubModel(id=2, name="test2"),
-            SubModel(id=3, name="test3"),
-        ]
-
-        _ = ContainerModel(items=items)
-
-    def test_container_model_with_duplicate_items(self):
-        # Test ContainerModel with duplicate items
-        item = SubModel(id=1, name="test1")
-
-        with pytest.raises(ValidationError) as exc_info:
-            ContainerModel(items=[item, item, item])
-        assert "Duplicate value found" in str(exc_info.value)
 
 
 class TestBaseMixinToJson(unittest.TestCase):

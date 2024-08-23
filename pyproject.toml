@@ -58,7 +58,7 @@ classifiers = [
 dependencies = [
     "bidict>=0.23,<0.24",
     "defusedxml>=0.7,<0.8",
-    "dicttoxml>=1.7,<1.8",
+    "dicttoxml2>=2.1,<2.2",
     "iteration_utilities>=0.12,<0.13",
     "pydantic>=2.8,<2.9"
 ]
@@ -103,9 +103,6 @@ addopts = "-vvv --cov=openspeleo_lib --cov-report=term-missing"
 
 
 [tool.pytest_env]
-RAY_ADDRESS = "local"
-NVIDIA_DISABLE_REQUIRE=1
-
 
 # # This is configuration specific to the `setuptools` build backend.
 # # If you are using a different build backend, you will need to change this.
@@ -226,7 +223,9 @@ ignore = [
   "PLR0913", # Checks for function definitions that include too many arguments.
   "S311",    # Checks for uses of cryptographically weak pseudo-random number generators.
   "ERA001",  # Checks for commented-out Python code.
-  "N815"     # Checks for class variable names that follow the mixedCase convention.
+  "N815",    # Checks for class variable names that follow the mixedCase convention.
+  "FBT001"   # Checks for the use of boolean positional arguments in function definitions,
+  # as determined by the presence of a bool type hint.
 ]
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]

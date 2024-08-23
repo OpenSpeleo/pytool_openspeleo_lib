@@ -3,7 +3,7 @@ from datetime import date
 
 import pytest
 
-from openspeleo_lib.types import Shot
+from openspeleo_lib.types import SurveyShot
 from openspeleo_lib.utils import UniqueNameGenerator
 
 
@@ -75,7 +75,7 @@ class TestCaveDataModel(unittest.TestCase):
         }
 
     def test_create_cave_data_model(self):
-        cave_data = Shot.from_ariane(self.valid_data)
+        cave_data = SurveyShot.from_ariane(self.valid_data)
         assert cave_data.azimuth == 0.0
         assert cave_data.closure_to_id == -1
         assert cave_data.color == "0x00ffffff"
@@ -90,13 +90,13 @@ class TestCaveDataModel(unittest.TestCase):
         invalid_data = self.valid_data.copy()
         invalid_data["Azimut"] = "not_a_float"
         with pytest.raises(ValueError):  # noqa: PT011
-            Shot.from_ariane(invalid_data)
+            SurveyShot.from_ariane(invalid_data)
 
     def test_optional_fields(self):
         partial_data = self.valid_data.copy()
         partial_data["Comment"] = None
         partial_data["Name"] = None
-        cave_data = Shot.from_ariane(partial_data)
+        cave_data = SurveyShot.from_ariane(partial_data)
         assert cave_data.comment is None
         assert cave_data.name is not None
 

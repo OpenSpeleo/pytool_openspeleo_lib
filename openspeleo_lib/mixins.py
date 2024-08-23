@@ -5,11 +5,26 @@ from pydantic import Field
 from pydantic import field_validator
 from pydantic import model_validator
 
+from openspeleo_lib.constants import COMPASS_MAX_NAME_LENGTH
+from openspeleo_lib.constants import OSPL_NAME_CLASH_RETRIES
 from openspeleo_lib.errors import DuplicateValueError
 from openspeleo_lib.utils import UniqueNameGenerator
 
 
-class UniqueSubFieldMixin:
+class BaseMixin:
+    @model_validator(mode="before")
+    @classmethod
+    def enforce_snake_and_remove_none(cls, data: dict) -> dict:
+        return {k: v for k, v in data.items() if v is not None}
+
+    def to_json(self) -> str:
+        """
+        Serialize the model to a JSON string with indentation and sorted keys.
+
+        Returns:
+            str: The JSON representation of the model.
+        """
+        return json.dumps(self.model_dump(), indent=4, sort_keys=True)
 
     @classmethod
     def validate_unique(cls, field: str, values: list) -> list:
@@ -22,18 +37,14 @@ class UniqueSubFieldMixin:
             )
         return values
 
-class BaseMixin:
+
+class NamedModelMixin:
+
     name: str = Field(
         default_factory=lambda: UniqueNameGenerator.get(str_len=6),
         min_length=2,
         max_length=32
     )
-
-    @model_validator(mode="before")
-    @classmethod
-    def enforce_snake_and_remove_none(cls, data: dict) -> dict:
-        return {k: v for k, v in data.items() if v is not None}
-        # return {camel2snakecase(k): v for k, v in data.items()}
 
     @field_validator("name", mode="before")
     @classmethod
@@ -48,20 +59,28 @@ class BaseMixin:
         for char in value:
             if char.upper() not in [
                 *UniqueNameGenerator.VOCAB,
-                *list("#-_@!~%&*[]{}()|: ")
+                *list("_-~:!?.'()[]{}@*&#%|$")
             ]:
                 raise ValueError(f"The character `{char}` is not allowed as `name`.")
 
-        # 2. Register the name to avoid re-using it.
-        UniqueNameGenerator.register(name=value)
+        try:
+            # 2. Register the name to avoid re-using it.
+            UniqueNameGenerator.register(name=value)
+        except DuplicateValueError:
+            original_name = value
+            for idx in range(1, OSPL_NAME_CLASH_RETRIES + 1):
+                try:
+                    value = f"{value}-{idx}"
+                    UniqueNameGenerator.register(name=f"{value}-{idx}")
+                    break
+                except DuplicateValueError:
+                    continue
+            else:
+                raise DuplicateValueError("Impossible to find an available name for "
+                                          f"`{original_name}`")
+
+        if len(value) > COMPASS_MAX_NAME_LENGTH:
+            raise ValueError(f"Name {value} is too long, maximum allowed: "
+                             f"{COMPASS_MAX_NAME_LENGTH}")
 
         return value
-
-    def to_json(self) -> str:
-        """
-        Serialize the model to a JSON string with indentation and sorted keys.
-
-        Returns:
-            str: The JSON representation of the model.
-        """
-        return json.dumps(self.model_dump(), indent=4, sort_keys=True)
