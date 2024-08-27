@@ -55,7 +55,7 @@ ARIANE_MAPPING = frozenbidict(
         "length": "Length",
         "locked": "Locked",
         "longitude": "Longitude",
-        "name": "Name",
+        "name_compass": "Name",
         "profiletype": "Profiletype",
         "section": "Section",
         "shape": "Shape",

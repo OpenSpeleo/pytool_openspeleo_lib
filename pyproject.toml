@@ -60,7 +60,8 @@ dependencies = [
     "defusedxml>=0.7,<0.8",
     "dicttoxml2>=2.1,<2.2",
     "iteration_utilities>=0.12,<0.13",
-    "pydantic>=2.8,<2.9"
+    "pydantic>=2.8,<2.9",
+    "xmltodict>=0.13,<0.14"
 ]
 
 [project.optional-dependencies]
@@ -90,6 +91,9 @@ test = [
 
 # [project.scripts]
 # compass = "openspeleo_lib.commands.main:main"
+
+[project.scripts]
+openspeleo = "openspeleo_lib.commands.main:main"
 
 # [project.entry-points."compass.actions"]
 # convert = "openspeleo_lib.commands.convert:convert"
@@ -224,8 +228,11 @@ ignore = [
   "S311",    # Checks for uses of cryptographically weak pseudo-random number generators.
   "ERA001",  # Checks for commented-out Python code.
   "N815",    # Checks for class variable names that follow the mixedCase convention.
-  "FBT001"   # Checks for the use of boolean positional arguments in function definitions,
+  "FBT001",  # Checks for the use of boolean positional arguments in function definitions,
   # as determined by the presence of a bool type hint.
+  "PLR2004", # Checks for the use of unnamed numerical constants ("magic") values in comparisons.
+  "PT011",   # Checks for pytest.raises calls without a match parameter.
+  "PYI024"   # Checks for uses of collections.namedtuple in stub files.
 ]
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]

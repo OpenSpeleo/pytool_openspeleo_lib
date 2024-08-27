@@ -1,27 +1,4 @@
-import random
 import re
-
-from openspeleo_lib.errors import DuplicateValueError
-
-
-class UniqueNameGenerator:
-    VOCAB = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    _used_names = set()
-
-    @classmethod
-    def get(cls, str_len=6):
-        while True:
-            name = "".join(random.choices(cls.VOCAB, k=str_len))
-            if name in cls._used_names:
-                continue
-            cls._used_names.add(name)
-            return name
-
-    @classmethod
-    def register(cls, name):
-        if name in cls._used_names:
-            raise DuplicateValueError(f"Name `{name}` has already been allocated.")
-        cls._used_names.add(name)
 
 
 def camel2snakecase(value: str) -> str:
@@ -54,6 +31,9 @@ def str2bool(value: str) -> bool:
 
 def apply_key_mapping(data: dict | list | tuple, mapping: dict) -> dict | list:
 
+    if not isinstance(data, (tuple, dict, list)):
+        raise TypeError(f"Unexpected type received: {type(data)}")
+
     if isinstance(data, dict):
         rslt = {}
         for key, val in data.items():
@@ -64,9 +44,7 @@ def apply_key_mapping(data: dict | list | tuple, mapping: dict) -> dict | list:
             else:
                 rslt[key] = val
 
-        return rslt
-
-    if isinstance(data, (list, tuple)):
+    else:
         rslt = []
         for val in data:
             if isinstance(val, (dict, list, tuple)):
@@ -74,7 +52,5 @@ def apply_key_mapping(data: dict | list | tuple, mapping: dict) -> dict | list:
             else:
                 rslt.append(val)
 
-        return rslt
-
-    raise TypeError(f"Unexpected type received: {type(data)}")
+    return rslt
 

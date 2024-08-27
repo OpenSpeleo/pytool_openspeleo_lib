@@ -95,6 +95,11 @@ class TestApplyKeyMapping(unittest.TestCase):
         expected_output = {"one": "one", "two": "two", 3: {"Norm": "10.0"}}
         assert apply_key_mapping(data, mapping) == expected_output
 
+    def test_key_replacement_with_list(self):
+        data = {"Azimut": "0.0", "Depth": [1, 2, 3]}
+        mapping = {"NonexistentKey": "NewKey"}
+        assert apply_key_mapping(data, mapping) == data
+
 
 if __name__ == "__main__":
     unittest.main()
