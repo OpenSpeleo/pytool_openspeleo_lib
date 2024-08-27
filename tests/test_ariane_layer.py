@@ -35,7 +35,7 @@ class TestLayerModel(unittest.TestCase):
         assert layer.style.fill_color_string == "0x00000000"
         assert layer.style.line_type == "STANDARD"
         assert layer.style.line_type_scale == 1.0
-        assert layer.style.opacity == 100.0  # noqa: PLR2004
+        assert layer.style.opacity == 100.0
         assert layer.style.size_mode == "SWITCHABLE"
         assert layer.style.stroke_color_string == "0x000000ff"
         assert layer.style.stroke_thickness == 1.0
@@ -59,6 +59,7 @@ class TestLayerModel(unittest.TestCase):
         self.data["style"]["stroke_thickness"] = "aaa"
         with pytest.raises(ValidationError, match="could not convert string to float"):
             Layer(**self.data)
+
 
 if __name__ == "__main__":
     unittest.main()

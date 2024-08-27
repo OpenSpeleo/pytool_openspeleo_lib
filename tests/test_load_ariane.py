@@ -3,17 +3,18 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ariane_lib.parser import ArianeParser
 from deepdiff import DeepDiff
 from parameterized import parameterized_class
 
+from openspeleo_lib.formats.ariane.parser import ArianeParser
+from openspeleo_lib.generators import UniqueNameGenerator
 from openspeleo_lib.types import Survey
-from openspeleo_lib.utils import UniqueNameGenerator
 
 
 @parameterized_class(
     ("filepath"),
     [
+        # ("artifacts/hand_survey.tml",),
         ("tests/artifacts/hand_survey.tml",),
         ("tests/artifacts/test_simple.tml",),
         # ("tests/artifacts/test_simple.tmlu",),
@@ -25,16 +26,17 @@ class TestLoadTMLFile(unittest.TestCase):
 
     def setUp(self) -> None:
         # Clear already used names
-        UniqueNameGenerator._used_names.clear()  # noqa: SLF001
+        UniqueNameGenerator._used_values.clear()  # noqa: SLF001
 
     def test_load_ariane_file(self):
         file = Path(self.filepath)
-        Survey.from_ariane_file(filepath=file)
+        _ = Survey.from_ariane_file(filepath=file, debug=True)
 
 
 @parameterized_class(
     ("filepath"),
     [
+        # ("artifacts/hand_survey.tml",),
         ("tests/artifacts/hand_survey.tml",),
     ]
 )
@@ -42,7 +44,7 @@ class TestTMLRoundTrip(unittest.TestCase):
 
     def setUp(self) -> None:
         # Clear already used names
-        UniqueNameGenerator._used_names.clear()  # noqa: SLF001
+        UniqueNameGenerator._used_values.clear()  # noqa: SLF001
 
     def test_json_roundtrip(self):
         file = Path(self.filepath)
@@ -50,13 +52,11 @@ class TestTMLRoundTrip(unittest.TestCase):
         if not file.exists():
             raise FileNotFoundError(f"File not found: `{file}`")
 
-        survey = ArianeParser(file)
+        original_data = ArianeParser.from_ariane_file(file)
 
-        original_data = survey.data
+        pydantic_survey = Survey.from_ariane_dict(original_data)
 
-        pydantic_survey = Survey.from_ariane(original_data)
-
-        round_trip_data = pydantic_survey.to_ariane()
+        round_trip_data = pydantic_survey.to_ariane_dict()
 
         ddiff = DeepDiff(original_data, round_trip_data, ignore_order=True)
 

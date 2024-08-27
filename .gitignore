@@ -160,9 +160,9 @@ cython_debug/
 #.idea/
 
 # Debug Files
-data.export.after.json
-data.export.before.json
-data.import.after.json
-data.import.before.json
-Data.xml
-survey.tml
+*.json
+*.xml
+*.tml
+tests/*.json
+tests/*.xml
+tests/*.tml

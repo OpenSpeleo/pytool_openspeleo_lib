@@ -32,7 +32,7 @@ class TestSurvey(unittest.TestCase):
         assert survey.speleodb_id is not None
         assert isinstance(survey.speleodb_id, UUID)
         assert survey.cave_name == "DEMO"
-        assert survey.first_start_absolute_elevation == 123.45  # noqa: PLR2004
+        assert survey.first_start_absolute_elevation == 123.45
         assert survey.unit == "m"
         assert survey.use_magnetic_azimuth is True
 

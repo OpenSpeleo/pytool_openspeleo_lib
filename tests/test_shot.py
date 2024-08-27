@@ -3,15 +3,15 @@ from datetime import date
 
 import pytest
 
+from openspeleo_lib.generators import UniqueNameGenerator
 from openspeleo_lib.types import SurveyShot
-from openspeleo_lib.utils import UniqueNameGenerator
 
 
 class TestCaveDataModel(unittest.TestCase):
 
     def setUp(self):
         # Clear already used names
-        UniqueNameGenerator._used_names.clear()  # noqa: SLF001
+        UniqueNameGenerator._used_values.clear()  # noqa: SLF001
 
         self.valid_data = {
             "Azimut": "0.0",
@@ -75,7 +75,7 @@ class TestCaveDataModel(unittest.TestCase):
         }
 
     def test_create_cave_data_model(self):
-        cave_data = SurveyShot.from_ariane(self.valid_data)
+        cave_data = SurveyShot.from_ariane_dict(self.valid_data)
         assert cave_data.azimuth == 0.0
         assert cave_data.closure_to_id == -1
         assert cave_data.color == "0x00ffffff"
@@ -84,21 +84,22 @@ class TestCaveDataModel(unittest.TestCase):
         assert not cave_data.excluded
         assert cave_data.explorer == "Ariane"
         assert not cave_data.shape.has_profile_azimuth
-        assert cave_data.shape.radius_collection.radius_vector[0].tension_corridor == 1.0
+        assert cave_data.shape.radius_collection.radius_vector[0].tension_corridor == \
+            1.0
 
     def test_invalid_data(self):
         invalid_data = self.valid_data.copy()
         invalid_data["Azimut"] = "not_a_float"
-        with pytest.raises(ValueError):  # noqa: PT011
-            SurveyShot.from_ariane(invalid_data)
+        with pytest.raises(ValueError):
+            SurveyShot.from_ariane_dict(invalid_data)
 
     def test_optional_fields(self):
         partial_data = self.valid_data.copy()
         partial_data["Comment"] = None
         partial_data["Name"] = None
-        cave_data = SurveyShot.from_ariane(partial_data)
+        cave_data = SurveyShot.from_ariane_dict(partial_data)
         assert cave_data.comment is None
-        assert cave_data.name is not None
+        assert cave_data.name_compass is not None
 
 
 if __name__ == "__main__":

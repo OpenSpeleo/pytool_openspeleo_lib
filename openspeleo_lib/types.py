@@ -1,14 +1,9 @@
 import datetime
-import json
-import tempfile
 import uuid
-import zipfile
 from pathlib import Path
 from typing import Any
 from typing import Self
 
-from defusedxml.minidom import parseString
-from dicttoxml2 import dicttoxml
 from pydantic import UUID4
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -16,10 +11,10 @@ from pydantic import Field
 from pydantic import field_serializer
 from pydantic import field_validator
 
-from openspeleo_lib.formats.ariane import ARIANE_MAPPING
+from openspeleo_lib.formats.ariane.parser import ArianeParser
+from openspeleo_lib.mixins import AutoIdModelMixin
 from openspeleo_lib.mixins import BaseMixin
-from openspeleo_lib.mixins import NamedModelMixin
-from openspeleo_lib.utils import apply_key_mapping
+from openspeleo_lib.mixins import NameIdModelMixin
 from openspeleo_lib.utils import str2bool
 
 
@@ -37,7 +32,7 @@ class RadiusVector(BaseModel):
 
     @field_validator("*", mode="before")
     @classmethod
-    def convert_to_float(cls, v):
+    def convert_to_float(cls, v: str | float | None ) -> float:
         if isinstance(v, str):
             return float(v)
         return v
@@ -50,7 +45,7 @@ class RadiusCollection(BaseModel):
 
     @field_validator("radius_vector", mode="before")
     @classmethod
-    def ensure_list_type(cls, v):
+    def ensure_list_type(cls, v: list | dict | None) -> list:
         if isinstance(v, dict):
             return [v]
         return v
@@ -75,14 +70,14 @@ class Shape(BaseModel):
 
     @field_validator("has_profile_azimuth", "has_profile_tilt", mode="before")
     @classmethod
-    def convert_to_bool(cls, v):
+    def convert_to_bool(cls, v: str | bool | None) -> bool:
         if isinstance(v, str):
             return str2bool(v)
         return v
 
     @field_validator("profile_azimuth", "profile_tilt", mode="before")
     @classmethod
-    def convert_to_float(cls, v):
+    def convert_to_float(cls, v: str | float | None) -> float:
         if isinstance(v, str):
             return float(v)
         return v
@@ -107,7 +102,7 @@ class LayerStyle(BaseModel):
     @field_validator("dash_scale", "line_type_scale", "opacity", "stroke_thickness",
                      mode="before")
     @classmethod
-    def convert_to_float(cls, v):
+    def convert_to_float(cls, v: str | float | None) -> float:
         if isinstance(v, str):
             return float(v)
         return v
@@ -128,7 +123,7 @@ class Layer(BaseModel):
 
     @field_validator("constant", "locked_layer", "visible", mode="before")
     @classmethod
-    def convert_to_bool(cls, v):
+    def convert_to_bool(cls, v: str | bool | None) -> bool:
         if isinstance(v, str):
             return str2bool(v)
         return v
@@ -141,13 +136,13 @@ class LayerCollection(BaseModel):
 
     @field_validator("layer_list", mode="before")
     @classmethod
-    def ensure_list_type(cls, v):
+    def ensure_list_type(cls, v : list | dict | None) -> list:
         if isinstance(v, dict):
             return [v]
         return v
 
 
-class SurveyShot(BaseMixin, NamedModelMixin, BaseModel):
+class SurveyShot(BaseMixin, AutoIdModelMixin, NameIdModelMixin, BaseModel):
     azimuth: float
     closure_to_id: int
     color: str
@@ -158,7 +153,6 @@ class SurveyShot(BaseMixin, NamedModelMixin, BaseModel):
     excluded: bool
     explorer: str
     from_id: int
-    id: int
     inclination: float
     latitude: float
     length: float
@@ -199,36 +193,31 @@ class SurveyShot(BaseMixin, NamedModelMixin, BaseModel):
     @field_validator("azimuth", "depth", "depth_in", "down", "inclination", "latitude",
                      "left", "length", "longitude", "right", "up", mode="before")
     @classmethod
-    def convert_to_float(cls, v):
+    def convert_to_float(cls, v: str | float | None) -> float:
         if isinstance(v, str):
             return float(v)
         return v
 
     @field_validator("closure_to_id", "from_id", "id", mode="before")
     @classmethod
-    def convert_to_int(cls, v):
+    def convert_to_int(cls, v : str | int | None) -> int:
         if isinstance(v, str):
             return int(v)
         return v
 
     @field_validator("excluded", "locked", mode="before")
     @classmethod
-    def convert_to_bool(cls, v):
+    def convert_to_bool(cls, v: bool | str | None) -> bool:
         if isinstance(v, str):
             return str2bool(v)
         return v
 
     @field_validator("date", mode="before")
     @classmethod
-    def parse_date(cls, v):
+    def parse_date(cls, v : datetime.date | str | None) -> datetime.date:
         if isinstance(v, str):
             return datetime.date.fromisoformat(v)
         return v
-
-    @classmethod
-    def from_ariane(cls, data):
-        data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
-        return cls(**data)
 
 # class Section(BaseMixin, UniqueSubFieldMixin, BaseModel):
 #     id: int
@@ -246,7 +235,7 @@ class ShotCollection(BaseModel):
 
     @field_validator("shot_list", mode="before")
     @classmethod
-    def ensure_list_type(cls, v):
+    def ensure_list_type(cls, v: list| dict | None) -> list:
         if isinstance(v, dict):
             return [v]
         return v
@@ -296,100 +285,17 @@ class Survey(BaseMixin, BaseModel):
             return float(v)
         return v
 
-    # @classmethod
-    # def from_compass_file(cls, filepath: Path):
-    #     from compass_lib.parser import CompassParser
-
-    #     if not filepath.exists():
-    #             raise FileNotFoundError(f"File not found: `{filepath}`")
-
-    #     survey = CompassParser(filepath)
-
-    #     return cls(name="")
-
-    # @classmethod
-    # def from_ariane_file(cls, filepath):
-    #     from ariane_lib.parser import ArianeParser
-
-    #     if not filepath.exists():
-    #             raise FileNotFoundError(f"File not found: `{filepath}`")
-    #     survey = ArianeParser(filepath)
-
-    #     sections = []
-    #     for section in survey.sections:
-    #         shots = [Shot(name=shot.name) for shot in section.shots]
-    #         sections.append(Section(name=section.name, shots=shots))
-
-    #     return cls(name=survey.name, sections=sections)
-
     @classmethod
     def from_ariane_file(cls, filepath: Path, debug=False) -> Self:
-        from ariane_lib.parser import ArianeParser
-
-        if not filepath.exists():
-                raise FileNotFoundError(f"File not found: `{filepath}`")
-
-        survey = ArianeParser(filepath)
-
-        return cls.from_ariane(survey.data, debug=debug)
-
-    @classmethod
-    def from_ariane(cls, data, debug=False) -> Self:
-        if debug:
-            with open("data.import.before.json", mode="w") as f:  # noqa: PTH123
-                f.write(json.dumps(data, indent=4, sort_keys=True))
-        data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
-        if debug:
-            with open("data.import.after.json", mode="w") as f:  # noqa: PTH123
-                f.write(json.dumps(data, indent=4, sort_keys=True))
-        return cls(**data)
-
-    def to_ariane(self, debug=False) -> dict:
-        data = self.model_dump()
-
-        if debug:
-            with open("data.export.before.json", mode="w") as f:  # noqa: PTH123
-                f.write(json.dumps(data, indent=4, sort_keys=True))
-
-        data = apply_key_mapping(self.model_dump(), mapping=ARIANE_MAPPING)
-
-        if debug:
-            with open("data.export.after.json", mode="w") as f:  # noqa: PTH123
-                f.write(json.dumps(data, indent=4, sort_keys=True))
-
-        return data
+        data = ArianeParser.from_ariane_file(filepath=filepath, debug=True)
+        return cls.from_ariane_dict(data, debug=debug)
 
     def to_ariane_file(self, filepath: Path, debug=False) -> None:
 
-        if isinstance(filepath, str):
-            filepath = Path(filepath)
+        ariane_data = self.to_ariane_dict(debug=debug)
 
-        if filepath.suffix != ".tml":
-            raise ValueError(f"Received unexpected extension `{filepath.suffix}`."
-                             "Expected: `.tml`.")
-
-        ariane_data = self.to_ariane(debug=debug)
-        # del ariane_data["speleodb_id"]
-
-        xml_str = dicttoxml(
-            ariane_data,
-            custom_root="CaveFile",
-            attr_type=False,
-            fold_list=False
+        ArianeParser.to_ariane_file(
+            data=ariane_data,
+            filepath=filepath,
+            debug=debug
         )
-
-        xml_prettyfied = parseString(xml_str).toprettyxml(
-            indent=" " * 4, encoding="utf-8", standalone=True
-        ).decode("utf-8")
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            xml_f = Path(tmp_dir) / "Data.xml"
-            with xml_f.open(mode="w") as f:
-                f.write(xml_prettyfied)
-
-            if debug:
-                with open("Data.xml", mode="w") as f:  # noqa: PTH123
-                    f.write(xml_prettyfied)
-
-            with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_STORED) as zipf:
-                zipf.write(f.name, "Data.xml")
