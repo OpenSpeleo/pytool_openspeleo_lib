@@ -3,7 +3,7 @@ import unittest
 import pytest
 from pydantic import ValidationError
 
-from openspeleo_lib.types import Layer
+from openspeleo_lib.models import Layer
 
 
 class TestLayerModel(unittest.TestCase):
@@ -52,12 +52,12 @@ class TestLayerModel(unittest.TestCase):
 
     def test_invalid_boolean(self):
         self.data["visible"] = "AAA"
-        with pytest.raises(ValidationError, match="Cannot convert 'aaa' to boolean"):
+        with pytest.raises(ValidationError, match="Input should be a valid boolean"):
             _ = Layer(**self.data)
 
     def test_invalid_float(self):
         self.data["style"]["stroke_thickness"] = "aaa"
-        with pytest.raises(ValidationError, match="could not convert string to float"):
+        with pytest.raises(ValidationError, match="Input should be a valid number"):
             Layer(**self.data)
 
 

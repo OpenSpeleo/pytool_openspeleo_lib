@@ -58,10 +58,8 @@ class TestUniqueSubFieldMixin(unittest.TestCase):
     def test_validate_unique_with_duplicates(self):
         _ = SubModel(id=1, name_compass="test1")
 
-        with pytest.raises(ValidationError) as exc_info:
+        with pytest.raises(ValidationError, match="has already been registred"):
             _ = SubModel(id=1, name_compass="test1")
-
-        assert "has already been registred" in str(exc_info.value)
 
 
 class TestBaseMixin(unittest.TestCase):
@@ -83,10 +81,11 @@ class TestBaseMixin(unittest.TestCase):
         assert model.name_compass == "valid_name-1"
 
     def test_name_validator_reject_invalid_name(self):
-        with pytest.raises(ValidationError) as exc_info:
+        with pytest.raises(
+            ValidationError,
+            match=r"The character `\^` is not allowed as `name`."
+        ):
             SubModel(id=1, name_compass="invalid_name^")
-
-        assert "The character `^` is not allowed as `name`." in str(exc_info.value)
 
     def test_container_model_with_unique_items(self):
         # Test ContainerModel with unique items
@@ -102,10 +101,8 @@ class TestBaseMixin(unittest.TestCase):
         # Test ContainerModel with duplicate items
         item = SubModel(id=1, name_compass="test1")
 
-        with pytest.raises(ValidationError) as exc_info:
+        with pytest.raises(ValidationError, match="Duplicate value found"):
             ContainerModel(items=[item, item, item])
-
-        assert "Duplicate value found" in str(exc_info.value)
 
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
 
@@ -133,10 +130,11 @@ class TestBaseMixin(unittest.TestCase):
         UniqueNameGenerator._used_values.clear()  # noqa: SLF001
         model2 = SubModel(id=2, name_compass="Test1")
 
-        with pytest.raises(ValidationError) as exc_info:
+        with pytest.raises(
+            ValidationError,
+            match="Duplicate value found for `name_compass`"
+        ):
             ContainerModel(items=[model1, model2])
-
-        assert "Duplicate value found for `name_compass`" in str(exc_info.value)
 
 
 class TestBaseMixinToJson(unittest.TestCase):
@@ -273,16 +271,15 @@ class TestAutoIdModelMixin(unittest.TestCase):
     def test_unique_id_clash(self):
         _ = AutoIdModel(id="123")
 
-        with pytest.raises(ValidationError) as exc_info:
+        with pytest.raises(ValidationError, match="has already been registred"):
             AutoIdModel(id="123")
 
-        assert "has already been registred" in str(exc_info.value)
-
     def test_validate_unique_id_invalid_type(self):
-        with pytest.raises(ValidationError) as exc_info:
+        with pytest.raises(
+            ValidationError,
+            match=r"invalid literal for int\(\) with base 10"
+        ):
             AutoIdModel(id="invalid_id")
-
-        assert "invalid literal for int() with base 10" in str(exc_info.value)
 
 
 class TestNameIdModelMixin(unittest.TestCase):
@@ -301,20 +298,19 @@ class TestNameIdModelMixin(unittest.TestCase):
     def test_name_validation_rejects_long_names(self):
         long_name = "A" * (COMPASS_MAX_NAME_LENGTH + 1)
 
-        with pytest.raises(ValidationError) as exc_info:
+        with pytest.raises(ValidationError, match=f"Name {long_name} is too long"):
             NameIdModel(name_compass=long_name)
-
-        assert f"Name {long_name} is too long" in str(exc_info.value)
 
     def test_name_registration_with_retries(self):
         name = "TestName"
         UniqueNameGenerator.register(value=name)
 
         # Creating model with the same name should trigger retries
-        with pytest.raises(ValidationError) as exc_info:
+        with pytest.raises(
+            ValidationError,
+            match=f"Value `{name}` has already been registred."
+        ):
             _ = NameIdModel(name_compass=name)
-
-        assert f"Value `{name}` has already been registred." in str(exc_info.value)
 
 
 if __name__ == "__main__":

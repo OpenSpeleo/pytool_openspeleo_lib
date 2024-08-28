@@ -36,7 +36,10 @@ class TestUniqueNameGenerator(unittest.TestCase):
 
         assert name in UniqueNameGenerator._used_values  # noqa: SLF001
 
-        with pytest.raises(DuplicateValueError):
+        with pytest.raises(
+            DuplicateValueError,
+            match=f"Value `{name}` has already been registred."
+        ):
             UniqueNameGenerator.register(name)
 
     def test_prevent_duplicate_name_generation(self):
@@ -46,7 +49,11 @@ class TestUniqueNameGenerator(unittest.TestCase):
         assert generated_name != name
 
     def test_generate_name_too_long(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError,
+            match=f"Maximum length allowed: {COMPASS_MAX_NAME_LENGTH}, "
+                  f"received: {COMPASS_MAX_NAME_LENGTH + 1}"
+        ):
             _ = UniqueNameGenerator.get(str_len=COMPASS_MAX_NAME_LENGTH + 1)
 
 
@@ -86,7 +93,10 @@ class TestUniqueIDGenerator(unittest.TestCase):
         UniqueIDGenerator.register(id_val)
         assert id_val in UniqueIDGenerator._used_values  # noqa: SLF001
 
-        with pytest.raises(DuplicateValueError):
+        with pytest.raises(
+            DuplicateValueError,
+            match=f"Value `{id_val}` has already been registred."
+        ):
             UniqueIDGenerator.register(id_val)
 
     def test_prevent_duplicate_id_generation(self):
@@ -113,14 +123,18 @@ class TestStartAt1IDGenerator(unittest.TestCase):
         for value in range(1, OSPL_MAX_RETRY_ATTEMPTS + 1):
             StartAt1IDGenerator.register(value)
 
-        with pytest.raises(MaxRetriesError):
+        with pytest.raises(
+            MaxRetriesError,
+            match="Impossible to find an available value to use. Max retry attempts "
+                  f"reached: {OSPL_MAX_RETRY_ATTEMPTS}"
+        ):
             _ = StartAt1IDGenerator.get()
 
 
 class TestBaseUniqueValueGenerator(unittest.TestCase):
 
     def test_unimplemented_abstract_get(self):
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=""):
             _ = _BaseUniqueValueGenerator.generate(retry_step=1)
 
 

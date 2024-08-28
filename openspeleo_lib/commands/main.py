@@ -7,6 +7,7 @@ import openspeleo_lib
 
 
 def main():
+
     registered_commands = entry_points(group="openspeleo_lib.actions")
 
     parser = argparse.ArgumentParser(prog="openspeleo_lib")

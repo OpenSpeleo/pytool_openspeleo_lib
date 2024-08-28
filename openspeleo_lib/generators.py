@@ -53,7 +53,7 @@ class UniqueNameGenerator(_BaseUniqueValueGenerator):
     def generate(cls, retry_step: int, str_len:int = 6) -> str:
         if str_len > COMPASS_MAX_NAME_LENGTH:
             raise ValueError(f"Maximum length allowed: {COMPASS_MAX_NAME_LENGTH}, "
-                             f" received: {str_len}")
+                             f"received: {str_len}")
         return "".join(random.choices(cls.VOCAB, k=str_len))
 
 
