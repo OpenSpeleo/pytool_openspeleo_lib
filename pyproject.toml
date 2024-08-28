@@ -95,6 +95,9 @@ test = [
 [project.scripts]
 openspeleo = "openspeleo_lib.commands.main:main"
 
+[project.entry-points."openspeleo_lib.actions"]
+validate_tml = "openspeleo_lib.commands.validate_tml:validate"
+
 # [project.entry-points."compass.actions"]
 # convert = "openspeleo_lib.commands.convert:convert"
 
@@ -231,7 +234,6 @@ ignore = [
   "FBT001",  # Checks for the use of boolean positional arguments in function definitions,
   # as determined by the presence of a bool type hint.
   "PLR2004", # Checks for the use of unnamed numerical constants ("magic") values in comparisons.
-  "PT011",   # Checks for pytest.raises calls without a match parameter.
   "PYI024"   # Checks for uses of collections.namedtuple in stub files.
 ]
 # Allow fix for all enabled rules (when `--fix`) is provided.

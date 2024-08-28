@@ -15,7 +15,6 @@ from openspeleo_lib.formats.ariane.parser import ArianeParser
 from openspeleo_lib.mixins import AutoIdModelMixin
 from openspeleo_lib.mixins import BaseMixin
 from openspeleo_lib.mixins import NameIdModelMixin
-from openspeleo_lib.utils import str2bool
 
 
 class RadiusVector(BaseModel):
@@ -29,13 +28,6 @@ class RadiusVector(BaseModel):
     @field_serializer("norm", "angle", "tension_profile", "tension_corridor")
     def serialize_numeric(self, value: float) -> str:
         return str(value)
-
-    @field_validator("*", mode="before")
-    @classmethod
-    def convert_to_float(cls, v: str | float | None ) -> float:
-        if isinstance(v, str):
-            return float(v)
-        return v
 
 
 class RadiusCollection(BaseModel):
@@ -68,20 +60,6 @@ class Shape(BaseModel):
     def serialize_numeric(self, value: float) -> str:
         return str(value)
 
-    @field_validator("has_profile_azimuth", "has_profile_tilt", mode="before")
-    @classmethod
-    def convert_to_bool(cls, v: str | bool | None) -> bool:
-        if isinstance(v, str):
-            return str2bool(v)
-        return v
-
-    @field_validator("profile_azimuth", "profile_tilt", mode="before")
-    @classmethod
-    def convert_to_float(cls, v: str | float | None) -> float:
-        if isinstance(v, str):
-            return float(v)
-        return v
-
 
 class LayerStyle(BaseModel):
     dash_scale: float
@@ -99,14 +77,6 @@ class LayerStyle(BaseModel):
     def serialize_numeric(self, value: float) -> str:
         return str(value)
 
-    @field_validator("dash_scale", "line_type_scale", "opacity", "stroke_thickness",
-                     mode="before")
-    @classmethod
-    def convert_to_float(cls, v: str | float | None) -> float:
-        if isinstance(v, str):
-            return float(v)
-        return v
-
 
 class Layer(BaseModel):
     constant: bool = True
@@ -121,30 +91,17 @@ class Layer(BaseModel):
     def serialize_bool(self, value: bool) -> str:
         return "true" if value else "false"
 
-    @field_validator("constant", "locked_layer", "visible", mode="before")
-    @classmethod
-    def convert_to_bool(cls, v: str | bool | None) -> bool:
-        if isinstance(v, str):
-            return str2bool(v)
-        return v
-
 
 class LayerCollection(BaseModel):
     layer_list: list[Layer] = []
 
     model_config = ConfigDict(extra="forbid")
 
-    @field_validator("layer_list", mode="before")
-    @classmethod
-    def ensure_list_type(cls, v : list | dict | None) -> list:
-        if isinstance(v, dict):
-            return [v]
-        return v
-
 
 class SurveyShot(BaseMixin, AutoIdModelMixin, NameIdModelMixin, BaseModel):
+
     azimuth: float
-    closure_to_id: int
+    closure_to_id: int = -1
     color: str
     comment: str | None = None
     date: datetime.date
@@ -163,7 +120,7 @@ class SurveyShot(BaseMixin, AutoIdModelMixin, NameIdModelMixin, BaseModel):
     type: str
 
     # SubModel
-    shape: Shape
+    shape: Shape | None = None
 
     # LRUD
     left: float
@@ -190,55 +147,10 @@ class SurveyShot(BaseMixin, AutoIdModelMixin, NameIdModelMixin, BaseModel):
     # model_config = ConfigDict(use_enum_values=True)
 
 
-    @field_validator("azimuth", "depth", "depth_in", "down", "inclination", "latitude",
-                     "left", "length", "longitude", "right", "up", mode="before")
-    @classmethod
-    def convert_to_float(cls, v: str | float | None) -> float:
-        if isinstance(v, str):
-            return float(v)
-        return v
-
-    @field_validator("closure_to_id", "from_id", "id", mode="before")
-    @classmethod
-    def convert_to_int(cls, v : str | int | None) -> int:
-        if isinstance(v, str):
-            return int(v)
-        return v
-
-    @field_validator("excluded", "locked", mode="before")
-    @classmethod
-    def convert_to_bool(cls, v: bool | str | None) -> bool:
-        if isinstance(v, str):
-            return str2bool(v)
-        return v
-
-    @field_validator("date", mode="before")
-    @classmethod
-    def parse_date(cls, v : datetime.date | str | None) -> datetime.date:
-        if isinstance(v, str):
-            return datetime.date.fromisoformat(v)
-        return v
-
-# class Section(BaseMixin, UniqueSubFieldMixin, BaseModel):
-#     id: int
-#     shots: list[Shot] = []
-
-#     @field_validator("shots")
-#     @classmethod
-#     def validate_shots_unique(cls, values: list[Shot]):
-#         return cls.validate_unique(field="id", values=values)
-
 class ShotCollection(BaseModel):
     shot_list: list[SurveyShot] = []
 
     model_config = ConfigDict(extra="forbid")
-
-    @field_validator("shot_list", mode="before")
-    @classmethod
-    def ensure_list_type(cls, v: list| dict | None) -> list:
-        if isinstance(v, dict):
-            return [v]
-        return v
 
 
 class Survey(BaseMixin, BaseModel):
@@ -261,6 +173,8 @@ class Survey(BaseMixin, BaseModel):
     constraints: str | None = None
     list_annotation: str | None = None
 
+    model_config = ConfigDict(extra="forbid")
+
     @field_serializer("use_magnetic_azimuth")
     def serialize_bool(self, value: bool) -> str:
         return "true" if value else "false"
@@ -269,21 +183,6 @@ class Survey(BaseMixin, BaseModel):
     def serialize_to_str(self, value: Any) -> str:
         return str(value)
 
-    model_config = ConfigDict(extra="forbid")
-
-    @field_validator("use_magnetic_azimuth", mode="before")
-    @classmethod
-    def convert_to_bool(cls, v):
-        if isinstance(v, str):
-            return str2bool(v)
-        return v
-
-    @field_validator("first_start_absolute_elevation", mode="before")
-    @classmethod
-    def convert_to_float(cls, v):
-        if isinstance(v, str):
-            return float(v)
-        return v
 
     @classmethod
     def from_ariane_file(cls, filepath: Path, debug=False) -> Self:

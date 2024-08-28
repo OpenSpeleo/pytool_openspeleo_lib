@@ -19,11 +19,8 @@ class TestArianeFileType(unittest.TestCase):
         assert ArianeFileType.TMLU.value == 1
 
     def test_ariane_file_type_invalid(self):
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Unknown value"):
             ArianeFileType.from_str("INVALID")
-
-        assert "Unknown value" in str(exc_info.value)
-
 
 class TestUnitType(unittest.TestCase):
 
@@ -38,9 +35,8 @@ class TestUnitType(unittest.TestCase):
         assert UnitType.IMPERIAL.value == 1
 
     def test_unit_type_invalid(self):
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Unknown value"):
             UnitType.from_str("INVALID")
-        assert "Unknown value" in str(exc_info.value)
 
 
 class TestProfileType(unittest.TestCase):
@@ -50,9 +46,8 @@ class TestProfileType(unittest.TestCase):
         assert ProfileType.VERTICAL.value == 0
 
     def test_profile_type_invalid(self):
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Unknown value"):
             ProfileType.from_str("INVALID")
-        assert "Unknown value" in str(exc_info.value)
 
 
 class TestShotType(unittest.TestCase):
@@ -74,9 +69,8 @@ class TestShotType(unittest.TestCase):
         assert ShotType.CLOSURE.value == 4
 
     def test_shot_type_invalid(self):
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Unknown value"):
             ShotType.from_str("INVALID")
-        assert "Unknown value" in str(exc_info.value)
 
 
 if __name__ == "__main__":

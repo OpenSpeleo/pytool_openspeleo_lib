@@ -4,7 +4,7 @@ from datetime import date
 import pytest
 
 from openspeleo_lib.generators import UniqueNameGenerator
-from openspeleo_lib.types import SurveyShot
+from openspeleo_lib.models import SurveyShot
 
 
 class TestCaveDataModel(unittest.TestCase):
@@ -90,7 +90,10 @@ class TestCaveDataModel(unittest.TestCase):
     def test_invalid_data(self):
         invalid_data = self.valid_data.copy()
         invalid_data["Azimut"] = "not_a_float"
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError,
+            match="Input should be a valid number, unable to parse string as a number"
+        ):
             SurveyShot.from_ariane_dict(invalid_data)
 
     def test_optional_fields(self):

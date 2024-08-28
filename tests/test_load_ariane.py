@@ -8,7 +8,7 @@ from parameterized import parameterized_class
 
 from openspeleo_lib.formats.ariane.parser import ArianeParser
 from openspeleo_lib.generators import UniqueNameGenerator
-from openspeleo_lib.types import Survey
+from openspeleo_lib.models import Survey
 
 
 @parameterized_class(

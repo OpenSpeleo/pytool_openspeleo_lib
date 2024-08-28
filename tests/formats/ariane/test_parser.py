@@ -31,7 +31,7 @@ class TestArianeParser(unittest.TestCase):
 
     def test_filetype_invalid(self):
         filepath = Path("test_file.invalid")
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="Unknown value: INVALID"):
             _filetype(filepath)
 
     def test_extract_zip(self):
@@ -82,14 +82,14 @@ class TestArianeParser(unittest.TestCase):
 
     def test_from_ariane_file_nonexistent(self):
         filepath = Path("nonexistent_file.tml")
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(FileNotFoundError, match=f"File not found: `{filepath}`"):
             ArianeParser.from_ariane_file(filepath)
 
     def test_from_ariane_file_invalid_format(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             file_path = Path(tmp_dir) / "test_file.invalid"
             file_path.touch()
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match="Unknown value: INVALID"):
                 ArianeParser.from_ariane_file(file_path)
 
     @parameterized.expand(["path", "str"])
@@ -100,7 +100,7 @@ class TestArianeParser(unittest.TestCase):
         if path_type == "str":
             zip_path = str(zip_path)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="Unsupported fileformat"):
             ArianeParser.to_ariane_file(data, zip_path)
 
     @parameterized.expand(["path", "str"])
@@ -124,7 +124,7 @@ class TestArianeParser(unittest.TestCase):
         data = {"Test": "Value"}
         with tempfile.TemporaryDirectory() as tmp_dir:
             file_path = Path(tmp_dir) / "test_file.invalid"
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match="Unknown value: INVALID"):
                 ArianeParser.to_ariane_file(data, file_path)
 
     def test_to_ariane_file_debug(self):
