@@ -1,5 +1,4 @@
 import json
-from typing import Self
 
 from iteration_utilities import duplicates
 from pydantic import Field
@@ -8,10 +7,8 @@ from pydantic import model_validator
 
 from openspeleo_lib.constants import COMPASS_MAX_NAME_LENGTH
 from openspeleo_lib.errors import DuplicateValueError
-from openspeleo_lib.formats.ariane.name_map import ARIANE_MAPPING
 from openspeleo_lib.generators import UniqueIDGenerator
 from openspeleo_lib.generators import UniqueNameGenerator
-from openspeleo_lib.utils import apply_key_mapping
 
 
 class BaseMixin:
@@ -28,32 +25,6 @@ class BaseMixin:
             str: The JSON representation of the model.
         """
         return json.dumps(self.model_dump(), indent=4, sort_keys=True)
-
-    @classmethod
-    def from_ariane_dict(cls, data, debug=False) -> Self:
-        if debug:
-            with open(f"{cls.__name__}.import.before.json", mode="w") as f:  # noqa: PTH123
-                f.write(json.dumps(data, indent=4, sort_keys=True))
-        data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
-        if debug:
-            with open(f"{cls.__name__}.import.after.json", mode="w") as f:  # noqa: PTH123
-                f.write(json.dumps(data, indent=4, sort_keys=True))
-        return cls(**data)
-
-    def to_ariane_dict(self, debug=False) -> dict:
-        data = self.model_dump()
-
-        if debug:
-            with open("data.export.before.json", mode="w") as f:  # noqa: PTH123
-                f.write(json.dumps(data, indent=4, sort_keys=True))
-
-        data = apply_key_mapping(self.model_dump(), mapping=ARIANE_MAPPING)
-
-        if debug:
-            with open("data.export.after.json", mode="w") as f:  # noqa: PTH123
-                f.write(json.dumps(data, indent=4, sort_keys=True))
-
-        return data
 
     # ======================== VALIDATOR UTILS ======================== #
 
@@ -120,22 +91,3 @@ class NameIdModelMixin:
 
         UniqueNameGenerator.register(value=value)
         return value
-
-        # original_name = value
-        # for idx in range(OSPL_MAX_RETRY_ATTEMPTS + 1):
-        #     try:
-        #         if idx > 0:
-        #             value = f"{original_name}-{idx}"
-        #         UniqueNameGenerator.register(value=value)
-        #         break
-        #     except DuplicateValueError:
-        #         continue
-        # else:
-        #     raise MaxRetriesError("Impossible to find an available name for "
-        #                                 f"`{original_name}`")
-
-        # if len(value) > COMPASS_MAX_NAME_LENGTH:
-        #     raise ValueError(f"Name {value} is too long, maximum allowed: "
-        #                      f"{COMPASS_MAX_NAME_LENGTH}")
-
-        # return value
