@@ -3,8 +3,15 @@ from datetime import date
 
 import pytest
 
+from openspeleo_lib.formats.ariane.name_map import ARIANE_MAPPING
 from openspeleo_lib.generators import UniqueNameGenerator
 from openspeleo_lib.models import SurveyShot
+from openspeleo_lib.utils import apply_key_mapping
+
+
+def shot_from_dict(data: dict) -> SurveyShot:
+    data = apply_key_mapping(data, ARIANE_MAPPING.inverse)
+    return SurveyShot(**data)
 
 
 class TestCaveDataModel(unittest.TestCase):
@@ -75,7 +82,7 @@ class TestCaveDataModel(unittest.TestCase):
         }
 
     def test_create_cave_data_model(self):
-        cave_data = SurveyShot.from_ariane_dict(self.valid_data)
+        cave_data = shot_from_dict(self.valid_data)
         assert cave_data.azimuth == 0.0
         assert cave_data.closure_to_id == -1
         assert cave_data.color == "0x00ffffff"
@@ -94,13 +101,13 @@ class TestCaveDataModel(unittest.TestCase):
             ValueError,
             match="Input should be a valid number, unable to parse string as a number"
         ):
-            SurveyShot.from_ariane_dict(invalid_data)
+            shot_from_dict(invalid_data)
 
     def test_optional_fields(self):
         partial_data = self.valid_data.copy()
         partial_data["Comment"] = None
         partial_data["Name"] = None
-        cave_data = SurveyShot.from_ariane_dict(partial_data)
+        cave_data = shot_from_dict(partial_data)
         assert cave_data.comment is None
         assert cave_data.name_compass is not None
 

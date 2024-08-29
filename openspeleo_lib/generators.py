@@ -39,7 +39,7 @@ class _BaseUniqueValueGenerator(metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def generate(cls, retry_step: int, *args, **kwargs) -> Any:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
 
 class UniqueNameGenerator(_BaseUniqueValueGenerator):

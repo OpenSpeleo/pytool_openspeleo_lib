@@ -1,8 +1,6 @@
 import datetime
 import uuid
-from pathlib import Path
 from typing import Any
-from typing import Self
 
 from pydantic import UUID4
 from pydantic import BaseModel
@@ -11,7 +9,6 @@ from pydantic import Field
 from pydantic import field_serializer
 from pydantic import field_validator
 
-from openspeleo_lib.formats.ariane.parser import ArianeParser
 from openspeleo_lib.mixins import AutoIdModelMixin
 from openspeleo_lib.mixins import BaseMixin
 from openspeleo_lib.mixins import NameIdModelMixin
@@ -99,7 +96,6 @@ class LayerCollection(BaseModel):
 
 
 class SurveyShot(BaseMixin, AutoIdModelMixin, NameIdModelMixin, BaseModel):
-
     azimuth: float
     closure_to_id: int = -1
     color: str
@@ -182,19 +178,3 @@ class Survey(BaseMixin, BaseModel):
     @field_serializer("speleodb_id", "first_start_absolute_elevation")
     def serialize_to_str(self, value: Any) -> str:
         return str(value)
-
-
-    @classmethod
-    def from_ariane_file(cls, filepath: Path, debug=False) -> Self:
-        data = ArianeParser.from_ariane_file(filepath=filepath, debug=True)
-        return cls.from_ariane_dict(data, debug=debug)
-
-    def to_ariane_file(self, filepath: Path, debug=False) -> None:
-
-        ariane_data = self.to_ariane_dict(debug=debug)
-
-        ArianeParser.to_ariane_file(
-            data=ariane_data,
-            filepath=filepath,
-            debug=debug
-        )

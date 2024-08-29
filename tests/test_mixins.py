@@ -106,12 +106,12 @@ class TestBaseMixin(unittest.TestCase):
 
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
 
-    def test_from_ariane_dict_basic(self):
+    def test_submodel_from_dict(self):
         ariane_data = {
             "id": 1,
             "name_compass": "Test"
         }
-        model = SubModel.from_ariane_dict(ariane_data)
+        model = SubModel(**ariane_data)
 
         # Validate that the model was created correctly from Ariane data
         assert model.id == 1
@@ -137,7 +137,7 @@ class TestBaseMixin(unittest.TestCase):
             ContainerModel(items=[model1, model2])
 
 
-class TestBaseMixinToJson(unittest.TestCase):
+class TestBaseMixinExport(unittest.TestCase):
 
     def setUp(self) -> None:
         # Clear already used names
@@ -208,14 +208,10 @@ class TestBaseMixinToJson(unittest.TestCase):
 
         assert json.loads(json_output) == json.loads(expected_json)
 
-    def test_to_ariane_dict_basic(self):
+    def test_submodel_to_dict(self):
         model = SubModel(id=1, name_compass="Test")
-        ariane_dict = model.to_ariane_dict()
-
-        # Expected dictionary after key mapping
-        expected_dict = apply_key_mapping(model.model_dump(), mapping=ARIANE_MAPPING)
-
-        assert ariane_dict == expected_dict
+        transformed_dict = apply_key_mapping(model.model_dump(), mapping=ARIANE_MAPPING)
+        assert transformed_dict == {"Name": "Test", "ID": 1}
 
     def test_to_json_with_nested_none(self):
         model = SubModel(id=1, name_compass="Test")
@@ -223,26 +219,6 @@ class TestBaseMixinToJson(unittest.TestCase):
 
         # Verify that no `None` values are included in the JSON output
         assert '"None"' not in model_json
-
-
-class TestBaseMixinDebugMode(unittest.TestCase):
-
-    def setUp(self) -> None:
-        # Clear already used names
-        UniqueNameGenerator._used_values.clear()  # noqa: SLF001
-
-    def test_from_ariane_dict_with_debug(self):
-        ariane_data = {"id": 1, "name_compass": "Test"}
-        model = SubModel.from_ariane_dict(ariane_data, debug=True)
-        assert model.id == 1
-        assert model.name_compass == "Test", f"{model.name_compass}"
-
-    def test_to_ariane_dict_with_debug(self):
-        model = SubModel(id=1, name_compass="Test")
-        ariane_dict = model.to_ariane_dict(debug=True)
-        expected_dict = apply_key_mapping(model.model_dump(), mapping=ARIANE_MAPPING)
-        assert ariane_dict == expected_dict
-
 
 class TestAutoIdModelMixin(unittest.TestCase):
 
