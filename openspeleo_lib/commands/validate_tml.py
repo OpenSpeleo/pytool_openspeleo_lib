@@ -8,6 +8,7 @@ def validate(args):
         description="Validate a TML file"
     )
     parser.add_argument(
+        "-i",
         "--input_file",
         type=pathlib.Path,
         required=True,
