@@ -104,7 +104,7 @@ class SurveyShot(BaseMixin, AutoIdModelMixin, NameIdModelMixin, BaseModel):
     depth: float
     depth_in: float
     excluded: bool
-    explorer: str
+    explorer: str | None = None
     from_id: int
     inclination: float
     latitude: float

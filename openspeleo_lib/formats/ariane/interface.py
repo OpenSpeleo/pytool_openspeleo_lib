@@ -63,12 +63,12 @@ class ArianeInterface(BaseInterface):
                 with open("Data.xml", mode="w") as f:  # noqa: PTH123
                     f.write(xml_prettyfied)
 
-            with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_STORED) as zipf:
+            with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_DEFLATED) as zf:
 
                 if debug:
                     print(f"[DEBUG] Exporting {filetype.name} File: `{filepath}`")  # noqa: T201
 
-                zipf.write(f.name, "Data.xml")
+                zf.write(f.name, "Data.xml")
 
     def to_file(self, filepath: Path, debug: bool = False) -> None:
 
