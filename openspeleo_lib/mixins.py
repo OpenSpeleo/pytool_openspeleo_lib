@@ -65,7 +65,7 @@ class NameIdModelMixin:
     name_compass: str = Field(
         default_factory=lambda: UniqueNameGenerator.get(str_len=6),
         min_length=2,
-        max_length=32
+        max_length=COMPASS_MAX_NAME_LENGTH
     )
 
     @field_validator("name_compass", mode="before")
