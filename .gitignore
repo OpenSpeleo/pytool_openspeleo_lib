@@ -166,3 +166,5 @@ cython_debug/
 tests/*.json
 tests/*.xml
 tests/*.tml
+
+.DS_Store
