@@ -4,13 +4,12 @@ import unittest
 
 
 class TestOpenspeleoCommands(unittest.TestCase):
-
     def run_command(self, command: str):
-        return subprocess.run(  # noqa: S603
-            shlex.split(command),
+        return subprocess.run(
+            shlex.split(command),  # noqa: S603
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
 
     def test_version_command(self):
