@@ -3,7 +3,6 @@ import logging
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import Self
 
 import xmltodict
 from defusedxml.minidom import parseString
@@ -16,9 +15,10 @@ from openspeleo_lib.models import Survey
 from openspeleo_lib.utils import apply_key_mapping
 
 logger = logging.getLogger(__name__)
+DEBUG = False
 
 
-def _extract_zip(input_zip):
+def _extract_zip(input_zip) -> dict[str, bytes]:
     input_zip = zipfile.ZipFile(input_zip)
     return {name: input_zip.read(name) for name in input_zip.namelist()}
 
@@ -35,7 +35,7 @@ def _filetype(filepath: Path) -> ArianeFileType:
 
 class ArianeInterface(BaseInterface):
     @classmethod
-    def _write_to_file(cls, filepath: Path, data: dict, debug: bool = False) -> None:
+    def _write_to_file(cls, filepath: Path, data: dict) -> None:
         if isinstance(filepath, str):
             filepath = Path(filepath)
 
@@ -62,7 +62,7 @@ class ArianeInterface(BaseInterface):
             with xml_f.open(mode="w") as f:
                 f.write(xml_prettyfied)
 
-            if debug:
+            if DEBUG:
                 with open("Data.xml", mode="w") as f:  # noqa: PTH123
                     f.write(xml_prettyfied)
 
@@ -73,20 +73,21 @@ class ArianeInterface(BaseInterface):
                 )
                 zf.write(f.name, "Data.xml")
 
-    def to_file(self, filepath: Path, debug: bool = False) -> None:
-        data = self.survey_data
+    @classmethod
+    def to_file(cls, survey: Survey, filepath: Path) -> None:
+        data = survey.model_dump()
 
-        if debug:
+        if DEBUG:
             with open("data.export.before.json", mode="w") as f:  # noqa: PTH123
                 f.write(json.dumps(data, indent=4, sort_keys=True))
 
         data = apply_key_mapping(data, mapping=ARIANE_MAPPING)
 
-        if debug:
+        if DEBUG:
             with open("data.export.after.json", mode="w") as f:  # noqa: PTH123
                 f.write(json.dumps(data, indent=4, sort_keys=True))
 
-        self._write_to_file(filepath=filepath, data=data, debug=debug)
+        cls._write_to_file(filepath=filepath, data=data)
 
     @classmethod
     def _load_from_file(cls, filepath: Path) -> dict:
@@ -107,25 +108,27 @@ class ArianeInterface(BaseInterface):
             case ArianeFileType.TML:
                 xml_data = _extract_zip(filepath)["Data.xml"]
 
-            case ArianeFileType.TMLU:
-                raise NotImplementedError("Not supported yet")
+            case _:
+                raise NotImplementedError(
+                    f"Not supported yet - Format: `{filetype.name}`"
+                )
                 # with filepath.open(mode="r") as f:
                 #     xml_data = f.read()
 
         return xmltodict.parse(xml_data)["CaveFile"]
 
     @classmethod
-    def from_file(cls, filepath: Path, debug: bool = False) -> Self:
+    def from_file(cls, filepath: Path) -> Survey:
         data = cls._load_from_file(filepath=filepath)
 
-        if debug:
+        if DEBUG:
             with open("data.import.before.json", mode="w") as f:  # noqa: PTH123
                 f.write(json.dumps(data, indent=4, sort_keys=True))
 
         data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
 
-        if debug:
+        if DEBUG:
             with open("data.import.after.json", mode="w") as f:  # noqa: PTH123
                 f.write(json.dumps(data, indent=4, sort_keys=True))
 
-        return ArianeInterface(survey=Survey(**data))
+        return Survey(**data)

@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-# from openspeleo_lib.types import Survey
 from openspeleo_lib.interfaces import ArianeInterface
+from openspeleo_lib.models import Survey
 
 if __name__ == "__main__":
     # shot = Shot(name="AAAA")
@@ -28,6 +28,6 @@ if __name__ == "__main__":
 
     DEBUG = False
 
-    survey = ArianeInterface.from_file(filepath, debug=DEBUG)
+    survey: Survey = ArianeInterface.from_file(filepath)
 
-    survey.to_file("survey.tml", debug=DEBUG)
+    ArianeInterface.to_file(survey=survey, filepath="survey.tml")

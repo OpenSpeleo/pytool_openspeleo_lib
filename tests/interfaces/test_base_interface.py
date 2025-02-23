@@ -21,6 +21,10 @@ class TestBaseInterface(unittest.TestCase):
         with pytest.raises(NotImplementedError):
             BaseInterface.from_file(filepath="survey.file")
 
+    def test_instanciation(self):
+        with pytest.raises(TypeError):
+            BaseInterface()
+
 
 if __name__ == "__main__":
     unittest.main()

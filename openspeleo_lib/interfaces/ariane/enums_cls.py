@@ -1,70 +1,34 @@
 #!/usr/bin/env python
 
 from enum import IntEnum
+from typing import Self
 
 
-class ArianeFileType(IntEnum):
+class BaseEnum(IntEnum):
+    @classmethod
+    def from_str(cls, value: str) -> Self:
+        try:
+            return cls[value.upper()]
+        except KeyError as e:
+            raise ValueError(f"Unknown value: {value.upper()}") from e
+
+
+class ArianeFileType(BaseEnum):
     TML = 0
     TMLU = 1
 
-    @classmethod
-    def from_str(cls, value):
-        value = value.upper()
-        match value:
-            case "TML":
-                return cls.TML
-            case "TMLU":
-                return cls.TMLU
-            case _:
-                raise ValueError(f"Unknown value: {value}")
 
-
-class UnitType(IntEnum):
+class UnitType(BaseEnum):
     METRIC = 0
     IMPERIAL = 1
 
-    @classmethod
-    def from_str(cls, value):
-        value = value.upper()
-        match value:
-            case "M" | "METRIC":
-                return cls.METRIC
-            case "FT" | "IMPERIAL":
-                return cls.IMPERIAL
-            case _:
-                raise ValueError(f"Unknown value: {value}")
 
-
-class ProfileType(IntEnum):
+class ProfileType(BaseEnum):
     VERTICAL = 0
 
-    @classmethod
-    def from_str(cls, value):
-        value = value.upper()
-        match value:
-            case "VERTICAL":
-                return cls.VERTICAL
-            case _:
-                raise ValueError(f"Unknown value: {value}")
 
-
-class ShotType(IntEnum):
+class ShotType(BaseEnum):
     REAL = 1
     VIRTUAL = 2
     START = 3
     CLOSURE = 4
-
-    @classmethod
-    def from_str(cls, value):
-        value = value.upper()
-        match value:
-            case "REAL":
-                return cls.REAL
-            case "VIRTUAL":
-                return cls.VIRTUAL
-            case "START":
-                return cls.START
-            case "CLOSURE":
-                return cls.CLOSURE
-            case _:
-                raise ValueError(f"Unknown value: {value}")

@@ -24,12 +24,10 @@ class TestArianeFileType(unittest.TestCase):
 
 class TestUnitType(unittest.TestCase):
     def test_unit_type_metric(self):
-        assert UnitType.from_str("M") == UnitType.METRIC
         assert UnitType.from_str("METRIC") == UnitType.METRIC
         assert UnitType.METRIC.value == 0
 
     def test_unit_type_imperial(self):
-        assert UnitType.from_str("FT") == UnitType.IMPERIAL
         assert UnitType.from_str("IMPERIAL") == UnitType.IMPERIAL
         assert UnitType.IMPERIAL.value == 1
 

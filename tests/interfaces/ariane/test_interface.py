@@ -10,7 +10,6 @@ from openspeleo_lib.interfaces.ariane.enums_cls import ArianeFileType
 from openspeleo_lib.interfaces.ariane.interface import ArianeInterface
 from openspeleo_lib.interfaces.ariane.interface import _extract_zip
 from openspeleo_lib.interfaces.ariane.interface import _filetype
-from tests.utils import named_product
 
 
 class TestArianeParser(unittest.TestCase):
@@ -48,10 +47,8 @@ class TestArianeParser(unittest.TestCase):
             assert "Data.xml" in extracted_files
             assert extracted_files["Data.xml"] == b"<CaveFile></CaveFile>"
 
-    @parameterized.expand(
-        named_product(path_type=["path", "str"], is_debug=[True, False])
-    )
-    def test_from_ariane_file_tml(self, path_type: str, is_debug: bool):
+    @parameterized.expand(["path", "str"])
+    def test_from_ariane_file_tml(self, path_type: str):
         with tempfile.TemporaryDirectory() as tmp_dir:
             zip_path = Path(tmp_dir) / "test_file.tml"
             data_path = Path(tmp_dir) / "Data.xml"
@@ -101,16 +98,18 @@ class TestArianeParser(unittest.TestCase):
         with pytest.raises(TypeError, match="Unsupported fileformat"):
             ArianeInterface._write_to_file(filepath=zip_path, data=data)  # noqa: SLF001
 
-    @parameterized.expand(["path", "str"])
+    @parameterized.expand([Path, str])
     def test_to_ariane_file(self, path_type: str):
         data = {"Test": "Value"}
         with tempfile.TemporaryDirectory() as tmp_dir:
             zip_path = Path(tmp_dir) / "test_file.tml"
 
-            if path_type == "str":
-                zip_path = str(zip_path)
+            zip_path = path_type(zip_path)
 
             ArianeInterface._write_to_file(filepath=zip_path, data=data)  # noqa: SLF001
+
+            # Have to write into a Path in case of `str` type
+            assert Path(zip_path).exists()
 
             with zipfile.ZipFile(zip_path, "r") as zipf:
                 assert "Data.xml" in zipf.namelist()
@@ -127,14 +126,9 @@ class TestArianeParser(unittest.TestCase):
                     filepath=file_path, data=data
                 )
 
-    def test_to_ariane_file_debug(self):
-        data = {"Test": "Value"}
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            zip_path = Path(tmp_dir) / "test_file.tml"
-            ArianeInterface._write_to_file(  # noqa: SLF001
-                filepath=zip_path, data=data, debug=True
-            )
-            assert (Path() / "Data.xml").exists()
+    def test_instanciation(self):
+        with pytest.raises(NotImplementedError):
+            ArianeInterface()
 
 
 if __name__ == "__main__":
