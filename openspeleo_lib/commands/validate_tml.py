@@ -1,11 +1,13 @@
 import argparse
+import logging
 import pathlib
+
+logger = logging.getLogger(__name__)
 
 
 def validate(args):
     parser = argparse.ArgumentParser(
-        prog="validate_tml",
-        description="Validate a TML file"
+        prog="validate_tml", description="Validate a TML file"
     )
     parser.add_argument(
         "-i",
@@ -22,4 +24,4 @@ def validate(args):
     if not input_file.exists():
         raise FileNotFoundError(f"File not found: `{input_file}`")
 
-    print(f"Filepath: {input_file}")  # noqa: T201
+    logger.info(f"Filepath: {input_file}")  # noqa: T201

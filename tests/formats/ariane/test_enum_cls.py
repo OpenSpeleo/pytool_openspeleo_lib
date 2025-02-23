@@ -2,14 +2,13 @@ import unittest
 
 import pytest
 
-from openspeleo_lib.formats.ariane.enums_cls import ArianeFileType
-from openspeleo_lib.formats.ariane.enums_cls import ProfileType
-from openspeleo_lib.formats.ariane.enums_cls import ShotType
-from openspeleo_lib.formats.ariane.enums_cls import UnitType
+from openspeleo_lib.interfaces.ariane.enums_cls import ArianeFileType
+from openspeleo_lib.interfaces.ariane.enums_cls import ProfileType
+from openspeleo_lib.interfaces.ariane.enums_cls import ShotType
+from openspeleo_lib.interfaces.ariane.enums_cls import UnitType
 
 
 class TestArianeFileType(unittest.TestCase):
-
     def test_ariane_file_type_tml(self):
         assert ArianeFileType.from_str("TML") == ArianeFileType.TML
         assert ArianeFileType.TML.value == 0
@@ -22,8 +21,8 @@ class TestArianeFileType(unittest.TestCase):
         with pytest.raises(ValueError, match="Unknown value"):
             ArianeFileType.from_str("INVALID")
 
-class TestUnitType(unittest.TestCase):
 
+class TestUnitType(unittest.TestCase):
     def test_unit_type_metric(self):
         assert UnitType.from_str("M") == UnitType.METRIC
         assert UnitType.from_str("METRIC") == UnitType.METRIC
@@ -40,7 +39,6 @@ class TestUnitType(unittest.TestCase):
 
 
 class TestProfileType(unittest.TestCase):
-
     def test_profile_type_vertical(self):
         assert ProfileType.from_str("VERTICAL") == ProfileType.VERTICAL
         assert ProfileType.VERTICAL.value == 0
@@ -51,7 +49,6 @@ class TestProfileType(unittest.TestCase):
 
 
 class TestShotType(unittest.TestCase):
-
     def test_shot_type_real(self):
         assert ShotType.from_str("REAL") == ShotType.REAL
         assert ShotType.REAL.value == 1

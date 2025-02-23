@@ -5,23 +5,19 @@ from pathlib import Path
 
 
 class TestValidateTMLCommand(unittest.TestCase):
-
     def setUp(self):
         self.cmd = "openspeleo validate_tml"
         self.file = Path("tests/artifacts/hand_survey.tml")
 
     def run_command(self, command: str):
         return subprocess.run(  # noqa: S603
-            shlex.split(command),
-            capture_output=True,
-            text=True,
-            check=False
+            shlex.split(command), capture_output=True, text=True, check=False
         )
 
     def test_valid_command(self):
         """Test the version command to ensure it returns the correct version."""
         result = self.run_command(f"{self.cmd} --input_file={self.file}")
-        assert f"Filepath: {self.file}" in result.stdout
+        assert result.returncode == 0
 
     def test_file_doesnt_exist_command(self):
         """Test the version command to ensure it returns the correct version."""

@@ -6,15 +6,14 @@ from pathlib import Path
 import pytest
 from parameterized import parameterized
 
-from openspeleo_lib.formats.ariane.enums_cls import ArianeFileType
-from openspeleo_lib.formats.ariane.interface import ArianeInterface
-from openspeleo_lib.formats.ariane.interface import _extract_zip
-from openspeleo_lib.formats.ariane.interface import _filetype
+from openspeleo_lib.interfaces.ariane.enums_cls import ArianeFileType
+from openspeleo_lib.interfaces.ariane.interface import ArianeInterface
+from openspeleo_lib.interfaces.ariane.interface import _extract_zip
+from openspeleo_lib.interfaces.ariane.interface import _filetype
 from tests.utils import named_product
 
 
 class TestArianeParser(unittest.TestCase):
-
     @parameterized.expand(["path", "str"])
     def test_filetype_valid_tml(self, path_type: str):
         filepath = "test_file.tml"
@@ -49,10 +48,9 @@ class TestArianeParser(unittest.TestCase):
             assert "Data.xml" in extracted_files
             assert extracted_files["Data.xml"] == b"<CaveFile></CaveFile>"
 
-    @parameterized.expand(named_product(
-        path_type=["path", "str"],
-        is_debug=[True, False]
-    ))
+    @parameterized.expand(
+        named_product(path_type=["path", "str"], is_debug=[True, False])
+    )
     def test_from_ariane_file_tml(self, path_type: str, is_debug: bool):
         with tempfile.TemporaryDirectory() as tmp_dir:
             zip_path = Path(tmp_dir) / "test_file.tml"
@@ -67,7 +65,7 @@ class TestArianeParser(unittest.TestCase):
             if path_type == "str":
                 zip_path = str(zip_path)
 
-            data = ArianeInterface._load_from_file(zip_path, debug=is_debug)  # noqa: SLF001
+            data = ArianeInterface._load_from_file(zip_path)  # noqa: SLF001
             assert data["Test"] == "Value"
 
     def test_from_ariane_file_tmlu(self):
@@ -126,8 +124,7 @@ class TestArianeParser(unittest.TestCase):
             file_path = Path(tmp_dir) / "test_file.invalid"
             with pytest.raises(TypeError, match="Unknown value: INVALID"):
                 ArianeInterface._write_to_file(  # noqa: SLF001
-                    filepath=file_path,
-                    data=data
+                    filepath=file_path, data=data
                 )
 
     def test_to_ariane_file_debug(self):
@@ -135,9 +132,7 @@ class TestArianeParser(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             zip_path = Path(tmp_dir) / "test_file.tml"
             ArianeInterface._write_to_file(  # noqa: SLF001
-                filepath=zip_path,
-                data=data,
-                debug=True
+                filepath=zip_path, data=data, debug=True
             )
             assert (Path() / "Data.xml").exists()
 
