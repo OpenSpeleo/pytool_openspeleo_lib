@@ -11,7 +11,6 @@ from openspeleo_lib.models import SurveyShot
 
 
 class TestSurvey(unittest.TestCase):
-
     def test_survey_creation_with_valid_data(self):
         data = {
             "cave_name": "DEMO",
@@ -80,7 +79,7 @@ class TestSurvey(unittest.TestCase):
             "cave_name": "DEMO",
             "first_start_absolute_elevation": "invalid_float",
             "unit": "m",
-            "use_magnetic_azimuth": "true"
+            "use_magnetic_azimuth": "true",
         }
 
         with pytest.raises(ValidationError, match="Input should be a valid number"):
@@ -91,7 +90,7 @@ class TestSurvey(unittest.TestCase):
             "cave_name": "DEMO",
             "first_start_absolute_elevation": "0.0",
             "unit": "m",
-            "use_magnetic_azimuth": "abc"
+            "use_magnetic_azimuth": "abc",
         }
 
         with pytest.raises(ValidationError, match="Input should be a valid boolean"):
@@ -101,7 +100,7 @@ class TestSurvey(unittest.TestCase):
         data = {
             "first_start_absolute_elevation": "0.0",
             "unit": "m",
-            "use_magnetic_azimuth": "true"
+            "use_magnetic_azimuth": "true",
         }
 
         with pytest.raises(ValidationError, match="Field required"):
@@ -113,7 +112,7 @@ class TestSurvey(unittest.TestCase):
             "first_start_absolute_elevation": "0.0",
             "unit": "m",
             "use_magnetic_azimuth": "true",
-            "extra_field": "unexpected"
+            "extra_field": "unexpected",
         }
 
         with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
@@ -125,18 +124,14 @@ class TestSurvey(unittest.TestCase):
             "first_start_absolute_elevation": "123.45",
             "unit": "m",
             "use_magnetic_azimuth": "true",
-            "data": "invalid_data"
+            "data": "invalid_data",
         }
 
-        with pytest.raises(ValidationError,match="Input should be a valid"):
+        with pytest.raises(ValidationError, match="Input should be a valid"):
             Survey(**data)
 
 
-
-
-
 class TestSurveyShot(unittest.TestCase):
-
     def setUp(self) -> None:
         UniqueNameGenerator._used_values.clear()  # noqa: SLF001
         self.data = {
@@ -164,27 +159,23 @@ class TestSurveyShot(unittest.TestCase):
             "section": "Main Line",
             "shape": None,
             "type": "REAL",
-            "up": "0.0"
+            "up": "0.0",
         }
 
     def test_invalid_date_conversion_with_time(self):
-
         self.data["date"] = "2024-04-07 11:05"
 
         with pytest.raises(
-            ValidationError,
-            match="Datetimes provided to dates should have zero time"
+            ValidationError, match="Datetimes provided to dates should have zero time"
         ):
             SurveyShot(**self.data)
 
     @parameterized.expand(["24-04-2024", "2024-24-04"])
     def test_invalid_date_format(self, date_val: str):
-
         self.data["date"] = date_val
 
         with pytest.raises(
-            ValidationError,
-            match="Input should be a valid date or datetime"
+            ValidationError, match="Input should be a valid date or datetime"
         ):
             SurveyShot(**self.data)
 

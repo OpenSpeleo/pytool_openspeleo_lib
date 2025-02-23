@@ -5,7 +5,6 @@ from openspeleo_lib.utils import snake2camelcase
 
 
 class TestCaseConversion(unittest.TestCase):
-
     def test_camel2snakecase_basic(self):
         # Basic cases
         assert camel2snakecase("CamelCase") == "camel_case"
@@ -62,13 +61,18 @@ class TestCaseConversion(unittest.TestCase):
 
     def test_snake2camelcase_complex_cases(self):
         # Complex and mixed cases
-        assert snake2camelcase("snake_case_with__double_underscore") == \
-            "snakeCaseWithDoubleUnderscore"
-        assert snake2camelcase("camel_case_with_123_numbers") == \
-            "camelCaseWith123Numbers"
+        assert (
+            snake2camelcase("snake_case_with__double_underscore")
+            == "snakeCaseWithDoubleUnderscore"
+        )
+        assert (
+            snake2camelcase("camel_case_with_123_numbers") == "camelCaseWith123Numbers"
+        )
         assert snake2camelcase("test_value_another_test") == "testValueAnotherTest"
-        assert snake2camelcase("snake_case_with__leading_and_trailing_underscores_") \
+        assert (
+            snake2camelcase("snake_case_with__leading_and_trailing_underscores_")
             == "snakeCaseWithLeadingAndTrailingUnderscores"
+        )
 
     def test_round_trip_conversion(self):
         # Round-trip conversion should result in original value

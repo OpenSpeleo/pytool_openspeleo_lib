@@ -6,19 +6,10 @@ from openspeleo_lib.utils import apply_key_mapping
 
 
 class TestApplyKeyMapping(unittest.TestCase):
-
     def test_dict_with_key_mapping(self):
-        data = {
-            "Azimut": "0.0",
-            "Depth": "10.0",
-            "Explorer": "Ariane"
-        }
+        data = {"Azimut": "0.0", "Depth": "10.0", "Explorer": "Ariane"}
         mapping = {"Azimut": "Bearing", "Explorer": "Diver"}
-        expected_output = {
-            "Bearing": "0.0",
-            "Depth": "10.0",
-            "Diver": "Ariane"
-        }
+        expected_output = {"Bearing": "0.0", "Depth": "10.0", "Diver": "Ariane"}
         assert apply_key_mapping(data, mapping) == expected_output
 
     def test_nested_dict_with_key_mapping(self):
@@ -30,9 +21,9 @@ class TestApplyKeyMapping(unittest.TestCase):
                         {"angle": "90.0", "length": "0.0"},
                     ]
                 },
-                "profileAzimut": "0.0"
+                "profileAzimut": "0.0",
             },
-            "Azimut": "180.0"
+            "Azimut": "180.0",
         }
         mapping = {"Azimut": "Bearing", "profileAzimut": "profileBearing"}
         expected_output = {
@@ -43,33 +34,27 @@ class TestApplyKeyMapping(unittest.TestCase):
                         {"angle": "90.0", "length": "0.0"},
                     ]
                 },
-                "profileBearing": "0.0"
+                "profileBearing": "0.0",
             },
-            "Bearing": "180.0"
+            "Bearing": "180.0",
         }
         assert apply_key_mapping(data, mapping) == expected_output
 
     def test_list_with_nested_dict_and_key_mapping(self):
-        data = [
-            {"Azimut": "0.0", "Depth": "10.0"},
-            {"Azimut": "90.0", "Depth": "20.0"}
-        ]
+        data = [{"Azimut": "0.0", "Depth": "10.0"}, {"Azimut": "90.0", "Depth": "20.0"}]
         mapping = {"Azimut": "Bearing"}
         expected_output = [
             {"Bearing": "0.0", "Depth": "10.0"},
-            {"Bearing": "90.0", "Depth": "20.0"}
+            {"Bearing": "90.0", "Depth": "20.0"},
         ]
         assert apply_key_mapping(data, mapping) == expected_output
 
     def test_tuple_with_nested_dict_and_key_mapping(self):
-        data = (
-            {"Azimut": "0.0", "Depth": "10.0"},
-            {"Azimut": "90.0", "Depth": "20.0"}
-        )
+        data = ({"Azimut": "0.0", "Depth": "10.0"}, {"Azimut": "90.0", "Depth": "20.0"})
         mapping = {"Azimut": "Bearing"}
         expected_output = [
             {"Bearing": "0.0", "Depth": "10.0"},
-            {"Bearing": "90.0", "Depth": "20.0"}
+            {"Bearing": "90.0", "Depth": "20.0"},
         ]
         assert apply_key_mapping(data, mapping) == expected_output
 

@@ -4,13 +4,21 @@ from openspeleo_lib.utils import str2bool
 
 
 class TestStr2Bool(unittest.TestCase):
-
     def test_true_values(self):
         true_values = [
-            "true", "True", "TRUE",
-            "t", "T", "yes", "Yes",
-            "y", "Y", "1", "on", "On",
-            "ON"
+            "true",
+            "True",
+            "TRUE",
+            "t",
+            "T",
+            "yes",
+            "Yes",
+            "y",
+            "Y",
+            "1",
+            "on",
+            "On",
+            "ON",
         ]
         for val in true_values:
             if not str2bool(val):
@@ -18,10 +26,19 @@ class TestStr2Bool(unittest.TestCase):
 
     def test_false_values(self):
         false_values = [
-            "false", "False", "FALSE",
-            "f", "F", "no", "No", "n",
-            "N", "0", "off", "Off",
-            "OFF"
+            "false",
+            "False",
+            "FALSE",
+            "f",
+            "F",
+            "no",
+            "No",
+            "n",
+            "N",
+            "0",
+            "off",
+            "Off",
+            "OFF",
         ]
         for val in false_values:
             if str2bool(val):

@@ -7,17 +7,14 @@ ARIANE_MAPPING = frozenbidict(
         "tension_profile": "TensionProfile",
         "angle": "angle",
         "norm": "length",
-
         # RadiusCollection Attributes
         "radius_vector": "RadiusVector",
-
         # Shape Attributes
         "radius_collection": "RadiusCollection",
         "has_profile_azimuth": "hasProfileAzimut",
         "has_profile_tilt": "hasProfileTilt",
         "profile_azimuth": "profileAzimut",
         "profile_tilt": "profileTilt",
-
         # LayerStyle Attributes
         "dash_scale": "dashScale",
         "fill_color_string": "fillColorString",
@@ -27,17 +24,14 @@ ARIANE_MAPPING = frozenbidict(
         "size_mode": "sizeMode",
         "stroke_color_string": "strokeColorString",
         "stroke_thickness": "strokeThickness",
-
         # Layer Attributes
         "constant": "constant",
         "locked_layer": "locked",
         "layer_name": "name",
-        "style" : "style",
+        "style": "style",
         "visible": "visible",
-
         # LayerCollection Attributes
         "layer_list": "layerList",
-
         # Shot Attributes
         "azimuth": "Azimut",
         "closure_to_id": "ClosureToID",
@@ -60,16 +54,13 @@ ARIANE_MAPPING = frozenbidict(
         "section": "Section",
         "shape": "Shape",
         "type": "Type",
-
         # LRUD
         "left": "Left",
         "right": "Right",
         "up": "Up",
         "down": "Down",
-
         # ShotCollection Attributes
         "shot_list": "SurveyData",
-
         # Survey Attributes,
         "cave_name": "caveName",
         "unit": "unit",
@@ -87,4 +78,5 @@ ARIANE_MAPPING = frozenbidict(
         "carto_spline": "CartoSpline",
         "constraints": "Constraints",
         "list_annotation": "ListAnnotation",
-    })
+    }
+)

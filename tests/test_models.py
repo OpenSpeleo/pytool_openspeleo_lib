@@ -5,7 +5,6 @@ from openspeleo_lib.models import RadiusVector
 
 
 class TestSurvey(unittest.TestCase):
-
     def test_radius_collection_default(self):
         radius_collect = RadiusCollection()
         assert radius_collect.radius_vector == []
@@ -15,7 +14,7 @@ class TestSurvey(unittest.TestCase):
             "tension_corridor": 1.0,
             "tension_profile": 1.0,
             "angle": 1.0,
-            "norm": 1.0
+            "norm": 1.0,
         }
         vector = RadiusVector(**data)
 
@@ -28,4 +27,3 @@ class TestSurvey(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

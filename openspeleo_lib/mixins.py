@@ -34,14 +34,12 @@ class BaseMixin:
         dupl_vals = list(duplicates(vals2check))
         if dupl_vals:
             raise DuplicateValueError(
-                f"[{cls.__name__}] Duplicate value found for `{field}`: "
-                f"{dupl_vals}"
+                f"[{cls.__name__}] Duplicate value found for `{field}`: {dupl_vals}"
             )
         return values
 
 
 class AutoIdModelMixin:
-
     id: int = Field(
         default_factory=lambda: UniqueIDGenerator.get(),
     )
@@ -49,7 +47,6 @@ class AutoIdModelMixin:
     @field_validator("id", mode="before")
     @classmethod
     def validate_unique_id(cls, value: str | int | None) -> int:
-
         if value is None or value == "":
             return cls.id.default_factory()
 
@@ -61,11 +58,10 @@ class AutoIdModelMixin:
 
 
 class NameIdModelMixin:
-
     name_compass: str = Field(
         default_factory=lambda: UniqueNameGenerator.get(str_len=6),
         min_length=2,
-        max_length=COMPASS_MAX_NAME_LENGTH
+        max_length=COMPASS_MAX_NAME_LENGTH,
     )
 
     @field_validator("name_compass", mode="before")
@@ -81,13 +77,14 @@ class NameIdModelMixin:
         for char in value:
             if char.upper() not in [
                 *UniqueNameGenerator.VOCAB,
-                *list("_-~:!?.'()[]{}@*&#%|$")
+                *list("_-~:!?.'()[]{}@*&#%|$"),
             ]:
                 raise ValueError(f"The character `{char}` is not allowed as `name`.")
 
         if len(value) > COMPASS_MAX_NAME_LENGTH:
-            raise ValueError(f"Name {value} is too long, maximum allowed: "
-                             f"{COMPASS_MAX_NAME_LENGTH}")
+            raise ValueError(
+                f"Name {value} is too long, maximum allowed: {COMPASS_MAX_NAME_LENGTH}"
+            )
 
         UniqueNameGenerator.register(value=value)
         return value

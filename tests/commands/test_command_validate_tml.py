@@ -11,7 +11,10 @@ class TestValidateTMLCommand(unittest.TestCase):
 
     def run_command(self, command: str):
         return subprocess.run(  # noqa: S603
-            shlex.split(command), capture_output=True, text=True, check=False
+            shlex.split(command),
+            capture_output=True,
+            text=True,
+            check=False,
         )
 
     def test_valid_command(self):
