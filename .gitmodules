@@ -1,6 +1,3 @@
-[submodule "third_party/pytool_compass_lib"]
-	path = third_party/pytool_compass_lib
-	url = git@github.com:OpenSpeleo/pytool_compass_lib.git
 [submodule "third_party/pytool_mnemo_lib"]
 	path = third_party/pytool_mnemo_lib
 	url = git@github.com:OpenSpeleo/pytool_mnemo_lib.git
