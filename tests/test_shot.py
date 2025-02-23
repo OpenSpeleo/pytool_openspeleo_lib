@@ -3,8 +3,8 @@ from datetime import date
 
 import pytest
 
-from openspeleo_lib.formats.ariane.name_map import ARIANE_MAPPING
 from openspeleo_lib.generators import UniqueNameGenerator
+from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
 from openspeleo_lib.models import SurveyShot
 from openspeleo_lib.utils import apply_key_mapping
 
@@ -15,7 +15,6 @@ def shot_from_dict(data: dict) -> SurveyShot:
 
 
 class TestCaveDataModel(unittest.TestCase):
-
     def setUp(self):
         # Clear already used names
         UniqueNameGenerator._used_values.clear()  # noqa: SLF001
@@ -50,35 +49,35 @@ class TestCaveDataModel(unittest.TestCase):
                             "TensionCorridor": "1.0",
                             "TensionProfile": "1.0",
                             "angle": "0.0",
-                            "length": "0.0"
+                            "length": "0.0",
                         },
                         {
                             "TensionCorridor": "1.0",
                             "TensionProfile": "1.0",
                             "angle": "180.0",
-                            "length": "0.0"
+                            "length": "0.0",
                         },
                         {
                             "TensionCorridor": "1.0",
                             "TensionProfile": "1.0",
                             "angle": "90.0",
-                            "length": "0.0"
+                            "length": "0.0",
                         },
                         {
                             "TensionCorridor": "1.0",
                             "TensionProfile": "1.0",
                             "angle": "270.0",
-                            "length": "0.0"
-                        }
+                            "length": "0.0",
+                        },
                     ]
                 },
                 "hasProfileAzimut": "false",
                 "hasProfileTilt": "false",
                 "profileAzimut": "0.0",
-                "profileTilt": "0.0"
+                "profileTilt": "0.0",
             },
             "Type": "START",
-            "Up": "0.0"
+            "Up": "0.0",
         }
 
     def test_create_cave_data_model(self):
@@ -91,15 +90,16 @@ class TestCaveDataModel(unittest.TestCase):
         assert not cave_data.excluded
         assert cave_data.explorer == "Ariane"
         assert not cave_data.shape.has_profile_azimuth
-        assert cave_data.shape.radius_collection.radius_vector[0].tension_corridor == \
-            1.0
+        assert (
+            cave_data.shape.radius_collection.radius_vector[0].tension_corridor == 1.0
+        )
 
     def test_invalid_data(self):
         invalid_data = self.valid_data.copy()
         invalid_data["Azimut"] = "not_a_float"
         with pytest.raises(
             ValueError,
-            match="Input should be a valid number, unable to parse string as a number"
+            match="Input should be a valid number, unable to parse string as a number",
         ):
             shot_from_dict(invalid_data)
 

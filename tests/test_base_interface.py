@@ -2,11 +2,10 @@ import unittest
 
 import pytest
 
-from openspeleo_lib._interface import BaseInterface
+from openspeleo_lib.interfaces.base import BaseInterface
 
 
 class TestBaseInterface(unittest.TestCase):
-
     def test_instantiation_abc_class(self):
         with pytest.raises(TypeError):
             BaseInterface(survey=None)

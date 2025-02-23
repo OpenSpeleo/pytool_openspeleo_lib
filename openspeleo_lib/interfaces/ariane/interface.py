@@ -1,4 +1,5 @@
 import json
+import logging
 import tempfile
 import zipfile
 from pathlib import Path
@@ -8,15 +9,17 @@ import xmltodict
 from defusedxml.minidom import parseString
 from dicttoxml2 import dicttoxml
 
-from openspeleo_lib._interface import BaseInterface
-from openspeleo_lib.formats.ariane.enums_cls import ArianeFileType
-from openspeleo_lib.formats.ariane.name_map import ARIANE_MAPPING
+from openspeleo_lib.interfaces.ariane.enums_cls import ArianeFileType
+from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
+from openspeleo_lib.interfaces.base import BaseInterface
 from openspeleo_lib.models import Survey
 from openspeleo_lib.utils import apply_key_mapping
 
+logger = logging.getLogger(__name__)
+
 
 def _extract_zip(input_zip):
-    input_zip=zipfile.ZipFile(input_zip)
+    input_zip = zipfile.ZipFile(input_zip)
     return {name: input_zip.read(name) for name in input_zip.namelist()}
 
 
@@ -31,28 +34,28 @@ def _filetype(filepath: Path) -> ArianeFileType:
 
 
 class ArianeInterface(BaseInterface):
-
     @classmethod
     def _write_to_file(cls, filepath: Path, data: dict, debug: bool = False) -> None:
         if isinstance(filepath, str):
             filepath = Path(filepath)
 
-        filetype  = _filetype(filepath=filepath)
+        filetype = _filetype(filepath=filepath)
 
         if filetype != ArianeFileType.TML:
-            raise TypeError(f"Unsupported fileformat: `{filetype.name}`. "
-                            f"Expected: `{ArianeFileType.TML.name}`")
+            raise TypeError(
+                f"Unsupported fileformat: `{filetype.name}`. "
+                f"Expected: `{ArianeFileType.TML.name}`"
+            )
 
         xml_str = dicttoxml(
-            data,
-            custom_root="CaveFile",
-            attr_type=False,
-            fold_list=False
+            data, custom_root="CaveFile", attr_type=False, fold_list=False
         )
 
-        xml_prettyfied = parseString(xml_str).toprettyxml(
-            indent=" " * 4, encoding="utf-8", standalone=True
-        ).decode("utf-8")
+        xml_prettyfied = (
+            parseString(xml_str)
+            .toprettyxml(indent=" " * 4, encoding="utf-8", standalone=True)
+            .decode("utf-8")
+        )
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             xml_f = Path(tmp_dir) / "Data.xml"
@@ -64,14 +67,13 @@ class ArianeInterface(BaseInterface):
                     f.write(xml_prettyfied)
 
             with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-
-                if debug:
-                    print(f"[DEBUG] Exporting {filetype.name} File: `{filepath}`")  # noqa: T201
-
+                logging.debug(
+                    "Exporting %(filetype)s File: `%(filepath)s`",
+                    {"filetype": filetype.name, "filepath": filepath},
+                )
                 zf.write(f.name, "Data.xml")
 
     def to_file(self, filepath: Path, debug: bool = False) -> None:
-
         data = self.survey_data
 
         if debug:
@@ -87,17 +89,19 @@ class ArianeInterface(BaseInterface):
         self._write_to_file(filepath=filepath, data=data, debug=debug)
 
     @classmethod
-    def _load_from_file(cls, filepath: Path, debug=True) -> dict:
+    def _load_from_file(cls, filepath: Path) -> dict:
         if isinstance(filepath, str):
             filepath = Path(filepath)
 
         if not filepath.exists():
             raise FileNotFoundError(f"File not found: `{filepath}`")
 
-        filetype  = _filetype(filepath=filepath)
+        filetype = _filetype(filepath=filepath)
 
-        if debug:
-            print(f"[DEBUG] Loading {filetype.name} File: `{filepath}`")  # noqa: T201
+        logging.debug(
+            "Loading %(filetype)s File: `%(filepath)s`",
+            {"filetype": filetype.name, "filepath": filepath},
+        )
 
         match filetype:
             case ArianeFileType.TML:
@@ -112,8 +116,7 @@ class ArianeInterface(BaseInterface):
 
     @classmethod
     def from_file(cls, filepath: Path, debug: bool = False) -> Self:
-
-        data = cls._load_from_file(filepath=filepath, debug=debug)
+        data = cls._load_from_file(filepath=filepath)
 
         if debug:
             with open("data.import.before.json", mode="w") as f:  # noqa: PTH123
