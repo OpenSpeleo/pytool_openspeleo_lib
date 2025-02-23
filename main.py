@@ -2,7 +2,8 @@
 
 from pathlib import Path
 
-from openspeleo_lib.types import Survey
+# from openspeleo_lib.types import Survey
+from openspeleo_lib.interfaces import ArianeInterface
 
 if __name__ == "__main__":
     # shot = Shot(name="AAAA")
@@ -17,7 +18,7 @@ if __name__ == "__main__":
     # print("# -------------------------------------------------------------- #")
     # print(survey_f.shots)
 
-    print(f"{'#' * 80}")
+    print(f"{'#' * 80}")  # noqa: T201
 
     # file = Path("tests/artifacts/fulford.dat")
     # survey = Survey.from_compass_file(filepath=file)
@@ -27,6 +28,6 @@ if __name__ == "__main__":
 
     DEBUG = False
 
-    survey = Survey.from_ariane_file(filepath, debug=DEBUG)
+    survey = ArianeInterface.from_file(filepath, debug=DEBUG)
 
-    survey.to_ariane_file("survey.tml", debug=DEBUG)
+    survey.to_file("survey.tml", debug=DEBUG)

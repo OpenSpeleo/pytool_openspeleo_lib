@@ -134,9 +134,22 @@ class SurveyShot(BaseMixin, AutoIdModelMixin, NameIdModelMixin, BaseModel):
     def serialize_bool(self, value: bool) -> str:
         return "true" if value else "false"
 
-    @field_serializer("left", "right", "up", "down", "longitude", "latitude", "length",
-                      "inclination", "id", "from_id", "depth_in", "depth",
-                      "closure_to_id", "azimuth")
+    @field_serializer(
+        "left",
+        "right",
+        "up",
+        "down",
+        "longitude",
+        "latitude",
+        "length",
+        "inclination",
+        "id",
+        "from_id",
+        "depth_in",
+        "depth",
+        "closure_to_id",
+        "azimuth",
+    )
     def serialize_numeric(self, value: float) -> str:
         return str(value)
 

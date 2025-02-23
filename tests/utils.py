@@ -1,4 +1,3 @@
-
 from collections import namedtuple
 from itertools import product
 from itertools import starmap

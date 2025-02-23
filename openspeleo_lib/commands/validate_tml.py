@@ -24,4 +24,7 @@ def validate(args):
     if not input_file.exists():
         raise FileNotFoundError(f"File not found: `{input_file}`")
 
-    logger.info(f"Filepath: {input_file}")  # noqa: T201
+    logger.info(
+        "Filepath: `%(input_file)s`",
+        {"input_file": input_file},
+    )

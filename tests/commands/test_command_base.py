@@ -5,8 +5,8 @@ import unittest
 
 class TestOpenspeleoCommands(unittest.TestCase):
     def run_command(self, command: str):
-        return subprocess.run(
-            shlex.split(command),  # noqa: S603
+        return subprocess.run(  # noqa: S603
+            shlex.split(command),
             capture_output=True,
             text=True,
             check=False,

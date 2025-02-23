@@ -5,9 +5,11 @@ def camel2snakecase(value: str) -> str:
     # Breaks before sequences of uppercase letters (but not for acronyms) or digits
     return re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=\D)(?=\d)", "_", value).lower()
 
+
 def snake2camelcase(value: str) -> str:
     first, *others = value.split("_")
     return "".join([first.lower(), *map(str.title, others)])
+
 
 def str2bool(value: str) -> bool:
     """
@@ -30,7 +32,6 @@ def str2bool(value: str) -> bool:
 
 
 def apply_key_mapping(data: dict | list | tuple, mapping: dict) -> dict | list:
-
     if not isinstance(data, (tuple, dict, list)):
         raise TypeError(f"Unexpected type received: {type(data)}")
 
@@ -53,4 +54,3 @@ def apply_key_mapping(data: dict | list | tuple, mapping: dict) -> dict | list:
                 rslt.append(val)
 
     return rslt
-

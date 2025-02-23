@@ -60,7 +60,7 @@ class _LoggerAPI:
     def __repr__(self):
         return repr(object.__getattribute__(self, "_logger"))
 
-    def getLogger(self, name) -> _logging.Logger:
+    def getLogger(self, name) -> _logging.Logger:  # noqa: N802
         return _logging.getLogger(name)
 
     #

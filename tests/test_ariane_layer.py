@@ -7,7 +7,6 @@ from openspeleo_lib.models import Layer
 
 
 class TestLayerModel(unittest.TestCase):
-
     def setUp(self) -> None:
         self.data = {
             "constant": "true",
@@ -21,9 +20,9 @@ class TestLayerModel(unittest.TestCase):
                 "opacity": "100.0",
                 "size_mode": "SWITCHABLE",
                 "stroke_color_string": "0x000000ff",
-                "stroke_thickness": "1.0"
+                "stroke_thickness": "1.0",
             },
-            "visible": "true"
+            "visible": "true",
         }
 
     def test_layer_model(self):
