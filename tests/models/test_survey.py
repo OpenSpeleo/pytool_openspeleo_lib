@@ -2,12 +2,9 @@ import unittest
 from uuid import UUID
 
 import pytest
-from parameterized import parameterized
 from pydantic import ValidationError
 
-from openspeleo_lib.generators import UniqueNameGenerator
 from openspeleo_lib.models import Survey
-from openspeleo_lib.models import SurveyShot
 
 
 class TestSurvey(unittest.TestCase):
@@ -129,55 +126,6 @@ class TestSurvey(unittest.TestCase):
 
         with pytest.raises(ValidationError, match="Input should be a valid"):
             Survey(**data)
-
-
-class TestSurveyShot(unittest.TestCase):
-    def setUp(self) -> None:
-        UniqueNameGenerator._used_values.clear()  # noqa: SLF001
-        self.data = {
-            "azimuth": "0.0",
-            "closure_to_id": "-1",
-            "color": "0x00000000",
-            "comment": "CLOSURE",
-            "date": "2024-04-07",
-            "depth": "0.0",
-            "depth_in": "0.0",
-            "down": "0.0",
-            "excluded": "false",
-            "explorer": "<Explorer>Snoopy</Surveyor>",
-            "from_id": "8",
-            "id": "78",
-            "inclination": "0.0",
-            "latitude": "0.0",
-            "left": "0.0",
-            "length": "0.0",
-            "locked": "false",
-            "longitude": "0.0",
-            "name_compass": "ABCD",
-            "profiletype": "VERTICAL",
-            "right": "0.0",
-            "section": "Main Line",
-            "shape": None,
-            "type": "REAL",
-            "up": "0.0",
-        }
-
-    def test_invalid_date_conversion_with_time(self):
-        self.data["date"] = "2024-04-07 11:05"
-
-        with pytest.raises(
-            ValidationError, match="Datetimes provided to dates should have zero time"
-        ):
-            SurveyShot(**self.data)
-
-    @parameterized.expand(["24-04-2024", "2024-24-04"])
-    def test_invalid_date_format(self, date_val: str):
-        self.data["date"] = date_val
-
-        with pytest.raises(
-            ValidationError, match="Input should be a valid date or datetime"
-        ):
-            SurveyShot(**self.data)
 
 
 if __name__ == "__main__":

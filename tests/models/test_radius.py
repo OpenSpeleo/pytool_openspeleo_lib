@@ -4,7 +4,7 @@ from openspeleo_lib.models import RadiusCollection
 from openspeleo_lib.models import RadiusVector
 
 
-class TestSurvey(unittest.TestCase):
+class TestRadiusModels(unittest.TestCase):
     def test_radius_collection_default(self):
         radius_collect = RadiusCollection()
         assert radius_collect.radius_vector == []
