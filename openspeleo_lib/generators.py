@@ -1,19 +1,49 @@
+import contextlib
 import random
-from abc import ABCMeta
-from abc import abstractmethod
+from collections import defaultdict
 from typing import Any
 
-from openspeleo_lib.constants import COMPASS_MAX_NAME_LENGTH
+from openspeleo_lib.constants import OSPL_DEFAULT_NAME_LENGTH
+from openspeleo_lib.constants import OSPL_MAX_NAME_LENGTH
 from openspeleo_lib.constants import OSPL_MAX_RETRY_ATTEMPTS
 from openspeleo_lib.errors import DuplicateValueError
 from openspeleo_lib.errors import MaxRetriesError
 
 
-class _BaseUniqueValueGenerator(metaclass=ABCMeta):
-    _used_values = set()
+class UniqueValueGenerator:
+    _used_values = None
+    VOCAB = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+    def __init__(self):
+        raise NotImplementedError("This class should not be instantiated.")
 
     @classmethod
-    def get(cls, *args, **kwargs) -> Any:
+    @contextlib.contextmanager
+    def activate_uniqueness(cls):
+        try:
+            cls._used_values = defaultdict(set)
+            yield
+        finally:
+            cls._used_values = None
+
+    @classmethod
+    def register(cls, vartype: type, value: Any) -> None:
+        """Register the generated value."""
+        if cls._used_values is None:  # uniqueness is not activated
+            return
+
+        value = vartype(value)
+
+        if value in cls._used_values[vartype]:
+            raise DuplicateValueError(
+                f"Value `{value}` for type `{vartype}` has already been registered."
+            )
+
+        cls._used_values[vartype].add(value)
+
+    @classmethod
+    def get(cls, vartype: type, **kwargs) -> Any:
+        """Get unique value for an object ID."""
         iter_idx = 0
         while True:
             iter_idx += 1
@@ -24,8 +54,18 @@ class _BaseUniqueValueGenerator(metaclass=ABCMeta):
                     f"{OSPL_MAX_RETRY_ATTEMPTS}"
                 )
             try:
-                value = cls.generate(*args, retry_step=iter_idx, **kwargs)
-                cls.register(value)
+                if vartype is str:
+                    value = cls._generate_str(**kwargs)
+                elif vartype is int:
+                    value = cls._generate_int(
+                        known_values=(
+                            cls._used_values[vartype] if cls._used_values else []
+                        )
+                    )
+                else:
+                    raise TypeError(f"Unsupported type: `{vartype}`")
+
+                cls.register(vartype=vartype, value=value)
                 break
             except DuplicateValueError:
                 continue
@@ -33,36 +73,13 @@ class _BaseUniqueValueGenerator(metaclass=ABCMeta):
         return value
 
     @classmethod
-    def register(cls, value) -> None:
-        if value in cls._used_values:
-            raise DuplicateValueError(f"Value `{value}` has already been registred.")
-        cls._used_values.add(value)
-
-    @classmethod
-    @abstractmethod
-    def generate(cls, retry_step: int, *args, **kwargs) -> Any:
-        raise NotImplementedError  # pragma: no cover
-
-
-class UniqueNameGenerator(_BaseUniqueValueGenerator):
-    VOCAB = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-    @classmethod
-    def get(cls, str_len: int = 6) -> str:
-        return super().get(str_len=str_len)
-
-    @classmethod
-    def generate(cls, retry_step: int, str_len: int = 6) -> str:
-        if str_len > COMPASS_MAX_NAME_LENGTH:
+    def _generate_str(cls, str_len: int = OSPL_DEFAULT_NAME_LENGTH) -> str:
+        if str_len > OSPL_MAX_NAME_LENGTH:
             raise ValueError(
-                f"Maximum length allowed: {COMPASS_MAX_NAME_LENGTH}, "
-                f"received: {str_len}"
+                f"Maximum length allowed: {OSPL_MAX_NAME_LENGTH}, received: {str_len}"
             )
         return "".join(random.choices(cls.VOCAB, k=str_len))
 
-
-class UniqueIDGenerator(_BaseUniqueValueGenerator):
     @classmethod
-    def generate(cls, retry_step: int) -> str:
-        max_value = max(cls._used_values) if cls._used_values else 0
-        return max_value + 1
+    def _generate_int(cls, known_values: list[int] | set[int]) -> str:
+        return max(known_values, default=0) + 1

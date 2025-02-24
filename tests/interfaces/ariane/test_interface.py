@@ -62,7 +62,7 @@ class TestArianeParser(unittest.TestCase):
             if path_type == "str":
                 zip_path = str(zip_path)
 
-            data = ArianeInterface._load_from_file(zip_path)  # noqa: SLF001
+            data = ArianeInterface._from_file_to_dict(zip_path)  # noqa: SLF001
             assert data["Test"] == "Value"
 
     def test_from_ariane_file_tmlu(self):
