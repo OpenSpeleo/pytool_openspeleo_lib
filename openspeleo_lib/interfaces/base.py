@@ -2,6 +2,7 @@ from abc import ABCMeta
 from abc import abstractmethod
 from pathlib import Path
 
+from openspeleo_lib.generators import UniqueValueGenerator
 from openspeleo_lib.models import Survey
 
 
@@ -17,6 +18,11 @@ class BaseInterface(metaclass=ABCMeta):
         raise NotImplementedError  # pragma: no cover
 
     @classmethod
-    @abstractmethod
     def from_file(cls, filepath: Path) -> Survey:
+        with UniqueValueGenerator.activate_uniqueness():
+            return cls._from_file(filepath=filepath)
+
+    @classmethod
+    @abstractmethod
+    def _from_file(cls, filepath: Path) -> Survey:
         raise NotImplementedError  # pragma: no cover

@@ -1,9 +1,9 @@
-import json
 import logging
 import tempfile
 import zipfile
 from pathlib import Path
 
+import orjson
 import xmltodict
 from defusedxml.minidom import parseString
 from dicttoxml2 import dicttoxml
@@ -79,18 +79,26 @@ class ArianeInterface(BaseInterface):
 
         if DEBUG:
             with open("data.export.before.json", mode="w") as f:  # noqa: PTH123
-                f.write(json.dumps(data, indent=4, sort_keys=True))
+                f.write(
+                    orjson.dumps(
+                        data, None, option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
+                    ).decode("utf-8")
+                )
 
         data = apply_key_mapping(data, mapping=ARIANE_MAPPING)
 
         if DEBUG:
             with open("data.export.after.json", mode="w") as f:  # noqa: PTH123
-                f.write(json.dumps(data, indent=4, sort_keys=True))
+                f.write(
+                    orjson.dumps(
+                        data, None, option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
+                    ).decode("utf-8")
+                )
 
         cls._write_to_file(filepath=filepath, data=data)
 
     @classmethod
-    def _load_from_file(cls, filepath: Path) -> dict:
+    def _from_file_to_dict(cls, filepath: Path) -> dict:
         if isinstance(filepath, str):
             filepath = Path(filepath)
 
@@ -118,17 +126,25 @@ class ArianeInterface(BaseInterface):
         return xmltodict.parse(xml_data)["CaveFile"]
 
     @classmethod
-    def from_file(cls, filepath: Path) -> Survey:
-        data = cls._load_from_file(filepath=filepath)
+    def _from_file(cls, filepath: Path) -> Survey:
+        data = cls._from_file_to_dict(filepath=filepath)
 
         if DEBUG:
             with open("data.import.before.json", mode="w") as f:  # noqa: PTH123
-                f.write(json.dumps(data, indent=4, sort_keys=True))
+                f.write(
+                    orjson.dumps(
+                        data, None, option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
+                    ).decode("utf-8")
+                )
 
         data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
 
         if DEBUG:
             with open("data.import.after.json", mode="w") as f:  # noqa: PTH123
-                f.write(json.dumps(data, indent=4, sort_keys=True))
+                f.write(
+                    orjson.dumps(
+                        data, None, option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
+                    ).decode("utf-8")
+                )
 
         return Survey(**data)

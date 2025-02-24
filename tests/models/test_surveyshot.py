@@ -5,7 +5,6 @@ import pytest
 from parameterized import parameterized
 from pydantic import ValidationError
 
-from openspeleo_lib.generators import UniqueNameGenerator
 from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
 from openspeleo_lib.models import SurveyShot
 from openspeleo_lib.utils import apply_key_mapping
@@ -18,9 +17,6 @@ def shot_from_dict(data: dict) -> SurveyShot:
 
 class TestCaveDataModel(unittest.TestCase):
     def setUp(self):
-        # Clear already used names
-        UniqueNameGenerator._used_values.clear()  # noqa: SLF001
-
         self.valid_data = {
             "Azimut": "0.0",
             "ClosureToID": "-1",
@@ -116,7 +112,6 @@ class TestCaveDataModel(unittest.TestCase):
 
 class TestSurveyShot(unittest.TestCase):
     def setUp(self) -> None:
-        UniqueNameGenerator._used_values.clear()  # noqa: SLF001
         self.data = {
             "azimuth": "0.0",
             "closure_to_id": "-1",

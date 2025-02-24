@@ -1,7 +1,10 @@
 import datetime
 import uuid
+from pathlib import Path
 from typing import Any
+from typing import Self
 
+import orjson
 from pydantic import UUID4
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -191,3 +194,18 @@ class Survey(BaseMixin, BaseModel):
     @field_serializer("speleodb_id", "first_start_absolute_elevation")
     def serialize_to_str(self, value: Any) -> str:
         return str(value)
+
+    def save(self, filepath: str | Path) -> None:
+        with Path(filepath).open(mode="w") as f:
+            f.write(
+                orjson.dumps(
+                    self.model_dump(),
+                    None,
+                    option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS),
+                ).decode("utf-8")
+            )
+
+    @classmethod
+    def load(cls, filepath: str) -> Self:
+        with Path(filepath).open(mode="r") as f:
+            return cls.model_validate_json(f.read())
