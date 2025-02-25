@@ -94,6 +94,7 @@ openspeleo = "openspeleo_lib.commands.main:main"
 
 [project.entry-points."openspeleo_lib.actions"]
 validate_tml = "openspeleo_lib.commands.validate_tml:validate"
+convert = "openspeleo_lib.commands.convert:convert"
 
 # [project.entry-points."compass.actions"]
 # convert = "openspeleo_lib.commands.convert:convert"

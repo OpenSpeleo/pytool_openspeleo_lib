@@ -1,16 +1,11 @@
 import datetime
 import uuid
-from pathlib import Path
-from typing import Any
-from typing import Self
 
-import orjson
 from pydantic import UUID4
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import field_serializer
-from pydantic import field_validator
 
 from openspeleo_lib.mixins import AutoIdModelMixin
 from openspeleo_lib.mixins import BaseMixin
@@ -25,22 +20,11 @@ class RadiusVector(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    @field_serializer("norm", "angle", "tension_profile", "tension_corridor")
-    def serialize_numeric(self, value: float) -> str:
-        return str(value)
-
 
 class RadiusCollection(BaseModel):
     radius_vector: list[RadiusVector] = []
 
     model_config = ConfigDict(extra="forbid")
-
-    @field_validator("radius_vector", mode="before")
-    @classmethod
-    def ensure_list_type(cls, v: list | dict | None) -> list:
-        if isinstance(v, dict):
-            return [v]
-        return v
 
 
 class Shape(BaseModel):
@@ -51,14 +35,6 @@ class Shape(BaseModel):
     profile_tilt: float
 
     model_config = ConfigDict(extra="forbid")
-
-    @field_serializer("has_profile_tilt", "has_profile_azimuth")
-    def serialize_bool(self, value: bool) -> str:
-        return "true" if value else "false"
-
-    @field_serializer("profile_tilt", "profile_azimuth")
-    def serialize_numeric(self, value: float) -> str:
-        return str(value)
 
 
 class LayerStyle(BaseModel):
@@ -73,10 +49,6 @@ class LayerStyle(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    @field_serializer("stroke_thickness", "opacity", "line_type_scale", "dash_scale")
-    def serialize_numeric(self, value: float) -> str:
-        return str(value)
-
 
 class Layer(BaseModel):
     constant: bool = True
@@ -86,10 +58,6 @@ class Layer(BaseModel):
     visible: bool = True
 
     model_config = ConfigDict(extra="forbid")
-
-    @field_serializer("visible", "locked_layer", "constant")
-    def serialize_bool(self, value: bool) -> str:
-        return "true" if value else "false"
 
 
 class LayerCollection(BaseModel):
@@ -133,31 +101,6 @@ class SurveyShot(BaseMixin, AutoIdModelMixin, NameIdModelMixin, BaseModel):
     def serialize_dt(self, dt: datetime.date, _info):
         return dt.strftime("%Y-%m-%d")
 
-    @field_serializer("locked", "excluded")
-    def serialize_bool(self, value: bool) -> str:
-        return "true" if value else "false"
-
-    @field_serializer(
-        "left",
-        "right",
-        "up",
-        "down",
-        "longitude",
-        "latitude",
-        "length",
-        "inclination",
-        "id",
-        "from_id",
-        "depth_in",
-        "depth",
-        "closure_to_id",
-        "azimuth",
-    )
-    def serialize_numeric(self, value: float) -> str:
-        return str(value)
-
-    # model_config = ConfigDict(use_enum_values=True)
-
 
 class ShotCollection(BaseModel):
     shot_list: list[SurveyShot] = []
@@ -186,26 +129,3 @@ class Survey(BaseMixin, BaseModel):
     list_annotation: str | None = None
 
     model_config = ConfigDict(extra="forbid")
-
-    @field_serializer("use_magnetic_azimuth")
-    def serialize_bool(self, value: bool) -> str:
-        return "true" if value else "false"
-
-    @field_serializer("speleodb_id", "first_start_absolute_elevation")
-    def serialize_to_str(self, value: Any) -> str:
-        return str(value)
-
-    def save(self, filepath: str | Path) -> None:
-        with Path(filepath).open(mode="w") as f:
-            f.write(
-                orjson.dumps(
-                    self.model_dump(),
-                    None,
-                    option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS),
-                ).decode("utf-8")
-            )
-
-    @classmethod
-    def load(cls, filepath: str) -> Self:
-        with Path(filepath).open(mode="r") as f:
-            return cls.model_validate_json(f.read())

@@ -18,9 +18,6 @@ class TestRadiusModels(unittest.TestCase):
         }
         vector = RadiusVector(**data)
 
-        radius_collect = RadiusCollection(radius_vector=data)
-        assert radius_collect.radius_vector == [vector]
-
         radius_collect = RadiusCollection(radius_vector=[vector])
         assert radius_collect.radius_vector == [vector]
 

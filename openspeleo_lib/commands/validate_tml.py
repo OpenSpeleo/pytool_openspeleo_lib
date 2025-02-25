@@ -2,7 +2,10 @@ import argparse
 import logging
 import pathlib
 
+from openspeleo_lib.interfaces import ArianeInterface
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def validate(args):
@@ -24,7 +27,6 @@ def validate(args):
     if not input_file.exists():
         raise FileNotFoundError(f"File not found: `{input_file}`")
 
-    logger.info(
-        "Filepath: `%(input_file)s`",
-        {"input_file": input_file},
-    )
+    _ = ArianeInterface.from_file(input_file)
+
+    logger.info("Filepath: `%(input_file)s` ... VALID", {"input_file": input_file})

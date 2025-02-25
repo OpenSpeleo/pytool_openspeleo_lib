@@ -1,7 +1,9 @@
+import contextlib
 import logging
 import tempfile
 import zipfile
 from pathlib import Path
+from typing import Any
 
 import orjson
 import xmltodict
@@ -33,6 +35,56 @@ def _filetype(filepath: Path) -> ArianeFileType:
         raise TypeError(e) from e
 
 
+def _ensure_nested_as_list_inplace(data: dict, keys: list[str]) -> None:
+    """
+    Ensure that the value at the nested dictionary keys is a list.
+
+    Args:
+        data (dict): The dictionary to modify.
+        keys (list): A list of keys to traverse the dictionary.
+
+    Returns:
+        dict: The modified dictionary.
+    """
+    data_ptr = data
+    with contextlib.suppress(KeyError):
+        for key in keys[:-1]:
+            data_ptr = data_ptr[key]
+
+        # Ensure the last key in the list is a list
+        last_key = keys[-1]
+
+        val = data_ptr[last_key]
+        if not isinstance(val, list):
+            data_ptr[last_key] = [val]
+
+
+def ArianeCustomXMLEncoder(data: Any) -> Any:  # noqa: N802
+    """
+    Recursively encodes data into a format suitable for Ariane XML serialization.
+
+    Args:
+        data (Any): The input data to be encoded. It can be of any type.
+
+    Returns:
+        Any: The encoded data. Dictionaries, Lists, Tuples and Sets are recursively
+        encoded. Booleans are converted to lowercase strings.
+    """
+
+    match data:
+        case dict():
+            return {k: ArianeCustomXMLEncoder(v) for k, v in data.items()}
+
+        case tuple() | list() | set():
+            return [ArianeCustomXMLEncoder(item) for item in data]
+
+        case bool():
+            return "true" if data else "false"
+
+        case _:
+            return data
+
+
 class ArianeInterface(BaseInterface):
     @classmethod
     def _write_to_file(cls, filepath: Path, data: dict) -> None:
@@ -47,6 +99,7 @@ class ArianeInterface(BaseInterface):
                 f"Expected: `{ArianeFileType.TML.name}`"
             )
 
+        data = ArianeCustomXMLEncoder(data)
         xml_str = dicttoxml(
             data, custom_root="CaveFile", attr_type=False, fold_list=False
         )
@@ -75,7 +128,7 @@ class ArianeInterface(BaseInterface):
 
     @classmethod
     def to_file(cls, survey: Survey, filepath: Path) -> None:
-        data = survey.model_dump()
+        data = survey.model_dump(mode="json")
 
         if DEBUG:
             with open("data.export.before.json", mode="w") as f:  # noqa: PTH123
@@ -136,6 +189,12 @@ class ArianeInterface(BaseInterface):
                         data, None, option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
                     ).decode("utf-8")
                 )
+
+        for shot_data in data["Data"]["SurveyData"]:
+            for nested_keys in [
+                ["Shape", "RadiusCollection", "RadiusVector"],
+            ]:
+                _ensure_nested_as_list_inplace(shot_data, nested_keys)
 
         data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
 
