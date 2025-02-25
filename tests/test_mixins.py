@@ -1,5 +1,7 @@
 import json
+import tempfile
 import unittest
+from pathlib import Path
 
 import orjson
 import pytest
@@ -129,7 +131,13 @@ class TestBaseMixin(unittest.TestCase):
 class TestBaseMixinExport(unittest.TestCase):
     def test_to_json_basic(self):
         model = SubModel(id=1, name_compass="Test")
-        json_output = model.to_json()
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            filepath = Path(tmpdirname) / "test.json"
+            model.to_json(filepath)
+
+            with filepath.open(mode="r") as f:
+                json_output = f.read()
 
         # Expected JSON string
         expected_json = orjson.dumps(
@@ -144,7 +152,12 @@ class TestBaseMixinExport(unittest.TestCase):
         nested_model = SubModel(id=2, name_compass="Nested")
         model = NestedModel(name="hello", nested=nested_model)
 
-        json_output = model.to_json()
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            filepath = Path(tmpdirname) / "test.json"
+            model.to_json(filepath)
+
+            with filepath.open(mode="r") as f:
+                json_output = f.read()
 
         # Expected JSON string
         expected_json = orjson.dumps(
@@ -157,7 +170,13 @@ class TestBaseMixinExport(unittest.TestCase):
 
     def test_to_json_empty_fields(self):
         model = SubModel(id=3, name_compass="")
-        json_output = model.to_json()
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            filepath = Path(tmpdirname) / "test.json"
+            model.to_json(filepath)
+
+            with filepath.open(mode="r") as f:
+                json_output = f.read()
 
         # Expected JSON string
         expected_json = orjson.dumps(
@@ -173,7 +192,13 @@ class TestBaseMixinExport(unittest.TestCase):
 
     def test_to_json_with_special_characters(self):
         model = SubModel(id=4, name_compass="NameWith!Mark")
-        json_output = model.to_json()
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            filepath = Path(tmpdirname) / "test.json"
+            model.to_json(filepath)
+
+            with filepath.open(mode="r") as f:
+                json_output = f.read()
 
         # Expected JSON string with escaped quotes
         expected_json = orjson.dumps(
@@ -186,7 +211,13 @@ class TestBaseMixinExport(unittest.TestCase):
 
     def test_to_json_sort_keys(self):
         model = SubModel(id=5, name_compass="Zebra")
-        json_output = model.to_json()
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            filepath = Path(tmpdirname) / "test.json"
+            model.to_json(filepath)
+
+            with filepath.open(mode="r") as f:
+                json_output = f.read()
 
         # Expected JSON string with sorted keys
         expected_json = orjson.dumps(
@@ -199,7 +230,9 @@ class TestBaseMixinExport(unittest.TestCase):
 
     def test_submodel_to_dict(self):
         model = SubModel(id=1, name_compass="Test")
-        transformed_dict = apply_key_mapping(model.model_dump(), mapping=ARIANE_MAPPING)
+        transformed_dict = apply_key_mapping(
+            model.model_dump(mode="json"), mapping=ARIANE_MAPPING
+        )
         assert transformed_dict == {"Name": "TEST", "ID": 1}
 
 

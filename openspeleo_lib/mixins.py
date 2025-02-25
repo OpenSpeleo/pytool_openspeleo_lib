@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Annotated
 from typing import Any
 from typing import Self
@@ -20,16 +21,29 @@ class BaseMixin:
     def enforce_snake_and_remove_none(cls, data: dict) -> dict:
         return {k: v for k, v in data.items() if v is not None}
 
-    def to_json(self) -> str:
+    def to_json(self, filepath: str | Path) -> None:
         """
-        Serialize the model to a JSON string with indentation and sorted keys.
+        Serializes the model to a JSON file.
+
+        Args:
+            filepath (str | Path): The filepath where the JSON data will be written.
 
         Returns:
-            str: The JSON representation of the model.
+            None
         """
-        return orjson.dumps(
-            self.model_dump(), None, option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
-        ).decode("utf-8")
+        with Path(filepath).open(mode="w") as f:
+            f.write(
+                orjson.dumps(
+                    self.model_dump(mode="json"),
+                    None,
+                    option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS),
+                ).decode("utf-8")
+            )
+
+    @classmethod
+    def from_json(cls, filepath: str | Path) -> Self:
+        with Path(filepath).open(mode="rb") as f:
+            return cls.model_validate(orjson.loads(f.read()))
 
     # ======================== VALIDATOR UTILS ======================== #
 
