@@ -15,9 +15,19 @@ from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
 from openspeleo_lib.interfaces.base import BaseInterface
 from openspeleo_lib.models import Survey
 from openspeleo_lib.utils import apply_key_mapping
+from openspeleo_lib.utils import remove_none_values
 
 logger = logging.getLogger(__name__)
-DEBUG = False
+DEBUG = True
+
+
+def _write_debugdata_to_disk(data: dict, filepath: Path) -> None:
+    with filepath.open(mode="w") as f:
+        f.write(
+            orjson.dumps(
+                data, None, option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
+            ).decode("utf-8")
+        )
 
 
 def _extract_zip(input_zip) -> dict[str, bytes]:
@@ -33,30 +43,6 @@ def _filetype(filepath: Path) -> ArianeFileType:
         return ArianeFileType.from_str(filepath.suffix[1:])
     except ValueError as e:
         raise TypeError(e) from e
-
-
-def _ensure_nested_as_list_inplace(data: dict, keys: list[str]) -> None:
-    """
-    Ensure that the value at the nested dictionary keys is a list.
-
-    Args:
-        data (dict): The dictionary to modify.
-        keys (list): A list of keys to traverse the dictionary.
-
-    Returns:
-        dict: The modified dictionary.
-    """
-    data_ptr = data
-    with contextlib.suppress(KeyError):
-        for key in keys[:-1]:
-            data_ptr = data_ptr[key]
-
-        # Ensure the last key in the list is a list
-        last_key = keys[-1]
-
-        val = data_ptr[last_key]
-        if not isinstance(val, list):
-            data_ptr[last_key] = [val]
 
 
 def ArianeCustomXMLEncoder(data: Any) -> Any:  # noqa: N802
@@ -81,25 +67,72 @@ def ArianeCustomXMLEncoder(data: Any) -> Any:  # noqa: N802
         case bool():
             return "true" if data else "false"
 
+        case int() | float():
+            return str(data)
+
         case _:
             return data
 
 
 class ArianeInterface(BaseInterface):
     @classmethod
-    def _write_to_file(cls, filepath: Path, data: dict) -> None:
-        if isinstance(filepath, str):
-            filepath = Path(filepath)
-
-        filetype = _filetype(filepath=filepath)
-
-        if filetype != ArianeFileType.TML:
+    def to_file(cls, survey: Survey, filepath: Path) -> None:
+        if (filetype := _filetype(filepath=filepath)) != ArianeFileType.TML:
             raise TypeError(
                 f"Unsupported fileformat: `{filetype.name}`. "
                 f"Expected: `{ArianeFileType.TML.name}`"
             )
 
+        data = survey.model_dump(mode="json")
+
+        # ==================== FORMATING FROM OSPL TO TML =================== #
+
+        if DEBUG:
+            _write_debugdata_to_disk(data, Path("data.export.before.json"))
+
+        # 1. Encode dtypes to `Ariane` format (e.g. `True` -> `true`)
         data = ArianeCustomXMLEncoder(data)
+
+        if DEBUG:
+            _write_debugdata_to_disk(data, Path("data.export.step01.json"))
+
+        # 2. Flatten sections into shots
+        shots = []
+        for section in data.pop("sections"):
+            for shot in section.pop("shots"):
+                shot["section"] = section["name"]
+                shot["date"] = section["date"]
+                shot["surveyors"] = ",".join(section["surveyors"])
+
+                radius_vectors = shot["shape"].pop("radius_vectors")
+                shot["shape"]["radius_collection"] = {"radius_vector": radius_vectors}
+
+                shots.append(shot)
+
+        data["data"] = {"shots": shots}
+
+        if DEBUG:
+            _write_debugdata_to_disk(data, Path("data.export.step02.json"))
+
+        # 3. Restore Layers => Layers[LayerList] = [Layer1, Layer2, ...]
+        data["ariane_layers"] = {"layer_list": data.pop("ariane_layers")}
+
+        if DEBUG:
+            _write_debugdata_to_disk(data, Path("data.export.step03.json"))
+
+        # 4. Apply key mapping in reverse order
+        data = apply_key_mapping(data, mapping=ARIANE_MAPPING)
+
+        if DEBUG:
+            _write_debugdata_to_disk(data, Path("data.export.mapped.json"))
+
+        if DEBUG:
+            _write_debugdata_to_disk(data, Path("data.export.after.json"))
+
+        # ------------------------------------------------------------------- #
+
+        # =========================== DICT TO XML =========================== #
+
         xml_str = dicttoxml(
             data, custom_root="CaveFile", attr_type=False, fold_list=False
         )
@@ -110,14 +143,18 @@ class ArianeInterface(BaseInterface):
             .decode("utf-8")
         )
 
+        # ------------------------------------------------------------------- #
+
+        if DEBUG:
+            with Path("data.export.xml").open(mode="w") as f:
+                f.write(xml_prettyfied)
+
+        # ========================== WRITE TO DISK ========================== #
+
         with tempfile.TemporaryDirectory() as tmp_dir:
             xml_f = Path(tmp_dir) / "Data.xml"
             with xml_f.open(mode="w") as f:
                 f.write(xml_prettyfied)
-
-            if DEBUG:
-                with open("Data.xml", mode="w") as f:  # noqa: PTH123
-                    f.write(xml_prettyfied)
 
             with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_DEFLATED) as zf:
                 logging.debug(
@@ -127,43 +164,28 @@ class ArianeInterface(BaseInterface):
                 zf.write(f.name, "Data.xml")
 
     @classmethod
-    def to_file(cls, survey: Survey, filepath: Path) -> None:
-        data = survey.model_dump(mode="json")
+    def _from_file(cls, filepath: str | Path) -> Survey:
+        # ========================= INPUT VALIDATION ======================== #
 
-        if DEBUG:
-            with open("data.export.before.json", mode="w") as f:  # noqa: PTH123
-                f.write(
-                    orjson.dumps(
-                        data, None, option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
-                    ).decode("utf-8")
-                )
-
-        data = apply_key_mapping(data, mapping=ARIANE_MAPPING)
-
-        if DEBUG:
-            with open("data.export.after.json", mode="w") as f:  # noqa: PTH123
-                f.write(
-                    orjson.dumps(
-                        data, None, option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
-                    ).decode("utf-8")
-                )
-
-        cls._write_to_file(filepath=filepath, data=data)
-
-    @classmethod
-    def _from_file_to_dict(cls, filepath: Path) -> dict:
-        if isinstance(filepath, str):
-            filepath = Path(filepath)
+        filepath = Path(filepath)
 
         if not filepath.exists():
             raise FileNotFoundError(f"File not found: `{filepath}`")
 
-        filetype = _filetype(filepath=filepath)
+        if (filetype := _filetype(filepath=filepath)) != ArianeFileType.TML:
+            raise TypeError(
+                f"Unsupported fileformat: `{filetype.name}`. "
+                f"Expected: `{ArianeFileType.TML.name}`"
+            )
 
         logging.debug(
             "Loading %(filetype)s File: `%(filepath)s`",
             {"filetype": filetype.name, "filepath": filepath},
         )
+
+        # ------------------------------------------------------------------- #
+
+        # =========================== XML TO DICT =========================== #
 
         match filetype:
             case ArianeFileType.TML:
@@ -173,37 +195,96 @@ class ArianeInterface(BaseInterface):
                 raise NotImplementedError(
                     f"Not supported yet - Format: `{filetype.name}`"
                 )
-                # with filepath.open(mode="r") as f:
-                #     xml_data = f.read()
 
-        return xmltodict.parse(xml_data)["CaveFile"]
+        data = xmltodict.parse(xml_data)["CaveFile"]
 
-    @classmethod
-    def _from_file(cls, filepath: Path) -> Survey:
-        data = cls._from_file_to_dict(filepath=filepath)
+        # ------------------------------------------------------------------- #
+
+        # ===================== DICT FORMATTING TO OSPL ===================== #
 
         if DEBUG:
-            with open("data.import.before.json", mode="w") as f:  # noqa: PTH123
-                f.write(
-                    orjson.dumps(
-                        data, None, option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
-                    ).decode("utf-8")
-                )
+            _write_debugdata_to_disk(data, Path("data.import.before.json"))
 
-        for shot_data in data["Data"]["SurveyData"]:
-            for nested_keys in [
-                ["Shape", "RadiusCollection", "RadiusVector"],
-            ]:
-                _ensure_nested_as_list_inplace(shot_data, nested_keys)
+        # 1. Remove None values from the dictionary
+        data = remove_none_values(data)
 
+        if DEBUG:
+            _write_debugdata_to_disk(data, Path("data.import.step01-none_cleaned.json"))
+
+        # 2. Apply key mapping: From Ariane to OSPL
         data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
 
         if DEBUG:
-            with open("data.import.after.json", mode="w") as f:  # noqa: PTH123
-                f.write(
-                    orjson.dumps(
-                        data, None, option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
-                    ).decode("utf-8")
-                )
+            _write_debugdata_to_disk(data, Path("data.import.step02-mapped.json"))
+
+        # 3. Collapse data["ariane_layers"]["layer_list"] to data["ariane_layers"]
+        data["ariane_layers"] = data["ariane_layers"].pop("layer_list")
+
+        if DEBUG:
+            _write_debugdata_to_disk(data, Path("data.import.step03-collapsed.json"))
+
+        # 4. Sort `shots` into `sections`
+        sections = {}
+        for shot in data.pop("data")["shots"]:
+            # 4.1 Collapse shot["shape"]["radius_collection"]["radius_vector"] to shot["shape"]["radius_vectors"]  # noqa: E501
+            with contextlib.suppress(KeyError):
+                shot["shape"]["radius_vectors"] = shot["shape"].pop(
+                    "radius_collection"
+                )["radius_vector"]
+
+            # 4.2 Separate shots into sections
+            try:
+                if (section_name := shot.pop("section")) not in sections:
+                    sections[section_name] = {
+                        "name": section_name,
+                        "date": shot.pop("date", None),
+                        "shots": [],
+                        "surveyors": (
+                            shot.pop("surveyors").split(",")
+                            if "surveyors" in shot
+                            else []
+                        ),
+                    }
+                else:
+                    for key, should_split in [("date", False), ("surveyors", True)]:
+                        with contextlib.suppress(KeyError):
+                            value = shot.pop(key)
+
+                            if should_split:
+                                value = value.split(",")
+
+                            if sections[section_name][key] != value:
+                                logger.warning(
+                                    "Section `%(section)s` has different `%(key)s`: "
+                                    "`%(section_val)s` != `%(shot_val)s`",
+                                    {
+                                        "section": section_name,
+                                        "key": key,
+                                        "section_val": sections[section_name][key],
+                                        "shot_val": value,
+                                    },
+                                )
+
+                with contextlib.suppress(KeyError):
+                    if not isinstance(
+                        (radius_vectors := shot["shape"]["radius_vectors"]),
+                        (tuple, list),
+                    ):
+                        shot["shape"]["radius_vectors"] = [radius_vectors]
+
+                sections[section_name]["shots"].append(shot)
+
+            except KeyError:
+                continue  # if data is incomplete, skip this shot
+
+        data["sections"] = list(sections.values())
+
+        if DEBUG:
+            _write_debugdata_to_disk(data, Path("data.import.step04-sections.json"))
+
+        if DEBUG:
+            _write_debugdata_to_disk(data, Path("data.import.formatted.json"))
+
+        # ------------------------------------------------------------------- #
 
         return Survey(**data)
