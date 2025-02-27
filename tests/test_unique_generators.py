@@ -2,8 +2,8 @@ import unittest
 
 import pytest
 
-from openspeleo_lib.constants import OSPL_MAX_NAME_LENGTH
 from openspeleo_lib.constants import OSPL_MAX_RETRY_ATTEMPTS
+from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
 from openspeleo_lib.errors import DuplicateValueError
 from openspeleo_lib.generators import UniqueValueGenerator
 
@@ -45,14 +45,16 @@ class TestUniqueNameGenerator(unittest.TestCase):
         with pytest.raises(
             ValueError,
             match=(
-                f"Maximum length allowed: {OSPL_MAX_NAME_LENGTH}, "
-                f"received: {OSPL_MAX_NAME_LENGTH + 1}"
+                f"Maximum length allowed: {OSPL_SHOTNAME_MAX_LENGTH}, "
+                f"received: {OSPL_SHOTNAME_MAX_LENGTH + 1}"
             ),
         ):
-            _ = UniqueValueGenerator.get(vartype=str, str_len=OSPL_MAX_NAME_LENGTH + 1)
+            _ = UniqueValueGenerator.get(
+                vartype=str, str_len=OSPL_SHOTNAME_MAX_LENGTH + 1
+            )
 
     def test_generate_name_with_different_length(self):
-        for length in range(1, OSPL_MAX_NAME_LENGTH + 1):
+        for length in range(1, OSPL_SHOTNAME_MAX_LENGTH + 1):
             name = UniqueValueGenerator.get(vartype=str, str_len=length)
             assert len(name) == length
 

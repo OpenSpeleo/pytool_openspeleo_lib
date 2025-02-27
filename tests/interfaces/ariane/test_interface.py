@@ -47,24 +47,6 @@ class TestArianeParser(unittest.TestCase):
             assert "Data.xml" in extracted_files
             assert extracted_files["Data.xml"] == b"<CaveFile></CaveFile>"
 
-    @parameterized.expand(["path", "str"])
-    def test_from_ariane_file_tml(self, path_type: str):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            zip_path = Path(tmp_dir) / "test_file.tml"
-            data_path = Path(tmp_dir) / "Data.xml"
-
-            with data_path.open("w") as f:
-                f.write("<CaveFile><Test>Value</Test></CaveFile>")
-
-            with zipfile.ZipFile(zip_path, "w") as zipf:
-                zipf.write(data_path, "Data.xml")
-
-            if path_type == "str":
-                zip_path = str(zip_path)
-
-            data = ArianeInterface._from_file_to_dict(zip_path)  # noqa: SLF001
-            assert data["Test"] == "Value"
-
     def test_from_ariane_file_tmlu(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             file_path = Path(tmp_dir) / "test_file.tmlu"
@@ -72,7 +54,7 @@ class TestArianeParser(unittest.TestCase):
             with file_path.open("w") as f:
                 f.write("<CaveFile><Test>Value</Test></CaveFile>")
 
-            with pytest.raises(NotImplementedError, match="Not supported yet"):
+            with pytest.raises(TypeError, match="Unsupported fileformat: `TMLU`"):
                 ArianeInterface.from_file(file_path)
 
     def test_from_ariane_file_nonexistent(self):
@@ -86,45 +68,6 @@ class TestArianeParser(unittest.TestCase):
             file_path.touch()
             with pytest.raises(TypeError, match="Unknown value: INVALID"):
                 ArianeInterface.from_file(file_path)
-
-    @parameterized.expand(["path", "str"])
-    def test_fail_to_ariane_file_tmlu(self, path_type: str):
-        data = {"Test": "Value"}
-        zip_path = Path("test_file.tmlu")
-
-        if path_type == "str":
-            zip_path = str(zip_path)
-
-        with pytest.raises(TypeError, match="Unsupported fileformat"):
-            ArianeInterface._write_to_file(filepath=zip_path, data=data)  # noqa: SLF001
-
-    @parameterized.expand([Path, str])
-    def test_to_ariane_file(self, path_type: str):
-        data = {"Test": "Value"}
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            zip_path = Path(tmp_dir) / "test_file.tml"
-
-            zip_path = path_type(zip_path)
-
-            ArianeInterface._write_to_file(filepath=zip_path, data=data)  # noqa: SLF001
-
-            # Have to write into a Path in case of `str` type
-            assert Path(zip_path).exists()
-
-            with zipfile.ZipFile(zip_path, "r") as zipf:
-                assert "Data.xml" in zipf.namelist()
-                with zipf.open("Data.xml") as f:
-                    xml_content = f.read()
-                    assert b"<Test>Value</Test>" in xml_content
-
-    def test_to_ariane_file_invalid_format(self):
-        data = {"Test": "Value"}
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            file_path = Path(tmp_dir) / "test_file.invalid"
-            with pytest.raises(TypeError, match="Unknown value: INVALID"):
-                ArianeInterface._write_to_file(  # noqa: SLF001
-                    filepath=file_path, data=data
-                )
 
     def test_instanciation(self):
         with pytest.raises(NotImplementedError):

@@ -41,9 +41,7 @@ class TestLoadTMLUFile(unittest.TestCase):
 
     def test_load_ariane_file(self):
         file = Path("tests/artifacts/test_simple.tmlu")
-        with pytest.raises(
-            NotImplementedError, match="Not supported yet - Format: `TMLU`"
-        ):
+        with pytest.raises(TypeError, match="Unsupported fileformat: `TMLU`"):
             _ = ArianeInterface.from_file(filepath=file)
 
 
@@ -75,8 +73,14 @@ class TestTMLRoundTrip(unittest.TestCase):
             with zipfile.ZipFile(file, "r") as zip_file:
                 original_xml_data = xmltodict.parse(zip_file.open("Data.xml").read())
 
+            # with (file.parent / "test_simple.source.mini.json").open("w") as f:
+            #     f.write(json.dumps(original_xml_data, indent=2, sort_keys=True))
+
             with zipfile.ZipFile(target_f, "r") as zip_file:
                 round_trip_xml_data = xmltodict.parse(zip_file.open("Data.xml").read())
+
+            # with (file.parent / "test_simple.dest.mini.json").open("w") as f:
+            #     f.write(json.dumps(round_trip_xml_data, indent=2, sort_keys=True))
 
             ddiff = DeepDiff(
                 original_xml_data,

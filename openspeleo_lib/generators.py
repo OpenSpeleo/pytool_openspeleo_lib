@@ -2,10 +2,11 @@ import contextlib
 import random
 from collections import defaultdict
 from typing import Any
+from typing import NewType
 
-from openspeleo_lib.constants import OSPL_DEFAULT_NAME_LENGTH
-from openspeleo_lib.constants import OSPL_MAX_NAME_LENGTH
 from openspeleo_lib.constants import OSPL_MAX_RETRY_ATTEMPTS
+from openspeleo_lib.constants import OSPL_SHOTNAME_DEFAULT_LENGTH
+from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
 from openspeleo_lib.errors import DuplicateValueError
 from openspeleo_lib.errors import MaxRetriesError
 
@@ -54,9 +55,14 @@ class UniqueValueGenerator:
                     f"{OSPL_MAX_RETRY_ATTEMPTS}"
                 )
             try:
-                if vartype is str:
+                if vartype is str or (
+                    isinstance(vartype, NewType) and vartype.__supertype__ is str
+                ):
                     value = cls._generate_str(**kwargs)
-                elif vartype is int:
+
+                elif vartype is int or (
+                    isinstance(vartype, NewType) and vartype.__supertype__ is int
+                ):
                     value = cls._generate_int(
                         known_values=(
                             cls._used_values[vartype] if cls._used_values else []
@@ -73,10 +79,10 @@ class UniqueValueGenerator:
         return value
 
     @classmethod
-    def _generate_str(cls, str_len: int = OSPL_DEFAULT_NAME_LENGTH) -> str:
-        if str_len > OSPL_MAX_NAME_LENGTH:
+    def _generate_str(cls, str_len: int = OSPL_SHOTNAME_DEFAULT_LENGTH) -> str:
+        if str_len > OSPL_SHOTNAME_MAX_LENGTH:
             raise ValueError(
-                f"Maximum length allowed: {OSPL_MAX_NAME_LENGTH}, received: {str_len}"
+                f"Maximum length allowed: {OSPL_SHOTNAME_MAX_LENGTH}, received: {str_len}"  # noqa: E501
             )
         return "".join(random.choices(cls.VOCAB, k=str_len))
 
