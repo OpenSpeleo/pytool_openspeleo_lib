@@ -6,9 +6,6 @@ from pathlib import Path
 from typing import Any
 
 import orjson
-import xmltodict
-from defusedxml.minidom import parseString
-from dicttoxml2 import dicttoxml
 
 from openspeleo_lib.interfaces.ariane.enums_cls import ArianeFileType
 from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
@@ -16,9 +13,11 @@ from openspeleo_lib.interfaces.base import BaseInterface
 from openspeleo_lib.models import Survey
 from openspeleo_lib.utils import apply_key_mapping
 from openspeleo_lib.utils import remove_none_values
+from openspeleo_lib.xml_utils import dict_to_xml
+from openspeleo_lib.xml_utils import xml_to_dict
 
 logger = logging.getLogger(__name__)
-DEBUG = True
+DEBUG = False
 
 
 def _write_debugdata_to_disk(data: dict, filepath: Path) -> None:
@@ -133,28 +132,23 @@ class ArianeInterface(BaseInterface):
 
         # =========================== DICT TO XML =========================== #
 
-        xml_str = dicttoxml(
-            data, custom_root="CaveFile", attr_type=False, fold_list=False
-        )
+        xml_str = dict_to_xml(data)
 
-        xml_prettyfied = (
-            parseString(xml_str)
-            .toprettyxml(indent=" " * 4, encoding="utf-8", standalone=True)
-            .decode("utf-8")
-        )
+        with Path("data.export.xml").open(mode="w") as f:
+            f.write(xml_str)
 
         # ------------------------------------------------------------------- #
 
         if DEBUG:
             with Path("data.export.xml").open(mode="w") as f:
-                f.write(xml_prettyfied)
+                f.write(xml_str)
 
         # ========================== WRITE TO DISK ========================== #
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             xml_f = Path(tmp_dir) / "Data.xml"
             with xml_f.open(mode="w") as f:
-                f.write(xml_prettyfied)
+                f.write(xml_str)
 
             with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_DEFLATED) as zf:
                 logging.debug(
@@ -196,7 +190,7 @@ class ArianeInterface(BaseInterface):
                     f"Not supported yet - Format: `{filetype.name}`"
                 )
 
-        data = xmltodict.parse(xml_data)["CaveFile"]
+        data = xml_to_dict(xml_data)["CaveFile"]
 
         # ------------------------------------------------------------------- #
 

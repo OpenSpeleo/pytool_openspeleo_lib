@@ -53,12 +53,9 @@ classifiers = [
 ]
 dependencies = [
   "bidict>=0.23,<0.24",
-  "defusedxml>=0.7,<0.8",
-  "dicttoxml2>=2.1,<2.2",
-  "iteration_utilities>=0.12,<0.14",
   "orjson>=3.10,<3.11",
   "pydantic>=2.10,<2.11",
-  "xmltodict>=0.13,<0.15",
+  "lxml>=5.3,<5.4",
 ]
 
 [project.optional-dependencies]
@@ -80,6 +77,7 @@ test = [
   "pytest-runner>=6.0.0,<7.0.0",
   "pytest-ordering>=0.6,<1.0.0",
   "parameterized>=0.9.0,<0.10",
+  "xmltodict>=0.13,<0.15",
 ]
 
 [project.urls]

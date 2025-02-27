@@ -73,11 +73,19 @@ class TestTMLRoundTrip(unittest.TestCase):
             with zipfile.ZipFile(file, "r") as zip_file:
                 original_xml_data = xmltodict.parse(zip_file.open("Data.xml").read())
 
+            # with zipfile.ZipFile(file, "r") as zip_file:
+            #     with (file.parent / "test.source.xml").open("w") as f:
+            #         f.write(zip_file.open("Data.xml").read().decode("utf-8"))
+
             # with (file.parent / "test_simple.source.mini.json").open("w") as f:
             #     f.write(json.dumps(original_xml_data, indent=2, sort_keys=True))
 
             with zipfile.ZipFile(target_f, "r") as zip_file:
                 round_trip_xml_data = xmltodict.parse(zip_file.open("Data.xml").read())
+
+            # with zipfile.ZipFile(target_f, "r") as zip_file:
+            #     with (file.parent / "test.dest.xml").open("w") as f:
+            #         f.write(zip_file.open("Data.xml").read().decode("utf-8"))
 
             # with (file.parent / "test_simple.dest.mini.json").open("w") as f:
             #     f.write(json.dumps(round_trip_xml_data, indent=2, sort_keys=True))
