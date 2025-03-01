@@ -79,7 +79,7 @@ class ArianeViewerLayer(BaseModel):
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ COMMON MODELS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-class SurveyShot(BaseModel):
+class Shot(BaseModel):
     # Primary Keys
     id: NonNegativeInt = None
 
@@ -131,7 +131,7 @@ class SurveyShot(BaseModel):
         return self
 
 
-class SurveySection(BaseModel):
+class Section(BaseModel):
     # Primary Keys
     id: NonNegativeInt = None
 
@@ -147,7 +147,7 @@ class SurveySection(BaseModel):
     date: datetime.date = None
     surveyors: list[str] = []
 
-    shots: list[SurveyShot] = []
+    shots: list[Shot] = []
 
     # Compass Specific
     comment: str = ""
@@ -185,7 +185,7 @@ class SurveySection(BaseModel):
 class Survey(BaseModel):
     speleodb_id: UUID4 = Field(default_factory=uuid.uuid4)
     cave_name: str
-    sections: list[SurveySection] = []
+    sections: list[Section] = []
 
     unit: Literal["m", "ft"] = "ft"
     first_start_absolute_elevation: NonNegativeFloat = 0.0

@@ -13,10 +13,10 @@ from openspeleo_lib.constants import OSPL_SHOTNAME_MIN_LENGTH
 from openspeleo_lib.models import ArianeViewerLayer
 from openspeleo_lib.models import ArianeViewerLayerStyle
 from openspeleo_lib.models import RadiusVector
+from openspeleo_lib.models import Section
 from openspeleo_lib.models import Shape
+from openspeleo_lib.models import Shot
 from openspeleo_lib.models import Survey
-from openspeleo_lib.models import SurveySection
-from openspeleo_lib.models import SurveyShot
 
 
 def test_valid_survey():
@@ -40,7 +40,7 @@ def test_valid_survey():
         style=layer_style,
         visible=True,
     )
-    survey_shot = SurveyShot(
+    survey_shot = Shot(
         id=1,
         name_compass="TEST_SHOT",
         azimuth=45.0,
@@ -64,7 +64,7 @@ def test_valid_survey():
         up=0.0,
         down=0.0,
     )
-    survey_section = SurveySection(
+    survey_section = Section(
         id=1,
         name="Test Section",
         date=datetime.datetime.now(tz=datetime.UTC).date(),
@@ -122,11 +122,11 @@ def test_invalid_survey():
         Survey(
             speleodb_id="invalid",  # Should be a UUID4
             cave_name=123,  # Should be a string
-            sections="invalid",  # Should be a list of SurveySection instances
+            sections="invalid",  # Should be a list of Section instances
             unit="invalid",  # Should be "m" or "ft"
             first_start_absolute_elevation="invalid",  # Should be a float
             use_magnetic_azimuth="invalid",  # Should be a bool
-            ariane_viewer_layers="invalid",  # Should be a list of ArianeViewerLayer instances
+            ariane_viewer_layers="invalid",  # Should be a list of ArianeViewerLayer
             carto_ellipse=123,  # Should be a string or None
             carto_line=123,  # Should be a string or None
             carto_linked_surface=123,  # Should be a string or None
@@ -145,7 +145,7 @@ def test_invalid_survey():
     cave_name=st.text(),
     sections=st.lists(
         st.builds(
-            SurveySection,
+            Section,
             id=st.integers(min_value=0),
             name=st.text(
                 alphabet=" a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
@@ -156,7 +156,7 @@ def test_invalid_survey():
             surveyors=st.lists(st.text()),
             shots=st.lists(
                 st.builds(
-                    SurveyShot,
+                    Shot,
                     id=st.integers(min_value=0),
                     name_compass=st.text(
                         alphabet="a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
