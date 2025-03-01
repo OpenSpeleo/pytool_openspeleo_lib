@@ -10,8 +10,8 @@ from openspeleo_lib.constants import OSPL_SECTIONNAME_MAX_LENGTH
 from openspeleo_lib.constants import OSPL_SECTIONNAME_MIN_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MIN_LENGTH
-from openspeleo_lib.models import Layer
-from openspeleo_lib.models import LayerStyle
+from openspeleo_lib.models import ArianeViewerLayer
+from openspeleo_lib.models import ArianeViewerLayerStyle
 from openspeleo_lib.models import RadiusVector
 from openspeleo_lib.models import Shape
 from openspeleo_lib.models import Survey
@@ -23,7 +23,7 @@ def test_valid_survey():
     """
     Test creating a valid Survey instance.
     """
-    layer_style = LayerStyle(
+    layer_style = ArianeViewerLayerStyle(
         dash_scale=1.0,
         fill_color_string="#FFFFFF",
         line_type="solid",
@@ -33,10 +33,10 @@ def test_valid_survey():
         stroke_color_string="#000000",
         stroke_thickness=2.0,
     )
-    layer = Layer(
+    layer = ArianeViewerLayer(
         constant=True,
         locked_layer=False,
-        layer_name="Test Layer",
+        layer_name="Test ArianeViewerLayer",
         style=layer_style,
         visible=True,
     )
@@ -83,7 +83,7 @@ def test_valid_survey():
         unit="m",
         first_start_absolute_elevation=100.0,
         use_magnetic_azimuth=True,
-        ariane_layers=[layer],
+        ariane_viewer_layers=[layer],
         carto_ellipse=None,
         carto_line=None,
         carto_linked_surface=None,
@@ -101,7 +101,7 @@ def test_valid_survey():
     assert survey.unit == "m"
     assert survey.first_start_absolute_elevation == 100.0
     assert survey.use_magnetic_azimuth is True
-    assert survey.ariane_layers == [layer]
+    assert survey.ariane_viewer_layers == [layer]
     assert survey.carto_ellipse is None
     assert survey.carto_line is None
     assert survey.carto_linked_surface is None
@@ -126,7 +126,7 @@ def test_invalid_survey():
             unit="invalid",  # Should be "m" or "ft"
             first_start_absolute_elevation="invalid",  # Should be a float
             use_magnetic_azimuth="invalid",  # Should be a bool
-            ariane_layers="invalid",  # Should be a list of Layer instances
+            ariane_viewer_layers="invalid",  # Should be a list of ArianeViewerLayer instances
             carto_ellipse=123,  # Should be a string or None
             carto_line=123,  # Should be a string or None
             carto_linked_surface=123,  # Should be a string or None
@@ -211,16 +211,16 @@ def test_invalid_survey():
         )
     ),
     unit=st.sampled_from(["m", "ft"]),
-    first_start_absolute_elevation=st.floats(),
+    first_start_absolute_elevation=st.floats(min_value=0.0),
     use_magnetic_azimuth=st.booleans(),
-    ariane_layers=st.lists(
+    ariane_viewer_layers=st.lists(
         st.builds(
-            Layer,
+            ArianeViewerLayer,
             constant=st.booleans(),
             locked_layer=st.booleans(),
             layer_name=st.text(),
             style=st.builds(
-                LayerStyle,
+                ArianeViewerLayerStyle,
                 dash_scale=st.floats(),
                 fill_color_string=st.text(),
                 line_type=st.text(),
@@ -251,7 +251,7 @@ def test_fuzzy_survey(
     unit,
     first_start_absolute_elevation,
     use_magnetic_azimuth,
-    ariane_layers,
+    ariane_viewer_layers,
     carto_ellipse,
     carto_line,
     carto_linked_surface,
@@ -273,7 +273,7 @@ def test_fuzzy_survey(
         unit=unit,
         first_start_absolute_elevation=first_start_absolute_elevation,
         use_magnetic_azimuth=use_magnetic_azimuth,
-        ariane_layers=ariane_layers,
+        ariane_viewer_layers=ariane_viewer_layers,
         carto_ellipse=carto_ellipse,
         carto_line=carto_line,
         carto_linked_surface=carto_linked_surface,

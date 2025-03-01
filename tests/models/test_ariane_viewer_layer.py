@@ -5,11 +5,11 @@ from hypothesis import given
 from hypothesis import strategies as st
 from pydantic import ValidationError
 
-from openspeleo_lib.models import Layer
-from openspeleo_lib.models import LayerStyle
+from openspeleo_lib.models import ArianeViewerLayer
+from openspeleo_lib.models import ArianeViewerLayerStyle
 
 
-class TestLayerModel(unittest.TestCase):
+class TestArianeViewerLayerModel(unittest.TestCase):
     def setUp(self) -> None:
         self.data = {
             "constant": "true",
@@ -29,7 +29,7 @@ class TestLayerModel(unittest.TestCase):
         }
 
     def test_layer_model(self):
-        layer = Layer(**self.data)
+        layer = ArianeViewerLayer(**self.data)
         assert layer.constant
         assert not layer.locked_layer
         assert layer.layer_name == "Layer"
@@ -47,7 +47,7 @@ class TestLayerModel(unittest.TestCase):
         del self.data["constant"]
         del self.data["locked_layer"]
         del self.data["visible"]
-        layer = Layer(**self.data)
+        layer = ArianeViewerLayer(**self.data)
         assert layer.constant
         assert not layer.locked_layer
         assert layer.visible
@@ -55,24 +55,18 @@ class TestLayerModel(unittest.TestCase):
     def test_invalid_boolean(self):
         self.data["visible"] = "AAA"
         with pytest.raises(ValidationError, match="Input should be a valid boolean"):
-            _ = Layer(**self.data)
+            _ = ArianeViewerLayer(**self.data)
 
     def test_invalid_float(self):
         self.data["style"]["stroke_thickness"] = "aaa"
         with pytest.raises(ValidationError, match="Input should be a valid number"):
-            Layer(**self.data)
-
-
-class TestLayer(unittest.TestCase):
-    """
-    Unit tests for the Layer class.
-    """
+            ArianeViewerLayer(**self.data)
 
     def test_valid_layer(self):
         """
-        Test creating a valid Layer instance.
+        Test creating a valid `ArianeViewerLayer` & `ArianeViewerLayerStyle` instance.
         """
-        layer_style = LayerStyle(
+        layer_style = ArianeViewerLayerStyle(
             dash_scale=1.0,
             fill_color_string="#FFFFFF",
             line_type="solid",
@@ -82,29 +76,29 @@ class TestLayer(unittest.TestCase):
             stroke_color_string="#000000",
             stroke_thickness=2.0,
         )
-        layer = Layer(
+        layer = ArianeViewerLayer(
             constant=True,
             locked_layer=False,
-            layer_name="Test Layer",
+            layer_name="Test ArianeViewerLayer",
             style=layer_style,
             visible=True,
         )
         assert layer.constant is True
         assert layer.locked_layer is False
-        assert layer.layer_name == "Test Layer"
+        assert layer.layer_name == "Test ArianeViewerLayer"
         assert layer.style == layer_style
         assert layer.visible is True
 
     def test_invalid_layer(self):
         """
-        Test creating an invalid Layer instance.
+        Test creating an invalid ArianeViewerLayer instance.
         """
         with pytest.raises(ValidationError):
-            Layer(
+            ArianeViewerLayer(
                 constant="invalid",  # Should be a bool
                 locked_layer="invalid",  # Should be a bool
                 layer_name=123,  # Should be a string
-                style="invalid",  # Should be a LayerStyle instance
+                style="invalid",  # Should be a ArianeViewerLayerStyle instance
                 visible="invalid",  # Should be a bool
             )
 
@@ -138,10 +132,10 @@ class TestLayer(unittest.TestCase):
         visible,
     ):
         """
-        Fuzzy testing for Layer class using Hypothesis.
+        Fuzzy testing for ArianeViewerLayer class using Hypothesis.
         """
         try:
-            layer_style = LayerStyle(
+            layer_style = ArianeViewerLayerStyle(
                 dash_scale=dash_scale,
                 fill_color_string=fill_color_string,
                 line_type=line_type,
@@ -151,14 +145,14 @@ class TestLayer(unittest.TestCase):
                 stroke_color_string=stroke_color_string,
                 stroke_thickness=stroke_thickness,
             )
-            layer = Layer(
+            layer = ArianeViewerLayer(
                 constant=constant,
                 locked_layer=locked_layer,
                 layer_name=layer_name,
                 style=layer_style,
                 visible=visible,
             )
-            assert isinstance(layer, Layer)
+            assert isinstance(layer, ArianeViewerLayer)
         except ValidationError:
             pass  # Expected for invalid inputs
 

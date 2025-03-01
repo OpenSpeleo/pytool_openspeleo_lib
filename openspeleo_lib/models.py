@@ -52,7 +52,7 @@ class Shape(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class LayerStyle(BaseModel):
+class ArianeViewerLayerStyle(BaseModel):
     dash_scale: float
     fill_color_string: str
     line_type: str
@@ -65,11 +65,11 @@ class LayerStyle(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class Layer(BaseModel):
+class ArianeViewerLayer(BaseModel):
     constant: bool = True
     locked_layer: bool = False
     layer_name: str
-    style: LayerStyle
+    style: ArianeViewerLayerStyle
     visible: bool = True
 
     model_config = ConfigDict(extra="forbid")
@@ -187,11 +187,11 @@ class Survey(BaseModel):
     cave_name: str
     sections: list[SurveySection] = []
 
-    unit: Literal["m", "ft"] = "m"
-    first_start_absolute_elevation: float = 0.0
+    unit: Literal["m", "ft"] = "ft"
+    first_start_absolute_elevation: NonNegativeFloat = 0.0
     use_magnetic_azimuth: bool = True
 
-    ariane_layers: list[Layer] = []
+    ariane_viewer_layers: list[ArianeViewerLayer] = []
 
     carto_ellipse: str | None = None
     carto_line: str | None = None
