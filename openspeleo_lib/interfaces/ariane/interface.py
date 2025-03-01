@@ -211,7 +211,7 @@ class ArianeInterface(BaseInterface):
         if DEBUG:
             _write_debugdata_to_disk(data, Path("data.import.step02-mapped.json"))
 
-        # 3. Collapse data["ariane_viewer_layers"]["layer_list"] to data["ariane_viewer_layers"]
+        # 3. Collapse data["ariane_viewer_layers"]["layer_list"] to data["ariane_viewer_layers"]  # noqa: E501
         data["ariane_viewer_layers"] = data["ariane_viewer_layers"].pop("layer_list")
 
         if DEBUG:

@@ -7,12 +7,12 @@ from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MIN_LENGTH
 from openspeleo_lib.models import RadiusVector
 from openspeleo_lib.models import Shape
-from openspeleo_lib.models import SurveyShot
+from openspeleo_lib.models import Shot
 
 
 def test_valid_survey_shot():
     """
-    Test creating a valid SurveyShot instance.
+    Test creating a valid Shot instance.
     """
     shape = Shape(
         radius_vectors=[],
@@ -21,7 +21,7 @@ def test_valid_survey_shot():
         profile_azimuth=30.0,
         profile_tilt=15.0,
     )
-    survey_shot = SurveyShot(
+    survey_shot = Shot(
         id=1,
         name_compass="TEST_SHOT",
         azimuth=45.0,
@@ -71,10 +71,10 @@ def test_valid_survey_shot():
 
 def test_invalid_survey_shot():
     """
-    Test creating an invalid SurveyShot instance.
+    Test creating an invalid Shot instance.
     """
     with pytest.raises(ValidationError):
-        SurveyShot(
+        Shot(
             id=-1,  # Should be a non-negative integer
             name_compass="invalid name",  # Should match the pattern
             azimuth="invalid",  # Should be a float
@@ -171,9 +171,9 @@ def test_fuzzy_survey_shot(
     down,
 ):
     """
-    Fuzzy testing for SurveyShot class using Hypothesis.
+    Fuzzy testing for Shot class using Hypothesis.
     """
-    survey_shot = SurveyShot(
+    survey_shot = Shot(
         id=shot_id,
         name_compass=name_compass,
         azimuth=azimuth,
@@ -197,7 +197,7 @@ def test_fuzzy_survey_shot(
         up=up,
         down=down,
     )
-    assert isinstance(survey_shot, SurveyShot)
+    assert isinstance(survey_shot, Shot)
 
 
 if __name__ == "__main__":

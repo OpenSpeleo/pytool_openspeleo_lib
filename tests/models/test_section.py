@@ -10,16 +10,16 @@ from openspeleo_lib.constants import OSPL_SECTIONNAME_MIN_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MIN_LENGTH
 from openspeleo_lib.models import RadiusVector
+from openspeleo_lib.models import Section
 from openspeleo_lib.models import Shape
-from openspeleo_lib.models import SurveySection
-from openspeleo_lib.models import SurveyShot
+from openspeleo_lib.models import Shot
 
 
 def test_valid_survey_section():
     """
-    Test creating a valid SurveySection instance.
+    Test creating a valid Section instance.
     """
-    survey_shot = SurveyShot(
+    survey_shot = Shot(
         id=1,
         name_compass="TEST_SHOT",
         azimuth=45.0,
@@ -43,7 +43,7 @@ def test_valid_survey_section():
         up=0.0,
         down=0.0,
     )
-    survey_section = SurveySection(
+    survey_section = Section(
         id=1,
         name="Test Section",
         date=datetime.datetime.now(tz=datetime.UTC).date(),
@@ -69,15 +69,15 @@ def test_valid_survey_section():
 
 def test_invalid_survey_section():
     """
-    Test creating an invalid SurveySection instance.
+    Test creating an invalid Section instance.
     """
     with pytest.raises(ValidationError):
-        SurveySection(
+        Section(
             id=-1,  # Should be a non-negative integer
             name="invalid name",  # Should match the pattern
             date="invalid",  # Should be a date
             surveyors="invalid",  # Should be a list of strings
-            shots="invalid",  # Should be a list of SurveyShot instances
+            shots="invalid",  # Should be a list of Shot instances
             comment=123,  # Should be a string
             compass_format=123,  # Should be a string
             correction="invalid",  # Should be a list of floats
@@ -97,7 +97,7 @@ def test_invalid_survey_section():
     surveyors=st.lists(st.text()),
     shots=st.lists(
         st.builds(
-            SurveyShot,
+            Shot,
             id=st.integers(min_value=0),
             name_compass=st.text(
                 alphabet="a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
@@ -163,9 +163,9 @@ def test_fuzzy_survey_section(
     declination,
 ):
     """
-    Fuzzy testing for SurveySection class using Hypothesis.
+    Fuzzy testing for Section class using Hypothesis.
     """
-    survey_section = SurveySection(
+    survey_section = Section(
         id=shot_id,
         name=name,
         date=date,
@@ -177,7 +177,7 @@ def test_fuzzy_survey_section(
         correction2=correction2,
         declination=declination,
     )
-    assert isinstance(survey_section, SurveySection)
+    assert isinstance(survey_section, Section)
 
 
 if __name__ == "__main__":
