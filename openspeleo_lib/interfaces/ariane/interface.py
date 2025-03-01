@@ -113,8 +113,8 @@ class ArianeInterface(BaseInterface):
         if DEBUG:
             _write_debugdata_to_disk(data, Path("data.export.step02.json"))
 
-        # 3. Restore Layers => Layers[LayerList] = [Layer1, Layer2, ...]
-        data["ariane_layers"] = {"layer_list": data.pop("ariane_layers")}
+        # 3. Restore ArianeViewerLayer => Layers[LayerList] = [Layer1, Layer2, ...]
+        data["ariane_viewer_layers"] = {"layer_list": data.pop("ariane_viewer_layers")}
 
         if DEBUG:
             _write_debugdata_to_disk(data, Path("data.export.step03.json"))
@@ -211,8 +211,8 @@ class ArianeInterface(BaseInterface):
         if DEBUG:
             _write_debugdata_to_disk(data, Path("data.import.step02-mapped.json"))
 
-        # 3. Collapse data["ariane_layers"]["layer_list"] to data["ariane_layers"]
-        data["ariane_layers"] = data["ariane_layers"].pop("layer_list")
+        # 3. Collapse data["ariane_viewer_layers"]["layer_list"] to data["ariane_viewer_layers"]
+        data["ariane_viewer_layers"] = data["ariane_viewer_layers"].pop("layer_list")
 
         if DEBUG:
             _write_debugdata_to_disk(data, Path("data.import.step03-collapsed.json"))

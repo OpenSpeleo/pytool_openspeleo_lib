@@ -5,19 +5,19 @@ from hypothesis import given
 from hypothesis import strategies as st
 from pydantic import ValidationError
 
-from openspeleo_lib.models import LayerStyle
+from openspeleo_lib.models import ArianeViewerLayerStyle
 
 
-class TestLayerStyle(unittest.TestCase):
+class TestArianeViewerLayerStyle(unittest.TestCase):
     """
-    Unit tests for the LayerStyle class.
+    Unit tests for the ArianeViewerLayerStyle class.
     """
 
     def test_valid_layer_style(self):
         """
-        Test creating a valid LayerStyle instance.
+        Test creating a valid ArianeViewerLayerStyle instance.
         """
-        layer_style = LayerStyle(
+        layer_style = ArianeViewerLayerStyle(
             dash_scale=1.0,
             fill_color_string="#FFFFFF",
             line_type="solid",
@@ -38,10 +38,10 @@ class TestLayerStyle(unittest.TestCase):
 
     def test_invalid_layer_style(self):
         """
-        Test creating an invalid LayerStyle instance.
+        Test creating an invalid ArianeViewerLayerStyle instance.
         """
         with pytest.raises(ValidationError):
-            LayerStyle(
+            ArianeViewerLayerStyle(
                 dash_scale="invalid",  # Should be a float
                 fill_color_string=123,  # Should be a string
                 line_type=456,  # Should be a string
@@ -74,9 +74,9 @@ class TestLayerStyle(unittest.TestCase):
         stroke_thickness,
     ):
         """
-        Fuzzy testing for LayerStyle class using Hypothesis.
+        Fuzzy testing for ArianeViewerLayerStyle class using Hypothesis.
         """
-        layer_style = LayerStyle(
+        layer_style = ArianeViewerLayerStyle(
             dash_scale=dash_scale,
             fill_color_string=fill_color_string,
             line_type=line_type,
@@ -86,7 +86,7 @@ class TestLayerStyle(unittest.TestCase):
             stroke_color_string=stroke_color_string,
             stroke_thickness=stroke_thickness,
         )
-        assert isinstance(layer_style, LayerStyle)
+        assert isinstance(layer_style, ArianeViewerLayerStyle)
 
 
 if __name__ == "__main__":

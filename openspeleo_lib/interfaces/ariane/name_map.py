@@ -15,7 +15,7 @@ ARIANE_MAPPING = frozenbidict(
         "has_profile_tilt": "hasProfileTilt",
         "profile_azimuth": "profileAzimut",
         "profile_tilt": "profileTilt",
-        # LayerStyle Attributes
+        # ArianeViewerLayerStyle Attributes
         "dash_scale": "dashScale",
         "fill_color_string": "fillColorString",
         "line_type": "lineType",
@@ -24,13 +24,13 @@ ARIANE_MAPPING = frozenbidict(
         "size_mode": "sizeMode",
         "stroke_color_string": "strokeColorString",
         "stroke_thickness": "strokeThickness",
-        # Layer Attributes
+        # ArianeViewerLayer Attributes
         "constant": "constant",
         "locked_layer": "locked",
         "layer_name": "name",
         "style": "style",
         "visible": "visible",
-        # LayerCollection Attributes
+        # ArianeViewerLayerCollection Attributes
         "layer_list": "layerList",
         # Shot Attributes
         "azimuth": "Azimut",
@@ -65,7 +65,7 @@ ARIANE_MAPPING = frozenbidict(
         "cave_name": "caveName",
         "unit": "unit",
         "data": "Data",
-        "ariane_layers": "Layers",
+        "ariane_viewer_layers": "Layers",
         "use_magnetic_azimuth": "useMagneticAzimuth",
         "first_start_absolute_elevation": "firstStartAbsoluteElevation",
         "carto_ellipse": "CartoEllipse",
