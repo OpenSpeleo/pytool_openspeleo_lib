@@ -43,15 +43,6 @@ class TestArianeViewerLayerModel(unittest.TestCase):
         assert layer.style.stroke_thickness == 1.0
         assert layer.visible
 
-    def test_missing_optional_fields(self):
-        del self.data["constant"]
-        del self.data["locked_layer"]
-        del self.data["visible"]
-        layer = ArianeViewerLayer(**self.data)
-        assert layer.constant
-        assert not layer.locked_layer
-        assert layer.visible
-
     def test_invalid_boolean(self):
         self.data["visible"] = "AAA"
         with pytest.raises(ValidationError, match="Input should be a valid boolean"):

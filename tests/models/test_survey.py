@@ -10,11 +10,14 @@ from openspeleo_lib.constants import OSPL_SECTIONNAME_MAX_LENGTH
 from openspeleo_lib.constants import OSPL_SECTIONNAME_MIN_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MIN_LENGTH
+from openspeleo_lib.enums import ArianeProfileType
+from openspeleo_lib.enums import ArianeShotType
+from openspeleo_lib.enums import LengthUnits
+from openspeleo_lib.models import ArianeRadiusVector
+from openspeleo_lib.models import ArianeShape
 from openspeleo_lib.models import ArianeViewerLayer
 from openspeleo_lib.models import ArianeViewerLayerStyle
-from openspeleo_lib.models import RadiusVector
 from openspeleo_lib.models import Section
-from openspeleo_lib.models import Shape
 from openspeleo_lib.models import Shot
 from openspeleo_lib.models import Survey
 
@@ -40,13 +43,13 @@ def test_valid_survey():
         style=layer_style,
         visible=True,
     )
-    survey_shot = Shot(
-        id=1,
-        name_compass="TEST_SHOT",
+    shot = Shot(
+        shot_id=1,
+        shot_name="TEST_SHOT",
         azimuth=45.0,
         closure_to_id=-1,
         color="#FFFFFF",
-        comment="Test comment",
+        shot_comment="Test comment",
         depth=100.0,
         depth_in=10.0,
         excluded=False,
@@ -56,21 +59,21 @@ def test_valid_survey():
         length=50.0,
         locked=True,
         longitude=-74.0060,
-        profiletype="TestProfile",
-        type="TestType",
+        profiletype=ArianeProfileType.BISECTION,
+        shot_type=ArianeShotType.START,
         shape=None,
         left=0.0,
         right=0.0,
         up=0.0,
         down=0.0,
     )
-    survey_section = Section(
-        id=1,
-        name="Test Section",
+    section = Section(
+        section_id=1,
+        section_name="Test Section",
         date=datetime.datetime.now(tz=datetime.UTC).date(),
         surveyors=["Surveyor1", "Surveyor2"],
-        shots=[survey_shot],
-        comment="Test comment",
+        shots=[shot],
+        section_comment="Test comment",
         compass_format="DDDDUDLRLADN",
         correction=[0.1, 0.2],
         correction2=[0.3, 0.4],
@@ -79,8 +82,8 @@ def test_valid_survey():
     survey = Survey(
         speleodb_id=uuid.uuid4(),
         cave_name="Test Cave",
-        sections=[survey_section],
-        unit="m",
+        sections=[section],
+        unit=LengthUnits.METERS,
         first_start_absolute_elevation=100.0,
         use_magnetic_azimuth=True,
         ariane_viewer_layers=[layer],
@@ -97,8 +100,8 @@ def test_valid_survey():
     )
     assert isinstance(survey.speleodb_id, uuid.UUID)
     assert survey.cave_name == "Test Cave"
-    assert survey.sections == [survey_section]
-    assert survey.unit == "m"
+    assert survey.sections == [section]
+    assert survey.unit == LengthUnits.METERS
     assert survey.first_start_absolute_elevation == 100.0
     assert survey.use_magnetic_azimuth is True
     assert survey.ariane_viewer_layers == [layer]
@@ -123,7 +126,7 @@ def test_invalid_survey():
             speleodb_id="invalid",  # Should be a UUID4
             cave_name=123,  # Should be a string
             sections="invalid",  # Should be a list of Section instances
-            unit="invalid",  # Should be "m" or "ft"
+            unit="invalid",  # Should be "M" or "FT"
             first_start_absolute_elevation="invalid",  # Should be a float
             use_magnetic_azimuth="invalid",  # Should be a bool
             ariane_viewer_layers="invalid",  # Should be a list of ArianeViewerLayer
@@ -146,8 +149,8 @@ def test_invalid_survey():
     sections=st.lists(
         st.builds(
             Section,
-            id=st.integers(min_value=0),
-            name=st.text(
+            section_id=st.integers(min_value=0),
+            section_name=st.text(
                 alphabet=" a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
                 max_size=OSPL_SECTIONNAME_MAX_LENGTH,
                 min_size=OSPL_SECTIONNAME_MIN_LENGTH,
@@ -157,34 +160,34 @@ def test_invalid_survey():
             shots=st.lists(
                 st.builds(
                     Shot,
-                    id=st.integers(min_value=0),
-                    name_compass=st.text(
+                    shot_id=st.integers(min_value=0),
+                    shot_name=st.text(
                         alphabet="a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
                         max_size=OSPL_SHOTNAME_MAX_LENGTH,
                         min_size=OSPL_SHOTNAME_MIN_LENGTH,
                     ),
-                    azimuth=st.floats(),
+                    azimuth=st.floats(min_value=0.0, max_value=360.0, exclude_max=True),
                     closure_to_id=st.integers(),
-                    color=st.text(),
-                    comment=st.one_of(st.none(), st.text()),
-                    depth=st.floats(),
+                    color=st.from_regex(r"^#(?:[0-9a-fA-F]{3}){1,2}$"),
+                    shot_comment=st.one_of(st.none(), st.text()),
+                    depth=st.floats(min_value=0.0),
                     depth_in=st.floats(),
                     excluded=st.booleans(),
                     from_id=st.integers(),
                     inclination=st.floats(),
-                    latitude=st.floats(),
-                    length=st.floats(),
+                    latitude=st.floats(min_value=-90.0, max_value=90.0),
+                    length=st.floats(min_value=0.0),
                     locked=st.booleans(),
-                    longitude=st.floats(),
-                    profiletype=st.text(),
-                    type=st.text(),
+                    longitude=st.floats(min_value=-180.0, max_value=180.0),
+                    profiletype=st.sampled_from(ArianeProfileType),
+                    shot_type=st.sampled_from(ArianeShotType),
                     shape=st.one_of(
                         st.none(),
                         st.builds(
-                            Shape,
+                            ArianeShape,
                             radius_vectors=st.lists(
                                 st.builds(
-                                    RadiusVector,
+                                    ArianeRadiusVector,
                                     tension_corridor=st.floats(),
                                     tension_profile=st.floats(),
                                     angle=st.floats(),
@@ -193,7 +196,9 @@ def test_invalid_survey():
                             ),
                             has_profile_azimuth=st.booleans(),
                             has_profile_tilt=st.booleans(),
-                            profile_azimuth=st.floats(),
+                            profile_azimuth=st.floats(
+                                min_value=0.0, max_value=360.0, exclude_max=True
+                            ),
                             profile_tilt=st.floats(),
                         ),
                     ),
@@ -203,14 +208,14 @@ def test_invalid_survey():
                     down=st.floats(min_value=0.0),
                 )
             ),
-            comment=st.text(),
+            section_comment=st.text(),
             compass_format=st.text(),
             correction=st.lists(st.floats()),
             correction2=st.lists(st.floats()),
             declination=st.floats(),
         )
     ),
-    unit=st.sampled_from(["m", "ft"]),
+    unit=st.sampled_from(LengthUnits),
     first_start_absolute_elevation=st.floats(min_value=0.0),
     use_magnetic_azimuth=st.booleans(),
     ariane_viewer_layers=st.lists(

@@ -44,7 +44,7 @@ class UniqueValueGenerator:
 
     @classmethod
     def get(cls, vartype: type, **kwargs) -> Any:
-        """Get unique value for an object ID."""
+        """Get unique value for an object primary key."""
         iter_idx = 0
         while True:
             iter_idx += 1

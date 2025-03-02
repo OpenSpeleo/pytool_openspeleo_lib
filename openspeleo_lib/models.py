@@ -16,11 +16,15 @@ from pydantic import NonNegativeInt
 from pydantic import StringConstraints
 from pydantic import field_serializer
 from pydantic import model_validator
+from pydantic_extra_types.color import Color
 
 from openspeleo_lib.constants import OSPL_SECTIONNAME_MAX_LENGTH
 from openspeleo_lib.constants import OSPL_SECTIONNAME_MIN_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MIN_LENGTH
+from openspeleo_lib.enums import ArianeProfileType
+from openspeleo_lib.enums import ArianeShotType
+from openspeleo_lib.enums import LengthUnits
 from openspeleo_lib.generators import UniqueValueGenerator
 
 ShotID = NewType("ShotID", int)
@@ -33,21 +37,21 @@ SectionName = NewType("SectionName", str)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ ARIANE SPECIFIC MODELS ~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 
-class RadiusVector(BaseModel):
-    tension_corridor: float
-    tension_profile: float
+class ArianeRadiusVector(BaseModel):
     angle: float
     norm: float  # Euclidian Norm aka. length
+    tension_corridor: float
+    tension_profile: float
 
     model_config = ConfigDict(extra="forbid")
 
 
-class Shape(BaseModel):
-    radius_vectors: list[RadiusVector] = []
+class ArianeShape(BaseModel):
     has_profile_azimuth: bool
     has_profile_tilt: bool
-    profile_azimuth: float
+    profile_azimuth: Annotated[float, Field(ge=0, lt=360)]
     profile_tilt: float
+    radius_vectors: list[ArianeRadiusVector] = []
 
     model_config = ConfigDict(extra="forbid")
 
@@ -66,11 +70,11 @@ class ArianeViewerLayerStyle(BaseModel):
 
 
 class ArianeViewerLayer(BaseModel):
-    constant: bool = True
-    locked_layer: bool = False
+    constant: bool
+    locked_layer: bool
     layer_name: str
     style: ArianeViewerLayerStyle
-    visible: bool = True
+    visible: bool
 
     model_config = ConfigDict(extra="forbid")
 
@@ -81,9 +85,9 @@ class ArianeViewerLayer(BaseModel):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ COMMON MODELS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 class Shot(BaseModel):
     # Primary Keys
-    id: NonNegativeInt = None
+    shot_id: NonNegativeInt = None
 
-    name_compass: Annotated[
+    shot_name: Annotated[
         str,
         StringConstraints(
             pattern=rf"^[a-zA-Z0-9_\-~:!?.'\(\)\[\]\{{\}}@*&#%|$]{{{OSPL_SHOTNAME_MIN_LENGTH},{OSPL_SHOTNAME_MAX_LENGTH}}}$",
@@ -91,38 +95,43 @@ class Shot(BaseModel):
         ),
     ] = None
 
-    # Attributes
-    azimuth: float
-    closure_to_id: int = -1
-    color: str
-    comment: str | None = None
-    # date: datetime.date
-    depth: float
-    depth_in: float
-    excluded: bool
-    from_id: int
-    inclination: float
-    latitude: float
-    length: float
-    locked: bool
-    longitude: float
-    profiletype: str
-    type: str
+    # Core Attributes
+    length: NonNegativeFloat
+    depth: NonNegativeFloat
+    azimuth: Annotated[float, Field(ge=0, lt=360)]
 
-    # SubModel
-    shape: Shape | None = None
+    # Attributes
+    closure_to_id: int = -1
+    from_id: int = -1
+
+    depth_in: float = None
+    inclination: float = None
+
+    latitude: Annotated[float, Field(ge=-90, le=90)] = None
+    longitude: Annotated[float, Field(ge=-180, le=180)] = None
+
+    color: Color = Color("#FFB366")  # An orange color easily visible
+    shot_comment: str | None = None
+
+    excluded: bool = False
+    locked: bool = False
+
+    # Ariane Specific
+    shape: ArianeShape | None = None
+    profiletype: ArianeProfileType = ArianeProfileType.VERTICAL
+    shot_type: ArianeShotType = ArianeShotType.REAL
 
     # LRUD
-    left: NonNegativeFloat = 0.0
-    right: NonNegativeFloat = 0.0
-    up: NonNegativeFloat = 0.0
-    down: NonNegativeFloat = 0.0
+    left: NonNegativeFloat = None
+    right: NonNegativeFloat = None
+    up: NonNegativeFloat = None
+    down: NonNegativeFloat = None
 
     model_config = ConfigDict(extra="forbid")
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
-        for key, dtype in [("id", ShotID), ("name_compass", ShotCompassName)]:
+        for key, dtype in [("shot_id", ShotID), ("shot_name", ShotCompassName)]:
             if getattr(self, key) is None:
                 setattr(self, key, UniqueValueGenerator.get(vartype=dtype))
             else:
@@ -130,12 +139,18 @@ class Shot(BaseModel):
 
         return self
 
+    @field_serializer("color")
+    def serialize_dt(self, color: Color | None, _info):
+        if color is None:
+            return None
+        return color.original()
+
 
 class Section(BaseModel):
     # Primary Keys
-    id: NonNegativeInt = None
+    section_id: NonNegativeInt = None
 
-    name: Annotated[
+    section_name: Annotated[
         str,
         StringConstraints(
             pattern=rf"^[ a-zA-Z0-9_\-~:!?.'\(\)\[\]\{{\}}@*&#%|$]{{{OSPL_SECTIONNAME_MIN_LENGTH},{OSPL_SECTIONNAME_MAX_LENGTH}}}$",  # noqa: E501
@@ -145,12 +160,13 @@ class Section(BaseModel):
 
     # Attributes
     date: datetime.date = None
+    explorers: list[str] = []
     surveyors: list[str] = []
 
     shots: list[Shot] = []
 
     # Compass Specific
-    comment: str = ""
+    section_comment: str = ""
     compass_format: str = "DDDDUDLRLADN"
     correction: list[float] = []
     correction2: list[float] = []
@@ -167,8 +183,8 @@ class Section(BaseModel):
     @model_validator(mode="after")
     def validate_model(self) -> Self:
         for key, dtype, allow_generate in [
-            ("id", SectionID, True),
-            ("name", SectionName, False),
+            ("section_id", SectionID, True),
+            ("section_name", SectionName, False),
         ]:
             if getattr(self, key) is None:
                 if allow_generate:
@@ -187,7 +203,7 @@ class Survey(BaseModel):
     cave_name: str
     sections: list[Section] = []
 
-    unit: Literal["m", "ft"] = "ft"
+    unit: LengthUnits = LengthUnits.FEET
     first_start_absolute_elevation: NonNegativeFloat = 0.0
     use_magnetic_azimuth: bool = True
 

@@ -1,8 +1,6 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2024, NVIDIA CORPORATION. All rights reserved.
-
 import logging as _logging
 import sys
 

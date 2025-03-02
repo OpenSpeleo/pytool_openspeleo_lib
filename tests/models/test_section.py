@@ -9,23 +9,25 @@ from openspeleo_lib.constants import OSPL_SECTIONNAME_MAX_LENGTH
 from openspeleo_lib.constants import OSPL_SECTIONNAME_MIN_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MIN_LENGTH
-from openspeleo_lib.models import RadiusVector
+from openspeleo_lib.enums import ArianeProfileType
+from openspeleo_lib.enums import ArianeShotType
+from openspeleo_lib.models import ArianeRadiusVector
+from openspeleo_lib.models import ArianeShape
 from openspeleo_lib.models import Section
-from openspeleo_lib.models import Shape
 from openspeleo_lib.models import Shot
 
 
-def test_valid_survey_section():
+def test_valid_section():
     """
     Test creating a valid Section instance.
     """
-    survey_shot = Shot(
-        id=1,
-        name_compass="TEST_SHOT",
+    shot = Shot(
+        shot_id=1,
+        shot_name="TEST_SHOT",
         azimuth=45.0,
         closure_to_id=-1,
         color="#FFFFFF",
-        comment="Test comment",
+        shot_comment="Test comment",
         depth=100.0,
         depth_in=10.0,
         excluded=False,
@@ -35,50 +37,50 @@ def test_valid_survey_section():
         length=50.0,
         locked=True,
         longitude=-74.0060,
-        profiletype="TestProfile",
-        type="TestType",
+        profiletype=ArianeProfileType.BISECTION,
+        shot_type=ArianeShotType.REAL,
         shape=None,
         left=0.0,
         right=0.0,
         up=0.0,
         down=0.0,
     )
-    survey_section = Section(
-        id=1,
-        name="Test Section",
+    section = Section(
+        section_id=1,
+        section_name="Test Section",
         date=datetime.datetime.now(tz=datetime.UTC).date(),
         surveyors=["Surveyor1", "Surveyor2"],
-        shots=[survey_shot],
-        comment="Test comment",
+        shots=[shot],
+        section_comment="Test comment",
         compass_format="DDDDUDLRLADN",
         correction=[0.1, 0.2],
         correction2=[0.3, 0.4],
         declination=0.0,
     )
-    assert survey_section.id == 1
-    assert survey_section.name == "Test Section"
-    assert survey_section.date == datetime.datetime.now(tz=datetime.UTC).date()
-    assert survey_section.surveyors == ["Surveyor1", "Surveyor2"]
-    assert survey_section.shots == [survey_shot]
-    assert survey_section.comment == "Test comment"
-    assert survey_section.compass_format == "DDDDUDLRLADN"
-    assert survey_section.correction == [0.1, 0.2]
-    assert survey_section.correction2 == [0.3, 0.4]
-    assert survey_section.declination == 0.0
+    assert section.section_id == 1
+    assert section.section_name == "Test Section"
+    assert section.date == datetime.datetime.now(tz=datetime.UTC).date()
+    assert section.surveyors == ["Surveyor1", "Surveyor2"]
+    assert section.shots == [shot]
+    assert section.section_comment == "Test comment"
+    assert section.compass_format == "DDDDUDLRLADN"
+    assert section.correction == [0.1, 0.2]
+    assert section.correction2 == [0.3, 0.4]
+    assert section.declination == 0.0
 
 
-def test_invalid_survey_section():
+def test_invalid_section():
     """
     Test creating an invalid Section instance.
     """
     with pytest.raises(ValidationError):
         Section(
-            id=-1,  # Should be a non-negative integer
-            name="invalid name",  # Should match the pattern
+            section_id=-1,  # Should be a non-negative integer
+            section_name="invalid name",  # Should match the pattern
             date="invalid",  # Should be a date
             surveyors="invalid",  # Should be a list of strings
             shots="invalid",  # Should be a list of Shot instances
-            comment=123,  # Should be a string
+            section_comment=123,  # Should be a string
             compass_format=123,  # Should be a string
             correction="invalid",  # Should be a list of floats
             correction2="invalid",  # Should be a list of floats
@@ -87,8 +89,8 @@ def test_invalid_survey_section():
 
 
 @given(
-    shot_id=st.integers(min_value=0),
-    name=st.text(
+    section_id=st.integers(min_value=0),
+    section_name=st.text(
         alphabet=" a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
         max_size=OSPL_SECTIONNAME_MAX_LENGTH,
         min_size=OSPL_SECTIONNAME_MIN_LENGTH,
@@ -98,34 +100,34 @@ def test_invalid_survey_section():
     shots=st.lists(
         st.builds(
             Shot,
-            id=st.integers(min_value=0),
-            name_compass=st.text(
+            shot_id=st.integers(min_value=0),
+            shot_name=st.text(
                 alphabet="a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
                 max_size=OSPL_SHOTNAME_MAX_LENGTH,
                 min_size=OSPL_SHOTNAME_MIN_LENGTH,
             ),
-            azimuth=st.floats(),
+            azimuth=st.floats(min_value=0.0, max_value=360.0, exclude_max=True),
             closure_to_id=st.integers(),
-            color=st.text(),
-            comment=st.one_of(st.none(), st.text()),
-            depth=st.floats(),
+            color=st.from_regex(r"^#(?:[0-9a-fA-F]{3}){1,2}$"),
+            shot_comment=st.one_of(st.none(), st.text()),
+            depth=st.floats(min_value=0.0),
             depth_in=st.floats(),
             excluded=st.booleans(),
             from_id=st.integers(),
             inclination=st.floats(),
-            latitude=st.floats(),
-            length=st.floats(),
+            latitude=st.floats(min_value=-90.0, max_value=90.0),
+            length=st.floats(min_value=0.0),
             locked=st.booleans(),
-            longitude=st.floats(),
-            profiletype=st.text(),
-            type=st.text(),
+            longitude=st.floats(min_value=-180.0, max_value=180.0),
+            profiletype=st.sampled_from(ArianeProfileType),
+            shot_type=st.sampled_from(ArianeShotType),
             shape=st.one_of(
                 st.none(),
                 st.builds(
-                    Shape,
+                    ArianeShape,
                     radius_vectors=st.lists(
                         st.builds(
-                            RadiusVector,
+                            ArianeRadiusVector,
                             tension_corridor=st.floats(),
                             tension_profile=st.floats(),
                             angle=st.floats(),
@@ -134,7 +136,9 @@ def test_invalid_survey_section():
                     ),
                     has_profile_azimuth=st.booleans(),
                     has_profile_tilt=st.booleans(),
-                    profile_azimuth=st.floats(),
+                    profile_azimuth=st.floats(
+                        min_value=0.0, max_value=360.0, exclude_max=True
+                    ),
                     profile_tilt=st.floats(),
                 ),
             ),
@@ -144,19 +148,19 @@ def test_invalid_survey_section():
             down=st.floats(min_value=0.0),
         )
     ),
-    comment=st.text(),
+    section_comment=st.text(),
     compass_format=st.text(),
     correction=st.lists(st.floats()),
     correction2=st.lists(st.floats()),
     declination=st.floats(),
 )
-def test_fuzzy_survey_section(
-    shot_id,
-    name,
+def test_fuzzy_section(
+    section_id,
+    section_name,
     date,
     surveyors,
     shots,
-    comment,
+    section_comment,
     compass_format,
     correction,
     correction2,
@@ -165,19 +169,19 @@ def test_fuzzy_survey_section(
     """
     Fuzzy testing for Section class using Hypothesis.
     """
-    survey_section = Section(
-        id=shot_id,
-        name=name,
+    section = Section(
+        section_id=section_id,
+        section_name=section_name,
         date=date,
         surveyors=surveyors,
         shots=shots,
-        comment=comment,
+        section_comment=section_comment,
         compass_format=compass_format,
         correction=correction,
         correction2=correction2,
         declination=declination,
     )
-    assert isinstance(survey_section, Section)
+    assert isinstance(section, Section)
 
 
 if __name__ == "__main__":
