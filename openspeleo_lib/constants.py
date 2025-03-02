@@ -10,3 +10,6 @@ OSPL_SECTIONNAME_MAX_LENGTH = 50
 
 # Maximum retry attempts for any while loop
 OSPL_MAX_RETRY_ATTEMPTS = 100
+
+# Filenames
+ARIANE_DATA_FILENAME = "Data.xml"

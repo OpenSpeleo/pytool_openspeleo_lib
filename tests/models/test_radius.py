@@ -6,7 +6,7 @@
 #             "angle": 1.0,
 #             "norm": 1.0,
 #         }
-#         assert RadiusVector(**data).model_dump() == data
+#         assert ArianeRadiusVector(**data).model_dump() == data
 
 
 # if __name__ == "__main__":
@@ -19,19 +19,19 @@ from hypothesis import given
 from hypothesis import strategies as st
 from pydantic import ValidationError
 
-from openspeleo_lib.models import RadiusVector
+from openspeleo_lib.models import ArianeRadiusVector
 
 
-class TestRadiusVector(unittest.TestCase):
+class TestArianeRadiusVector(unittest.TestCase):
     """
-    Unit tests for the RadiusVector class.
+    Unit tests for the ArianeRadiusVector class.
     """
 
     def test_valid_radius_vector(self):
         """
-        Test creating a valid RadiusVector instance.
+        Test creating a valid ArianeRadiusVector instance.
         """
-        radius_vector = RadiusVector(
+        radius_vector = ArianeRadiusVector(
             tension_corridor=1.0, tension_profile=2.0, angle=45.0, norm=5.0
         )
         assert radius_vector.tension_corridor == 1.0
@@ -41,10 +41,10 @@ class TestRadiusVector(unittest.TestCase):
 
     def test_invalid_radius_vector(self):
         """
-        Test creating an invalid RadiusVector instance.
+        Test creating an invalid ArianeRadiusVector instance.
         """
         with pytest.raises(ValidationError):
-            RadiusVector(
+            ArianeRadiusVector(
                 tension_corridor="invalid",  # Should be a float
                 tension_profile="invalid",  # Should be a float
                 angle="invalid",  # Should be a float
@@ -59,15 +59,15 @@ class TestRadiusVector(unittest.TestCase):
     )
     def test_fuzzy_radius_vector(self, tension_corridor, tension_profile, angle, norm):
         """
-        Fuzzy testing for RadiusVector class using Hypothesis.
+        Fuzzy testing for ArianeRadiusVector class using Hypothesis.
         """
-        radius_vector = RadiusVector(
+        radius_vector = ArianeRadiusVector(
             tension_corridor=tension_corridor,
             tension_profile=tension_profile,
             angle=angle,
             norm=norm,
         )
-        assert isinstance(radius_vector, RadiusVector)
+        assert isinstance(radius_vector, ArianeRadiusVector)
 
 
 if __name__ == "__main__":

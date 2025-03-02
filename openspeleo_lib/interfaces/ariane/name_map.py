@@ -2,14 +2,14 @@ from bidict import frozenbidict
 
 ARIANE_MAPPING = frozenbidict(
     {
-        # RadiusVector Attributes
+        # ArianeRadiusVector Attributes
         "tension_corridor": "TensionCorridor",
         "tension_profile": "TensionProfile",
         "angle": "angle",
         "norm": "length",
         # RadiusCollection Attributes
         "radius_vector": "RadiusVector",
-        # Shape Attributes
+        # ArianeShape Attributes
         "radius_collection": "RadiusCollection",
         "has_profile_azimuth": "hasProfileAzimut",
         "has_profile_tilt": "hasProfileTilt",
@@ -36,38 +36,42 @@ ARIANE_MAPPING = frozenbidict(
         "azimuth": "Azimut",
         "closure_to_id": "ClosureToID",
         "color": "Color",
-        "comment": "Comment",
-        "date": "Date",
+        "shot_comment": "Comment",
         "depth": "Depth",
         "depth_in": "DepthIn",
         "excluded": "Excluded",
-        "surveyors": "Explorer",
         "from_id": "FromID",
-        "id": "ID",
+        "shot_id": "ID",
         "inclination": "Inclination",
         "latitude": "Latitude",
         "length": "Length",
         "locked": "Locked",
         "longitude": "Longitude",
-        "name_compass": "Name",
+        "shot_name": "Name",
         "profiletype": "Profiletype",
-        "section": "Section",
+        # "section": "Section",
         "shape": "Shape",
-        "type": "Type",
+        "shot_type": "Type",
         # LRUD
         "left": "Left",
         "right": "Right",
         "up": "Up",
         "down": "Down",
-        # ShotCollection Attributes
+        # ====================== Section Attributes ====================== #
+        # "section_id": None,
+        "section_name": "Section",
+        "date": "Date",
+        "explorers": "Explorer",
+        # "surveyors": None,
+        # "section_comment": None,
         "shots": "SurveyData",
-        # Survey Attributes,
+        # ====================== Survey Attributes ====================== #
+        "speleodb_id": "speleodb_id",
         "cave_name": "caveName",
         "unit": "unit",
-        "data": "Data",
-        "ariane_viewer_layers": "Layers",
-        "use_magnetic_azimuth": "useMagneticAzimuth",
         "first_start_absolute_elevation": "firstStartAbsoluteElevation",
+        "use_magnetic_azimuth": "useMagneticAzimuth",
+        "ariane_viewer_layers": "Layers",
         "carto_ellipse": "CartoEllipse",
         "carto_line": "CartoLine",
         "carto_linked_surface": "CartoLinkedSurface",
@@ -78,5 +82,7 @@ ARIANE_MAPPING = frozenbidict(
         "carto_spline": "CartoSpline",
         "constraints": "Constraints",
         "list_annotation": "ListAnnotation",
+        # ====================== Non-Model Attributes ====================== #
+        "data": "Data",
     }
 )

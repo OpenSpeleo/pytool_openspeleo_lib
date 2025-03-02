@@ -1,12 +1,12 @@
 import contextlib
 import logging
-import tempfile
 import zipfile
 from pathlib import Path
 from typing import Any
 
 import orjson
 
+from openspeleo_lib.constants import ARIANE_DATA_FILENAME
 from openspeleo_lib.interfaces.ariane.enums_cls import ArianeFileType
 from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
 from openspeleo_lib.interfaces.base import BaseInterface
@@ -95,16 +95,23 @@ class ArianeInterface(BaseInterface):
         if DEBUG:
             _write_debugdata_to_disk(data, Path("data.export.step01.json"))
 
+        # Formatting Unit - ariane unit is lowercase - OSPL unit is uppercase
+        data["unit"] = data["unit"].lower()
+
         # 2. Flatten sections into shots
         shots = []
         for section in data.pop("sections"):
             for shot in section.pop("shots"):
-                shot["section"] = section["name"]
+                shot["section_name"] = section["section_name"]
                 shot["date"] = section["date"]
-                shot["surveyors"] = ",".join(section["surveyors"])
+
+                # TODO: Add explorers and parse XML
+                # shot["surveyors"] = ",".join(section["explorers"])
+                shot["explorers"] = ",".join(section["explorers"])
 
                 radius_vectors = shot["shape"].pop("radius_vectors")
                 shot["shape"]["radius_collection"] = {"radius_vector": radius_vectors}
+                shot["color"] = shot.pop("color").replace("#", "0x")
 
                 shots.append(shot)
 
@@ -145,17 +152,12 @@ class ArianeInterface(BaseInterface):
 
         # ========================== WRITE TO DISK ========================== #
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            xml_f = Path(tmp_dir) / "Data.xml"
-            with xml_f.open(mode="w") as f:
-                f.write(xml_str)
-
-            with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-                logging.debug(
-                    "Exporting %(filetype)s File: `%(filepath)s`",
-                    {"filetype": filetype.name, "filepath": filepath},
-                )
-                zf.write(f.name, "Data.xml")
+        with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            logging.debug(
+                "Exporting %(filetype)s File: `%(filepath)s`",
+                {"filetype": filetype.name, "filepath": filepath},
+            )
+            zf.writestr(ARIANE_DATA_FILENAME, xml_str)
 
     @classmethod
     def _from_file(cls, filepath: str | Path) -> Survey:
@@ -202,6 +204,9 @@ class ArianeInterface(BaseInterface):
         # 1. Remove None values from the dictionary
         data = remove_none_values(data)
 
+        # Formatting Unit - ariane unit is lowercase - OSPL unit is uppercase
+        data["unit"] = data["unit"].upper()
+
         if DEBUG:
             _write_debugdata_to_disk(data, Path("data.import.step01-none_cleaned.json"))
 
@@ -226,21 +231,24 @@ class ArianeInterface(BaseInterface):
                     "radius_collection"
                 )["radius_vector"]
 
+            # Formatting the color back to OSPL format
+            shot["color"] = shot.pop("color").replace("0x", "#")
+
             # 4.2 Separate shots into sections
             try:
-                if (section_name := shot.pop("section")) not in sections:
+                if (section_name := shot.pop("section_name")) not in sections:
                     sections[section_name] = {
-                        "name": section_name,
+                        "section_name": section_name,
                         "date": shot.pop("date", None),
                         "shots": [],
-                        "surveyors": (
-                            shot.pop("surveyors").split(",")
-                            if "surveyors" in shot
+                        "explorers": (
+                            shot.pop("explorers").split(",")
+                            if "explorers" in shot
                             else []
                         ),
                     }
                 else:
-                    for key, should_split in [("date", False), ("surveyors", True)]:
+                    for key, should_split in [("date", False), ("explorers", True)]:
                         with contextlib.suppress(KeyError):
                             value = shot.pop(key)
 
@@ -268,7 +276,11 @@ class ArianeInterface(BaseInterface):
 
                 sections[section_name]["shots"].append(shot)
 
-            except KeyError:
+            except KeyError as e:
+                logging.warning(
+                    "Incomplete shot data: `%(shot)s` - Error: %(error)s",
+                    {"shot": shot, "error": e},
+                )
                 continue  # if data is incomplete, skip this shot
 
         data["sections"] = list(sections.values())
