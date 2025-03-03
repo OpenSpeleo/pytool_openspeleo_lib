@@ -2,7 +2,6 @@ import datetime
 import uuid
 from pathlib import Path
 from typing import Annotated
-from typing import Literal
 from typing import NewType
 from typing import Self
 

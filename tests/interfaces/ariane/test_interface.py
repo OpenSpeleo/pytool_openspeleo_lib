@@ -1,6 +1,5 @@
 import tempfile
 import unittest
-import zipfile
 from pathlib import Path
 
 import pytest
@@ -8,8 +7,6 @@ from parameterized import parameterized
 
 from openspeleo_lib.interfaces.ariane.enums_cls import ArianeFileType
 from openspeleo_lib.interfaces.ariane.interface import ArianeInterface
-from openspeleo_lib.interfaces.ariane.interface import _extract_zip
-from openspeleo_lib.interfaces.ariane.interface import _filetype
 
 
 class TestArianeParser(unittest.TestCase):
@@ -19,33 +16,18 @@ class TestArianeParser(unittest.TestCase):
         if path_type == "path":
             filepath = Path(filepath)
 
-        result = _filetype(filepath)
+        result = ArianeFileType.from_path(filepath)
         assert result == ArianeFileType.TML
 
     def test_filetype_valid_tmlu(self):
         filepath = Path("test_file.tmlu")
-        result = _filetype(filepath)
+        result = ArianeFileType.from_path(filepath)
         assert result == ArianeFileType.TMLU
 
     def test_filetype_invalid(self):
         filepath = Path("test_file.invalid")
         with pytest.raises(TypeError, match="Unknown value: INVALID"):
-            _filetype(filepath)
-
-    def test_extract_zip(self):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            zip_path = Path(tmp_dir) / "test.zip"
-            data_path = Path(tmp_dir) / "Data.xml"
-
-            with data_path.open("w") as f:
-                f.write("<CaveFile></CaveFile>")
-
-            with zipfile.ZipFile(zip_path, "w") as zipf:
-                zipf.write(data_path, "Data.xml")
-
-            extracted_files = _extract_zip(zip_path)
-            assert "Data.xml" in extracted_files
-            assert extracted_files["Data.xml"] == b"<CaveFile></CaveFile>"
+            ArianeFileType.from_path(filepath)
 
     def test_from_ariane_file_tmlu(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

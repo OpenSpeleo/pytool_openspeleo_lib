@@ -34,7 +34,7 @@ def test_invalid_shape():
     """
     with pytest.raises(ValidationError):
         ArianeShape(
-            radius_vectors="invalid",  # Should be a list of ArianeRadiusVector instances
+            radius_vectors="invalid",  # Should be a list of ArianeRadiusVector
             has_profile_azimuth="invalid",  # Should be a bool
             has_profile_tilt="invalid",  # Should be a bool
             profile_azimuth="invalid",  # Should be a float
