@@ -1,4 +1,5 @@
 import argparse
+import statistics
 import tempfile
 import time
 from pathlib import Path
@@ -36,10 +37,18 @@ if __name__ == "__main__":
             profiler.print()
 
         else:
-            start_t = time.perf_counter()
-            survey = ArianeInterface.from_file(ariane_f)
-            print(f"[Loading] Elapsed: {time.perf_counter() - start_t}")  # noqa: T201
+            runs = []
+            for idx in range(15):
+                start_t = time.perf_counter()
+                survey = ArianeInterface.from_file(ariane_f)
+                runs.append(time.perf_counter() - start_t)
+                print(f"[{idx + 1:02d}] [Loading] Elapsed: {runs[-1]:.2f} secs")  # noqa: T201
+            print(f"Average: {statistics.mean(runs[5:]):.2f} secs")  # noqa: T201
 
-            start_t = time.perf_counter()
-            ArianeInterface.to_file(survey, target_f)
-            print(f"[Export] Elapsed: {time.perf_counter() - start_t}")  # noqa: T201
+            runs = []
+            for idx in range(15):
+                start_t = time.perf_counter()
+                ArianeInterface.to_file(survey, target_f)
+                runs.append(time.perf_counter() - start_t)
+                print(f"[{idx + 1:02d}] [Export] Elapsed: {runs[-1]:.2f} secs")  # noqa: T201
+            print(f"Average: {statistics.mean(runs[5:]):.2f} secs")  # noqa: T201

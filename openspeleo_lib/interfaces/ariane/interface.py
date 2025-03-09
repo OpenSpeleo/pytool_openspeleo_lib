@@ -2,6 +2,8 @@ import logging
 import zipfile
 from pathlib import Path
 
+import openspeleo_core
+
 from openspeleo_lib.constants import ARIANE_DATA_FILENAME
 from openspeleo_lib.debug_utils import write_debugdata_to_disk
 from openspeleo_lib.interfaces.ariane.decoding import ariane_decode
@@ -10,7 +12,6 @@ from openspeleo_lib.interfaces.ariane.enums_cls import ArianeFileType
 from openspeleo_lib.interfaces.base import BaseInterface
 from openspeleo_lib.models import Survey
 from openspeleo_lib.xml_utils import dict_to_xml
-from openspeleo_lib.xml_utils import xml_to_dict
 
 logger = logging.getLogger(__name__)
 DEBUG = False
@@ -94,7 +95,7 @@ class ArianeInterface(BaseInterface):
                     f"Not supported yet - Format: `{filetype.name}`"
                 )
 
-        data = xml_to_dict(xml_data)["CaveFile"]
+        data = openspeleo_core.xml_str_to_dict(xml_data.decode("utf-8"))["CaveFile"]
 
         # ------------------------------------------------------------------- #
 
