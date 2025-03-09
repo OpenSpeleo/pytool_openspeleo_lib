@@ -6,6 +6,7 @@ from openspeleo_lib.debug_utils import write_debugdata_to_disk
 from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
 from openspeleo_lib.utils import apply_key_mapping
 from openspeleo_lib.utils import remove_none_values
+from openspeleo_lib.xml_utils import deserialize_xmlfield_to_dict
 
 logger = logging.getLogger(__name__)
 DEBUG = False
@@ -54,29 +55,43 @@ def ariane_decode(data: dict) -> dict:
                     "section_name": section_name,
                     "date": shot.pop("date", None),
                     "shots": [],
-                    "explorers": (
-                        shot.pop("explorers").split(",") if "explorers" in shot else []
-                    ),
                 }
+                if ariane_explorer_field := shot.pop("explorers"):
+                    _data = deserialize_xmlfield_to_dict(ariane_explorer_field)
+
+                    if isinstance(_data, str):
+                        _data = {"explorers": _data}
+                    else:
+                        _data = apply_key_mapping(_data, mapping=ARIANE_MAPPING.inverse)
+
+                    sections[section_name].update(_data)
+
             else:
-                for key, should_split in [("date", False), ("explorers", True)]:
+                for key in ["date", "explorers"]:
                     with contextlib.suppress(KeyError):
-                        value = shot.pop(key)
+                        _value = shot.pop(key)
 
-                        if should_split:
-                            value = value.split(",")
-
-                        if sections[section_name][key] != value:
-                            logger.warning(
-                                "Section `%(section)s` has different `%(key)s`: "
-                                "`%(section_val)s` != `%(shot_val)s`",
-                                {
-                                    "section": section_name,
-                                    "key": key,
-                                    "section_val": sections[section_name][key],
-                                    "shot_val": value,
-                                },
+                        if key == "explorers" and isinstance(_value, dict):
+                            _data = apply_key_mapping(
+                                deserialize_xmlfield_to_dict(_value),
+                                mapping=ARIANE_MAPPING.inverse,
                             )
+
+                        else:
+                            _data = {key: _value}
+
+                        for sub_key, value in _data.items():
+                            if sections[section_name][sub_key] != value:
+                                logger.warning(
+                                    "Section `%(section)s` has different `%(key)s`: "
+                                    "`%(section_val)s` != `%(shot_val)s`",
+                                    {
+                                        "section": section_name,
+                                        "key": sub_key,
+                                        "section_val": sections[section_name][sub_key],
+                                        "shot_val": value,
+                                    },
+                                )
 
             with contextlib.suppress(KeyError):
                 if not isinstance(

@@ -18,15 +18,12 @@ if __name__ == "__main__":
     # print("# -------------------------------------------------------------- #")
     # print(survey_f.shots)
 
-    print(f"{'#' * 80}")  # noqa: T201
-
     # file = Path("tests/artifacts/fulford.dat")
     # survey = Survey.from_compass_file(filepath=file)
     # print(survey.model_dump_json(indent=1))
 
-    filepath = Path("tests/artifacts/hand_survey.tml")
-
-    DEBUG = False
+    # filepath = Path("tests/artifacts/hand_survey.tml")
+    filepath = Path("tests/artifacts/test_simple.tml")
 
     survey: Survey = ArianeInterface.from_file(filepath)
 

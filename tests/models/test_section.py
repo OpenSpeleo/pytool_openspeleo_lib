@@ -49,7 +49,8 @@ def test_valid_section():
         section_id=1,
         section_name="Test Section",
         date=datetime.datetime.now(tz=datetime.UTC).date(),
-        surveyors=["Surveyor1", "Surveyor2"],
+        explorers="Explorer1, Explorer2",
+        surveyors="Surveyor1, Surveyor2",
         shots=[shot],
         section_comment="Test comment",
         compass_format="DDDDUDLRLADN",
@@ -60,7 +61,8 @@ def test_valid_section():
     assert section.section_id == 1
     assert section.section_name == "Test Section"
     assert section.date == datetime.datetime.now(tz=datetime.UTC).date()
-    assert section.surveyors == ["Surveyor1", "Surveyor2"]
+    assert section.explorers == "Explorer1, Explorer2"
+    assert section.surveyors == "Surveyor1, Surveyor2"
     assert section.shots == [shot]
     assert section.section_comment == "Test comment"
     assert section.compass_format == "DDDDUDLRLADN"
@@ -78,7 +80,8 @@ def test_invalid_section():
             section_id=-1,  # Should be a non-negative integer
             section_name="invalid name",  # Should match the pattern
             date="invalid",  # Should be a date
-            surveyors="invalid",  # Should be a list of strings
+            explorers=["invalid"],  # Should be a string
+            surveyors=["invalid"],  # Should be a string
             shots="invalid",  # Should be a list of Shot instances
             section_comment=123,  # Should be a string
             compass_format=123,  # Should be a string
@@ -96,7 +99,8 @@ def test_invalid_section():
         min_size=OSPL_SECTIONNAME_MIN_LENGTH,
     ),
     date=st.dates(),
-    surveyors=st.lists(st.text()),
+    explorers=st.text(),
+    surveyors=st.text(),
     shots=st.lists(
         st.builds(
             Shot,
@@ -158,6 +162,7 @@ def test_fuzzy_section(
     section_id,
     section_name,
     date,
+    explorers,
     surveyors,
     shots,
     section_comment,
@@ -173,6 +178,7 @@ def test_fuzzy_section(
         section_id=section_id,
         section_name=section_name,
         date=date,
+        explorers=explorers,
         surveyors=surveyors,
         shots=shots,
         section_comment=section_comment,

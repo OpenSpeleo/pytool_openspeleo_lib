@@ -13,7 +13,7 @@ name = "openspeleo_lib"
 version = "0.0.1"
 description = "A library to read/write and convert OpenSpeleo files"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.13"
 license = { file = "LICENSE" }
 keywords = ["cave", "survey", "karst"]
 authors = [{ name = "Jonathan Dekhtiar", email = "jonathan@dekhtiar.com" }]
@@ -44,14 +44,11 @@ classifiers = [
   # that you indicate you support Python 3. These classifiers are *not*
   # checked by "pip install". See instead "requires-python" key in this file.
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3 :: Only",
 ]
 dependencies = [
+  "argparse>=1.4,<1.5",
   "bidict>=0.23,<0.24",
   "orjson>=3.10,<3.11",
   "pydantic>=2.10,<2.11",
@@ -64,9 +61,10 @@ dev = [
   "check-manifest",
   # Pre Commit Hooks
   "pre-commit>=3.6.0,<4.2",
+  # Benchmarking
+  "pyinstrument",
   # Linting
   "ruff>=0.3,<0.10",
-
 ]
 test = [
   "deepdiff>=7.0,<9.0",
@@ -86,18 +84,12 @@ test = [
 "Bug Reports" = "https://github.com/OpenSpeleo/pytool_open_speleo/issues"
 "Source" = "https://github.com/OpenSpeleo/pytool_open_speleo"
 
-# [project.scripts]
-# compass = "openspeleo_lib.commands.main:main"
-
 [project.scripts]
 openspeleo = "openspeleo_lib.commands.main:main"
 
 [project.entry-points."openspeleo_lib.actions"]
-validate_tml = "openspeleo_lib.commands.validate_tml:validate"
 convert = "openspeleo_lib.commands.convert:convert"
-
-# [project.entry-points."compass.actions"]
-# convert = "openspeleo_lib.commands.convert:convert"
+validate_tml = "openspeleo_lib.commands.validate_tml:validate"
 
 [tool.pytest.ini_options]
 testpaths = ["tests/"]
