@@ -159,8 +159,8 @@ class Section(BaseModel):
 
     # Attributes
     date: datetime.date = None
-    explorers: list[str] = []
-    surveyors: list[str] = []
+    explorers: str | None = None
+    surveyors: str | None = None
 
     shots: list[Shot] = []
 

@@ -71,7 +71,8 @@ def test_valid_survey():
         section_id=1,
         section_name="Test Section",
         date=datetime.datetime.now(tz=datetime.UTC).date(),
-        surveyors=["Surveyor1", "Surveyor2"],
+        explorers="Explorer1, Explorer2",
+        surveyors="Surveyor1, Surveyor2",
         shots=[shot],
         section_comment="Test comment",
         compass_format="DDDDUDLRLADN",
@@ -156,7 +157,8 @@ def test_invalid_survey():
                 min_size=OSPL_SECTIONNAME_MIN_LENGTH,
             ),
             date=st.dates(),
-            surveyors=st.lists(st.text()),
+            explorers=st.text(),
+            surveyors=st.text(),
             shots=st.lists(
                 st.builds(
                     Shot,

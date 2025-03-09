@@ -1,3 +1,4 @@
+import contextlib
 import logging
 from pathlib import Path
 from typing import Any
@@ -5,6 +6,7 @@ from typing import Any
 from openspeleo_lib.debug_utils import write_debugdata_to_disk
 from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
 from openspeleo_lib.utils import apply_key_mapping
+from openspeleo_lib.xml_utils import serialize_dict_to_xmlfield
 
 logger = logging.getLogger(__name__)
 DEBUG = False
@@ -118,9 +120,22 @@ def ariane_encode(data: dict) -> dict:
             shot["section_name"] = section["section_name"]
             shot["date"] = section["date"]
 
-            # TODO: Add explorers and parse XML
-            # shot["surveyors"] = ",".join(section["explorers"])
-            shot["explorers"] = ",".join(section["explorers"])
+            # ~~~~~~~~~~~~~~~~ Processing Explorers/Surveyors ~~~~~~~~~~~~~~~ #
+            _explo_data = {}
+            for key in ["explorers", "surveyors"]:
+                if (_value := section[key]) is not None:
+                    _explo_data[key] = _value
+
+            # In case only "explorer" data exists - Ariane doesn't store in format XML
+            if len(_explo_data) == 1:
+                with contextlib.suppress(KeyError):
+                    _explo_data = _explo_data["explorers"]
+
+            if isinstance(_explo_data, dict):
+                _explo_data = apply_key_mapping(_explo_data, mapping=ARIANE_MAPPING)
+
+            shot["explorers"] = serialize_dict_to_xmlfield(_explo_data)
+            # --------------------------------------------------------------- #
 
             radius_vectors = shot["shape"].pop("radius_vectors")
             shot["shape"]["radius_collection"] = {"radius_vector": radius_vectors}

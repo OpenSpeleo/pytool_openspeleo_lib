@@ -62,7 +62,7 @@ ARIANE_MAPPING = frozenbidict(
         "section_name": "Section",
         "date": "Date",
         "explorers": "Explorer",
-        # "surveyors": None,
+        "surveyors": "Surveyor",
         # "section_comment": None,
         "shots": "SurveyData",
         # ====================== Survey Attributes ====================== #
