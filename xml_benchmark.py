@@ -7,8 +7,8 @@ import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+import openspeleo_core
 import rxml
-import xml_dict
 import xmltodict
 from defusedxml.minidom import parseString
 from dicttoxml2 import dicttoxml
@@ -145,7 +145,7 @@ if __name__ == "__main__":
         runs = []
         for idx in range(15):
             start_time = time.perf_counter()
-            data = xml_dict.xml_str_to_dict(xml_str)
+            data = openspeleo_core.xml_str_to_dict(xml_str)
             runs.append(time.perf_counter() - start_time)
             print(f"[{idx + 1:02d}] XML_DICT Time taken: {runs[-1]:.2f} secs")  # noqa: T201
         print(f"Average: {statistics.mean(runs[5:]):.2f} secs")  # noqa: T201
