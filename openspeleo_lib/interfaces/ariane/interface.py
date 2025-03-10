@@ -88,14 +88,17 @@ class ArianeInterface(BaseInterface):
         match filetype:
             case ArianeFileType.TML:
                 with zipfile.ZipFile(filepath, "r") as zip_file:
-                    xml_data = zip_file.open("Data.xml").read()
+                    xml_str = zip_file.open("Data.xml").read().decode("utf-8")
+                data = openspeleo_core.xml_str_to_dict(xml_str)["CaveFile"]
+
+                # data = openspeleo_core.load_ariane_tml_file_to_dict(path=str(filepath))[
+                #     "CaveFile"
+                # ]
 
             case _:
                 raise NotImplementedError(
                     f"Not supported yet - Format: `{filetype.name}`"
                 )
-
-        data = openspeleo_core.xml_str_to_dict(xml_data.decode("utf-8"))["CaveFile"]
 
         # ------------------------------------------------------------------- #
 
