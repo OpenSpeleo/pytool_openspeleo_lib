@@ -62,7 +62,7 @@ dev = [
   # Pre Commit Hooks
   "pre-commit>=3.6.0,<4.2",
   # Benchmarking
-  "pyinstrument",
+  "pyinstrument>=5.0,<6.0",
   # Linting
   "ruff>=0.3,<0.10",
 ]
