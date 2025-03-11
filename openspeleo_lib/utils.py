@@ -31,34 +31,36 @@ def str2bool(value: str) -> bool:
     raise ValueError(f"Cannot convert {value!r} to boolean")
 
 
-def remove_none_values(d):
+def remove_none_values(input_data: dict | list) -> Any:
     """
     Recursively remove None values from a dictionary.
-
-    Args:
-        d (dict): The dictionary to clean.
-
-    Returns:
-        dict: The cleaned dictionary with no None values.
     """
-    if isinstance(d, dict):
-        for k, v in list(d.items()):
-            if isinstance(v, (dict, tuple, list)):
-                remove_none_values(v)
+    if isinstance(input_data, dict):
+        data = {}
+        for k, v in list(input_data.items()):
             if v is None:
-                del d[k]
+                continue
 
-    elif isinstance(d, (list, tuple)):
+            if isinstance(v, (dict, list)):
+                data[k] = remove_none_values(v)
+
+            else:
+                data[k] = v
+
+        return data
+
+    if isinstance(input_data, list):
         values = []
-        for i in d:
+        for i in input_data:
             if i is None:
                 continue
-            if isinstance(i, (dict, tuple, list)):
+            if isinstance(i, (dict, list)):
                 values.append(remove_none_values(i))
             else:
                 values.append(i)
+        return values
 
-    return d
+    return input_data
 
 
 def apply_key_mapping(data: dict | list | tuple, mapping: dict) -> dict | list:
