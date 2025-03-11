@@ -2,7 +2,7 @@ import logging
 import zipfile
 from pathlib import Path
 
-import openspeleo_core
+from openspeleo_core import ariane_core
 
 from openspeleo_lib.constants import ARIANE_DATA_FILENAME
 from openspeleo_lib.debug_utils import write_debugdata_to_disk
@@ -87,13 +87,13 @@ class ArianeInterface(BaseInterface):
 
         match filetype:
             case ArianeFileType.TML:
-                with zipfile.ZipFile(filepath, "r") as zip_file:
-                    xml_str = zip_file.open("Data.xml").read().decode("utf-8")
-                data = openspeleo_core.xml_str_to_dict(xml_str)["CaveFile"]
+                # with zipfile.ZipFile(filepath, "r") as zip_file:
+                #     xml_str = zip_file.open("Data.xml").read().decode("utf-8")
+                # data = ariane_core.xml_str_to_dict(xml_str)["CaveFile"]
 
-                # data = openspeleo_core.load_ariane_tml_file_to_dict(path=str(filepath))[
-                #     "CaveFile"
-                # ]
+                data = ariane_core.load_ariane_tml_file_to_dict(path=filepath)[
+                    "CaveFile"
+                ]
 
             case _:
                 raise NotImplementedError(

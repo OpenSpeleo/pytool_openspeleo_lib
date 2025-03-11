@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    ariane_f = Path("/workspace/openspeleo_lib/tests/artifacts/test_large.tml")
+    ariane_f = Path("tests/artifacts/test_large.tml")
 
     with tempfile.TemporaryDirectory() as tmp_d:
         target_f = Path(tmp_d) / "export.tml"

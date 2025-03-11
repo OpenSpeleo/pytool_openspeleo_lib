@@ -15,31 +15,31 @@ DEBUG = False
 def ariane_decode(data: dict) -> dict:
     # ===================== DICT FORMATTING TO OSPL ===================== #
 
-    # 1. Remove None values from the dictionary
-    data = remove_none_values(data)
+    # Dictionary Top-Level Cleaning
 
     # Formatting Unit - ariane unit is lowercase - OSPL unit is uppercase
     data["unit"] = data["unit"].upper()
 
-    if DEBUG:
-        write_debugdata_to_disk(data, Path("data.import.step01-none_cleaned.json"))
-
-    # 2. Apply key mapping: From Ariane to OSPL
+    # 1. Apply key mapping: From Ariane to OSPL
     data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
 
     if DEBUG:
-        write_debugdata_to_disk(data, Path("data.import.step02-mapped.json"))
+        write_debugdata_to_disk(data, Path("data.import.step01-mapped.json"))
 
-    # 3. Collapse data["ariane_viewer_layers"]["layer_list"] to data["ariane_viewer_layers"]  # noqa: E501
+    # 2. Collapse `ariane_viewer_layers`:
+    # - BEFORE: data["ariane_viewer_layers"]["layer_list"]
+    # - AFTER:  data["ariane_viewer_layers"]
     data["ariane_viewer_layers"] = data["ariane_viewer_layers"].pop("layer_list")
 
     if DEBUG:
-        write_debugdata_to_disk(data, Path("data.import.step03-collapsed.json"))
+        write_debugdata_to_disk(data, Path("data.import.step02-collapsed.json"))
 
-    # 4. Sort `shots` into `sections`
+    # 3. Sort `shots` into `sections`
     sections = {}
     for shot in data.pop("data")["shots"]:
-        # 4.1 Collapse shot["shape"]["radius_collection"]["radius_vector"] to shot["shape"]["radius_vectors"]  # noqa: E501
+        # 3.1 Collapse `radius_vectors`:
+        # - BEFORE: shot["shape"]["radius_collection"]["radius_vector"]
+        # - AFTER:  shot["shape"]["radius_vectors"]
         with contextlib.suppress(KeyError):
             shot["shape"]["radius_vectors"] = shot["shape"].pop("radius_collection")[
                 "radius_vector"
@@ -48,7 +48,7 @@ def ariane_decode(data: dict) -> dict:
         # Formatting the color back to OSPL format
         shot["color"] = shot.pop("color").replace("0x", "#")
 
-        # 4.2 Separate shots into sections
+        # 3.2 Separate shots into sections
         try:
             if (section_name := shot.pop("section_name")) not in sections:
                 sections[section_name] = {
@@ -112,6 +112,6 @@ def ariane_decode(data: dict) -> dict:
     data["sections"] = list(sections.values())
 
     if DEBUG:
-        write_debugdata_to_disk(data, Path("data.import.step04-sections.json"))
+        write_debugdata_to_disk(data, Path("data.import.step03-sections.json"))
 
     return data
