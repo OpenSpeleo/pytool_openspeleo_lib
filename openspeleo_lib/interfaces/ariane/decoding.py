@@ -73,12 +73,16 @@ def ariane_decode(data: dict) -> dict:
                     with contextlib.suppress(KeyError):
                         _value = shot.pop(key)
 
-                        if key == "explorers" and isinstance(_value, dict):
-                            _data = apply_key_mapping(
-                                deserialize_xmlfield_to_dict(_value),
-                                mapping=ARIANE_INVERSE_MAPPING,
-                            )
+                        if key == "explorers" and isinstance(_value, str):
+                            _data = deserialize_xmlfield_to_dict(_value)
 
+                            if isinstance(_data, dict):
+                                _data = apply_key_mapping(
+                                    _data,
+                                    mapping=ARIANE_INVERSE_MAPPING,
+                                )
+                            else:
+                                _data = {key: _value}
                         else:
                             _data = {key: _value}
 
