@@ -1,6 +1,6 @@
 from bidict import frozenbidict
 
-ARIANE_MAPPING = frozenbidict(
+_ARIANE_MAPPING = frozenbidict(
     {
         # ArianeRadiusVector Attributes
         "tension_corridor": "TensionCorridor",
@@ -86,3 +86,6 @@ ARIANE_MAPPING = frozenbidict(
         "data": "Data",
     }
 )
+
+ARIANE_MAPPING = dict(_ARIANE_MAPPING)
+ARIANE_INVERSE_MAPPING = dict(_ARIANE_MAPPING.inverse)

@@ -18,7 +18,11 @@ class BaseInterface(metaclass=ABCMeta):
         raise NotImplementedError  # pragma: no cover
 
     @classmethod
-    def from_file(cls, filepath: Path) -> Survey:
+    def from_file(cls, filepath: str | Path) -> Survey:
+        filepath = Path(filepath)
+        if not filepath.exists():
+            raise FileNotFoundError(f"File not found: `{filepath}`")
+
         with UniqueValueGenerator.activate_uniqueness():
             return cls._from_file(filepath=filepath)
 

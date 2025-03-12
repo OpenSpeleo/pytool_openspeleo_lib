@@ -2,10 +2,12 @@ import contextlib
 import logging
 from pathlib import Path
 
+# from openspeleo_core.legacy import remove_none_values
+# from openspeleo_core.legacy import apply_key_mapping
+from openspeleo_core.mapping import apply_key_mapping
+
 from openspeleo_lib.debug_utils import write_debugdata_to_disk
-from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
-from openspeleo_lib.utils import apply_key_mapping
-from openspeleo_lib.utils import remove_none_values
+from openspeleo_lib.interfaces.ariane.name_map import ARIANE_INVERSE_MAPPING
 from openspeleo_lib.xml_utils import deserialize_xmlfield_to_dict
 
 logger = logging.getLogger(__name__)
@@ -21,7 +23,7 @@ def ariane_decode(data: dict) -> dict:
     data["unit"] = data["unit"].upper()
 
     # 1. Apply key mapping: From Ariane to OSPL
-    data = apply_key_mapping(data, mapping=ARIANE_MAPPING.inverse)
+    data = apply_key_mapping(data, mapping=ARIANE_INVERSE_MAPPING)
 
     if DEBUG:
         write_debugdata_to_disk(data, Path("data.import.step01-mapped.json"))
@@ -62,7 +64,7 @@ def ariane_decode(data: dict) -> dict:
                     if isinstance(_data, str):
                         _data = {"explorers": _data}
                     else:
-                        _data = apply_key_mapping(_data, mapping=ARIANE_MAPPING.inverse)
+                        _data = apply_key_mapping(_data, mapping=ARIANE_INVERSE_MAPPING)
 
                     sections[section_name].update(_data)
 
@@ -74,7 +76,7 @@ def ariane_decode(data: dict) -> dict:
                         if key == "explorers" and isinstance(_value, dict):
                             _data = apply_key_mapping(
                                 deserialize_xmlfield_to_dict(_value),
-                                mapping=ARIANE_MAPPING.inverse,
+                                mapping=ARIANE_INVERSE_MAPPING,
                             )
 
                         else:

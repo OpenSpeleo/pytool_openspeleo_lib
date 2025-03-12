@@ -63,11 +63,6 @@ class ArianeInterface(BaseInterface):
     def _from_file(cls, filepath: str | Path) -> Survey:
         # ========================= INPUT VALIDATION ======================== #
 
-        filepath = Path(filepath)
-
-        if not filepath.exists():
-            raise FileNotFoundError(f"File not found: `{filepath}`")
-
         if (
             filetype := ArianeFileType.from_path(filepath=filepath)
         ) != ArianeFileType.TML:
@@ -87,10 +82,6 @@ class ArianeInterface(BaseInterface):
 
         match filetype:
             case ArianeFileType.TML:
-                # with zipfile.ZipFile(filepath, "r") as zip_file:
-                #     xml_str = zip_file.open("Data.xml").read().decode("utf-8")
-                # data = ariane_core.xml_str_to_dict(xml_str)["CaveFile"]
-
                 data = ariane_core.load_ariane_tml_file_to_dict(path=filepath)[
                     "CaveFile"
                 ]
@@ -112,4 +103,4 @@ class ArianeInterface(BaseInterface):
 
         # ------------------------------------------------------------------- #
 
-        return Survey(**data)
+        return Survey.model_validate(data)

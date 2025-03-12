@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 
 import pytest
@@ -18,8 +19,8 @@ class TestBaseInterface(unittest.TestCase):
             DemoInterface(survey=None)
 
     def test_from_file_not_implemented(self):
-        with pytest.raises(NotImplementedError):
-            BaseInterface.from_file(filepath="survey.file")
+        with tempfile.NamedTemporaryFile() as tmp_f, pytest.raises(NotImplementedError):
+            BaseInterface.from_file(filepath=tmp_f.name)
 
     def test_instanciation(self):
         with pytest.raises(TypeError):
