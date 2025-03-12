@@ -11,7 +11,6 @@ from openspeleo_lib.interfaces.ariane.encoding import ariane_encode
 from openspeleo_lib.interfaces.ariane.enums_cls import ArianeFileType
 from openspeleo_lib.interfaces.base import BaseInterface
 from openspeleo_lib.models import Survey
-from openspeleo_lib.xml_utils import dict_to_xml
 
 logger = logging.getLogger(__name__)
 DEBUG = False
@@ -44,7 +43,8 @@ class ArianeInterface(BaseInterface):
 
         # =========================== DICT TO XML =========================== #
 
-        xml_str = dict_to_xml(data)
+        # xml_str = dict_to_xml(data)
+        xml_str = ariane_core.dict_to_xml_str(data, root_name="CaveFile")
 
         if DEBUG:
             with Path("data.export.xml").open(mode="w") as f:
