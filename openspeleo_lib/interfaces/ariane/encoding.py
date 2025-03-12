@@ -3,9 +3,11 @@ import logging
 from pathlib import Path
 from typing import Any
 
+# from openspeleo_core.legacy import apply_key_mapping
+from openspeleo_core.mapping import apply_key_mapping
+
 from openspeleo_lib.debug_utils import write_debugdata_to_disk
 from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
-from openspeleo_lib.utils import apply_key_mapping
 from openspeleo_lib.xml_utils import serialize_dict_to_xmlfield
 
 logger = logging.getLogger(__name__)
