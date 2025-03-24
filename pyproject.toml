@@ -61,7 +61,7 @@ dependencies = [
 dev = [
   "check-manifest",
   # Pre Commit Hooks
-  "pre-commit>=4.1,<4.2",
+  "pre-commit>=4.1,<4.3",
   # Benchmarking
   "pyinstrument>=5.0,<6.0",
   # Linting
