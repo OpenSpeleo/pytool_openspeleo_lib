@@ -3,6 +3,8 @@ from pathlib import Path
 
 from deepdiff import DeepDiff
 
+# flake8: noqa: T201 E501
+
 
 # Function to transform from the first format to the second format
 def transform_to_survey_section(data: dict) -> dict:
