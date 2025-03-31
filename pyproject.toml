@@ -52,7 +52,7 @@ dependencies = [
   "bidict>=0.23,<0.24",
   "openspeleo_core",
   "orjson>=3.10,<3.11",
-  "pydantic>=2.10,<2.11",
+  "pydantic>=2.10,<2.12",
   "pydantic-extra-types>=2.10,<2.11",
   "lxml>=5.3,<5.4",
 ]
