@@ -63,7 +63,7 @@ def validate_xml(filename):
 
 
 def lxml_xml_to_dict(xml_data: str) -> dict:
-    root = etree.fromstring(xml_data)  # noqa: S320
+    root = etree.fromstring(xml_data)
     return _lxml_etree_to_dict(root)
 
 

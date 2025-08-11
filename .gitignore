@@ -163,6 +163,7 @@ cython_debug/
 *.json
 *.xml
 *.tml
+*.geojson
 tests/*.json
 tests/*.xml
 tests/*.tml

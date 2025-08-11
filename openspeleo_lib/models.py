@@ -17,6 +17,7 @@ from pydantic import field_serializer
 from pydantic import model_validator
 from pydantic_extra_types.color import Color
 
+from openspeleo_lib.constants import OSPL_GEOJSON_DIGIT_PRECISION
 from openspeleo_lib.constants import OSPL_SECTIONNAME_MAX_LENGTH
 from openspeleo_lib.constants import OSPL_SECTIONNAME_MIN_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
@@ -96,7 +97,7 @@ class Shot(BaseModel):
 
     # Core Attributes
     length: NonNegativeFloat
-    depth: NonNegativeFloat
+    depth: float
     azimuth: Annotated[float, Field(ge=0, lt=360)]
 
     # Attributes
@@ -144,6 +145,14 @@ class Shot(BaseModel):
             return None
         return color.original()
 
+    def is_geolocation_known(self) -> bool:
+        if self.latitude is None or self.longitude is None:
+            return True
+
+        return abs(self.latitude) > float(f"1e-{OSPL_GEOJSON_DIGIT_PRECISION}") and abs(
+            self.longitude
+        ) > float(f"1e-{OSPL_GEOJSON_DIGIT_PRECISION}")
+
 
 class Section(BaseModel):
     # Primary Keys
@@ -152,7 +161,7 @@ class Section(BaseModel):
     section_name: Annotated[
         str,
         StringConstraints(
-            pattern=rf"^[ a-zA-Z0-9_\-~:!?.'\(\)\[\]\{{\}}@*&#%|$]{{{OSPL_SECTIONNAME_MIN_LENGTH},{OSPL_SECTIONNAME_MAX_LENGTH}}}$",  # noqa: E501
+            pattern=rf"^[ a-zA-Z0-9_\-~:,;!?\".'\(\)\[\]\{{\}}@*&#%|$]{{{OSPL_SECTIONNAME_MIN_LENGTH},{OSPL_SECTIONNAME_MAX_LENGTH}}}$",  # noqa: E501
             # to_upper=True,
         ),
     ]  # Default value not allowed - No `None` value set by default
@@ -244,3 +253,12 @@ class Survey(BaseModel):
                     option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS),
                 ).decode("utf-8")
             )
+
+    @property
+    def shots(self) -> list[Shot]:
+        """Returns a flat list of all shots in the survey."""
+        all_shots = []
+        for section in self.sections:
+            all_shots.extend(section.shots)
+
+        return all_shots
