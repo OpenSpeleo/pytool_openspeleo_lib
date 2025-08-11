@@ -57,7 +57,7 @@ def ariane_decode(data: dict) -> dict:
                     "date": shot.pop("date", None),
                     "shots": [],
                 }
-                if ariane_explorer_field := shot.pop("explorers"):
+                if ariane_explorer_field := shot.pop("explorers", ""):
                     _data = deserialize_xmlfield_to_dict(ariane_explorer_field)
 
                     if isinstance(_data, str):

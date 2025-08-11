@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 import argparse
 import logging
 import pathlib
 
+import orjson
+
+from openspeleo_lib.geojson import survey_to_geojson
 from openspeleo_lib.interfaces import ArianeInterface
 
 logger = logging.getLogger(__name__)
@@ -41,7 +46,7 @@ def convert(args):
         "-f",
         "--format",
         type=str,
-        choices=["json"],
+        choices=["geojson", "json"],
         required=True,
         help="Conversion format used.",
     )
@@ -66,4 +71,14 @@ def convert(args):
         case _:
             raise ValueError(f"Unsupported file format: `{input_file.suffix}`")
 
-    survey.to_json(filepath=output_file)
+    match parsed_args.format:
+        case "geojson":
+            geojson_data = survey_to_geojson(survey)
+            with output_file.open(mode="wb") as f:
+                f.write(orjson.dumps(geojson_data))
+
+        case "json":
+            survey.to_json(filepath=output_file)
+
+        case _:
+            raise ValueError(f"Unsupported conversion format: `{parsed_args.format}`")
