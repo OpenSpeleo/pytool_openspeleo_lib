@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from pyproj import Geod
 
 from openspeleo_lib.constants import OSPL_GEOJSON_DIGIT_PRECISION
+from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.enums import LengthUnits
 
 if TYPE_CHECKING:
@@ -18,6 +19,10 @@ if TYPE_CHECKING:
     from openspeleo_lib.models import Survey
 
 logger = logging.getLogger(__name__)
+
+
+GEOD = Geod(ellps="WGS84")
+FEET_TO_METERS = 0.3048
 
 
 class DisconnectedShotError(Exception):
@@ -41,35 +46,31 @@ class IncorrectShotDataError(Exception):
         self.message = message
 
 
-# Assuming you have your pydantic Survey, Section, Shot, LengthUnits imported
-
-GEOD = Geod(ellps="WGS84")
-FEET_TO_METERS = 0.3048
-
-
-def length_to_meters(length: float, unit: LengthUnits) -> float:
+def length_to_feet(length: float, unit: LengthUnits) -> float:
     """Convert length to meters based on the unit."""
-
-    if not isinstance(unit, LengthUnits):
-        raise TypeError(f"Invalid length unit: {unit}")
-
-    if unit == LengthUnits.FEET:
-        return length * FEET_TO_METERS
-
-    return length
+    match unit:
+        case LengthUnits.FEET:
+            return round(length, OSPL_GEOJSON_DIGIT_PRECISION)
+        case LengthUnits.METERS:
+            return round(length / FEET_TO_METERS, OSPL_GEOJSON_DIGIT_PRECISION)
+        case _:
+            raise ValueError(f"Unsupported length unit: {unit}")
 
 
 def propagate_position(
-    base_lat: float, base_lon: float, length_m: float, azimuth_deg: float
+    base_lat: float, base_lon: float, length_ft: float, azimuth_deg: float
 ) -> tuple[float, float]:
-    lon2, lat2, _ = GEOD.fwd(base_lon, base_lat, azimuth_deg, length_m)
+    lon2, lat2, _ = GEOD.fwd(base_lon, base_lat, azimuth_deg, length_ft)
     return lat2, lon2
 
 
-def build_shot_graph(sections: list) -> dict[int, list[int]]:
+def build_shot_graph(sections: list[Section]) -> dict[int, list[int]]:
     graph: dict[int, list[int]] = {}
     for section in sections:
         for shot in section.shots:
+            if shot.shot_type == ArianeShotType.CLOSURE:
+                continue
+
             if shot.from_id != -1:
                 graph.setdefault(shot.from_id, []).append(shot.shot_id)
             else:
@@ -80,6 +81,8 @@ def build_shot_graph(sections: list) -> dict[int, list[int]]:
 def build_shot_map(survey: Survey) -> dict[int, Shot]:
     shots = {}
     for shot in survey.shots:
+        if shot.shot_type == ArianeShotType.CLOSURE:
+            continue
         shots[shot.shot_id] = shot
 
     return shots
@@ -90,7 +93,7 @@ def propagate_coordinates(survey: Survey) -> None:
     graph = build_shot_graph(survey.sections)
 
     anchors = [s for s in shot_map.values() if s.is_geolocation_known()]
-    logging.warning("Found %d anchor shots with known coordinates.", len(anchors))
+    logging.info("Found %d anchor shots with known coordinates.", len(anchors))
 
     if not anchors:
         raise NoKnownAnchorError(
@@ -150,25 +153,13 @@ def propagate_coordinates(survey: Survey) -> None:
                     shot=child_shot, message="Missing azimuth for propagation"
                 )
 
-            length_m = length_to_meters(child_shot.length, survey.unit)
-            if length_m <= 0:
-                raise IncorrectShotDataError(
-                    shot=child_shot,
-                    message=f"Non-positive length {length_m} for propagation",
-                )
-
-            azimuth = child_shot.azimuth
-            if not (0 <= azimuth < 360):
-                raise IncorrectShotDataError(
-                    shot=child_shot,
-                    message=f"Invalid azimuth {azimuth} for propagation",
-                )
+            length_ft = length_to_feet(child_shot.length, survey.unit)
 
             child_latitude, child_longitude = propagate_position(
                 base_lat=current_shot.latitude,
                 base_lon=current_shot.longitude,
-                length_m=length_m,
-                azimuth_deg=azimuth,
+                length_ft=length_ft,
+                azimuth_deg=child_shot.azimuth % 360,
             )
             logger.debug(
                 "  Propagated Shot ID=%04d: lat=%.7f lon=%.7f from parent ID=%04d",
@@ -184,11 +175,13 @@ def propagate_coordinates(survey: Survey) -> None:
             queue.append(child_id)
 
 
-def shot_to_geojson_feature(shot, shots_dict, section_name: str) -> dict | None:
+def shot_to_geojson_feature(
+    shot, shots_dict, section_name: str, unit: LengthUnits
+) -> dict | None:
     props = {
         # "shot_id": shot.shot_id,
         # "shot_name": shot.shot_name,
-        "depth": shot.depth,
+        "depth": length_to_feet(shot.depth, unit=unit),
         "section_name": section_name,
         # "length": shot.length,
         # "azimuth": shot.azimuth,
@@ -206,15 +199,18 @@ def shot_to_geojson_feature(shot, shots_dict, section_name: str) -> dict | None:
     if shot.from_id != -1 and shot.from_id in shots_dict:
         from_shot = shots_dict[shot.from_id]
         start_coords = (
-            [from_shot.longitude, from_shot.latitude]
+            [round(from_shot.longitude, 6), round(from_shot.latitude, 6)]
             if from_shot.is_geolocation_known()
             else None
         )
+
     else:
         start_coords = None
 
     end_coords = (
-        [shot.longitude, shot.latitude] if shot.is_geolocation_known() else None
+        [round(shot.longitude, 6), round(shot.latitude, 6)]
+        if shot.is_geolocation_known()
+        else None
     )
 
     # Skip feature if missing valid start or end coordinate
@@ -231,6 +227,11 @@ def shot_to_geojson_feature(shot, shots_dict, section_name: str) -> dict | None:
             "Impossible to determine its location."
         )
 
+    if end_coords is None:
+        raise DisconnectedShotError(
+            f"Shot ID={shot.shot_id} does not have a valid destination. "
+            "Impossible to determine its location."
+        )
     geometry = {"type": "LineString", "coordinates": [start_coords, end_coords]}
 
     return {
@@ -262,9 +263,10 @@ def survey_to_geojson(survey: Survey) -> dict:
     # return {}
 
     features = [
-        shot_to_geojson_feature(shot, shots_map, section.section_name)
+        shot_to_geojson_feature(shot, shots_map, section.section_name, survey.unit)
         for section in survey.sections
         for shot in section.shots
+        if shot.shot_type != ArianeShotType.CLOSURE
     ]
 
     return {
