@@ -27,7 +27,10 @@ def ariane_encode(data: dict) -> dict:
     shots = []
     for section in data.pop("sections"):
         for shot in section.pop("shots"):
-            shot["section_name"] = section["section_name"]
+            desc_xml = ""
+            if description := section["description"]:
+                desc_xml = f"<SectionDescription>{description}</SectionDescription>"
+            shot["section_name"] = f"{section['section_name']}{desc_xml}"
             shot["date"] = section["date"]
 
             # ~~~~~~~~~~~~~~~~ Processing Explorers/Surveyors ~~~~~~~~~~~~~~~ #

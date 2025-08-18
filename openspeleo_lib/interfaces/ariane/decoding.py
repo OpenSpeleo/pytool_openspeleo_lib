@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import contextlib
 import logging
+from functools import lru_cache
 from pathlib import Path
-
-from openspeleo_core.legacy import deserialize_xmlfield_to_dict
+from typing import Any
+from xml.parsers.expat import ExpatError
 
 # from openspeleo_core.legacy import remove_none_values
 # from openspeleo_core.legacy import apply_key_mapping
@@ -10,9 +13,24 @@ from openspeleo_core.mapping import apply_key_mapping
 
 from openspeleo_lib.debug_utils import write_debugdata_to_disk
 from openspeleo_lib.interfaces.ariane.name_map import ARIANE_INVERSE_MAPPING
+from openspeleo_lib.interfaces.ariane.xml_utils import deserialize_xmlfield_to_dict
 
 logger = logging.getLogger(__name__)
-DEBUG = False
+DEBUG = True
+
+
+@lru_cache(maxsize=128)
+def get_section_key(
+    name: str, description: str, date: str, explorers: str, surveyors: str
+) -> str:
+    """
+    Generate a unique key for a section based on its name, date, surveyors and explorers
+    This is used to ensure that sections are uniquely identified in the data structure.
+
+    Note: Using `∎` as a separator as it's unlikely to be used by people in the
+          `fields` of the survey.
+    """
+    return hash(f"{name}∎{description}∎{date}∎{explorers}∎{surveyors}")
 
 
 def ariane_decode(data: dict) -> dict:
@@ -21,11 +39,19 @@ def ariane_decode(data: dict) -> dict:
     # 1. Apply key mapping: From Ariane to OSPL
     data = apply_key_mapping(data, mapping=ARIANE_INVERSE_MAPPING)
 
+    if (cavename := data.pop("CaveName", None)) is not None:
+        data["cave_name"] = cavename
+
     if DEBUG:
         write_debugdata_to_disk(data, Path("data.import.step01-mapped.json"))
 
     # 1.1 Formatting Top Lvl - ariane unit is lowercase - OSPL unit is uppercase
-    data["unit"] = data["unit"].upper()
+    for key in ["unit", "Unit"]:
+        with contextlib.suppress(KeyError):
+            data["unit"] = data[key].upper()
+            break
+    else:
+        raise KeyError("Missing 'unit' field in data")
 
     # 2. Collapse `ariane_viewer_layers`:
     # - BEFORE: data["ariane_viewer_layers"]["layer_list"]
@@ -36,8 +62,9 @@ def ariane_decode(data: dict) -> dict:
         write_debugdata_to_disk(data, Path("data.import.step02-collapsed.json"))
 
     # 3. Sort `shots` into `sections`
-    sections = {}
+    sections: dict[tuple[str, str], dict[str, Any]] = {}
     for shot in data.pop("data")["shots"]:
+        shot: dict[str, Any]
         # 3.1 Collapse `radius_vectors`:
         # - BEFORE: shot["shape"]["radius_collection"]["radius_vector"]
         # - AFTER:  shot["shape"]["radius_vectors"]
@@ -51,52 +78,47 @@ def ariane_decode(data: dict) -> dict:
 
         # 3.2 Separate shots into sections
         try:
-            if (section_name := shot.pop("section_name")) not in sections:
-                sections[section_name] = {
-                    "section_name": section_name,
-                    "date": shot.pop("date", None),
-                    "shots": [],
-                }
-                if ariane_explorer_field := shot.pop("explorers", ""):
-                    _data = deserialize_xmlfield_to_dict(ariane_explorer_field)
+            section_name = shot.pop("section_name", "")
+            description = ""
+            if "SectionDescription" in section_name:
+                _data = deserialize_xmlfield_to_dict(section_name)
+                section_name = _data.get("#text", "")
+                description = _data.get("SectionDescription", "")
 
+            section_date = shot.pop("date", "")
+            section_explorers = ""
+            section_surveyors = ""
+
+            if ariane_explorer_field := shot.pop("explorers", ""):
+                try:
+                    _data = deserialize_xmlfield_to_dict(ariane_explorer_field)
                     if isinstance(_data, str):
-                        _data = {"explorers": _data}
+                        section_explorers = _data
                     else:
                         _data = apply_key_mapping(_data, mapping=ARIANE_INVERSE_MAPPING)
+                        section_explorers = _data.get("explorers", "")
+                        section_surveyors = _data.get("surveyors", "")
+                except ExpatError:
+                    # Deserialization failed, fallback to raw string
+                    section_explorers = ariane_explorer_field
 
-                    sections[section_name].update(_data)
+            section_key = get_section_key(
+                name=section_name,
+                description=description,
+                date=section_date,
+                explorers=section_explorers,
+                surveyors=section_surveyors,
+            )
 
-            else:
-                for key in ["date", "explorers"]:
-                    with contextlib.suppress(KeyError):
-                        _value = shot.pop(key)
-
-                        if key == "explorers" and isinstance(_value, str):
-                            _data = deserialize_xmlfield_to_dict(_value)
-
-                            if isinstance(_data, dict):
-                                _data = apply_key_mapping(
-                                    _data,
-                                    mapping=ARIANE_INVERSE_MAPPING,
-                                )
-                            else:
-                                _data = {key: _value}
-                        else:
-                            _data = {key: _value}
-
-                        for sub_key, value in _data.items():
-                            if sections[section_name][sub_key] != value:
-                                logger.warning(
-                                    "Section `%(section)s` has different `%(key)s`: "
-                                    "`%(section_val)s` != `%(shot_val)s`",
-                                    {
-                                        "section": section_name,
-                                        "key": sub_key,
-                                        "section_val": sections[section_name][sub_key],
-                                        "shot_val": value,
-                                    },
-                                )
+            if section_key not in sections:
+                sections[section_key] = {
+                    "section_name": section_name,
+                    "description": description,
+                    "date": section_date,
+                    "explorers": section_explorers,
+                    "surveyors": section_surveyors,
+                    "shots": [],
+                }
 
             with contextlib.suppress(KeyError):
                 if not isinstance(
@@ -105,12 +127,12 @@ def ariane_decode(data: dict) -> dict:
                 ):
                     shot["shape"]["radius_vectors"] = [radius_vectors]
 
-            sections[section_name]["shots"].append(shot)
+            sections[section_key]["shots"].append(shot)
 
-        except KeyError as e:
-            logging.warning(
-                "Incomplete shot data: `%(shot)s` - Error: %(error)s",
-                {"shot": shot, "error": e},
+        except KeyError:
+            logging.exception(
+                "Incomplete shot data: `%(shot)s`",
+                {"shot": shot},
             )
             continue  # if data is incomplete, skip this shot
 

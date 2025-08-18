@@ -1,6 +1,12 @@
+from __future__ import annotations
+
+import contextlib
 import datetime
+import math
 import uuid
+from functools import cached_property
 from pathlib import Path
+from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import NewType
 from typing import Self
@@ -10,22 +16,26 @@ from pydantic import UUID4
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
-from pydantic import NonNegativeFloat
 from pydantic import NonNegativeInt
 from pydantic import StringConstraints
+from pydantic import ValidationInfo
 from pydantic import field_serializer
+from pydantic import field_validator
 from pydantic import model_validator
 from pydantic_extra_types.color import Color
 
 from openspeleo_lib.constants import OSPL_GEOJSON_DIGIT_PRECISION
 from openspeleo_lib.constants import OSPL_SECTIONNAME_MAX_LENGTH
-from openspeleo_lib.constants import OSPL_SECTIONNAME_MIN_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
-from openspeleo_lib.constants import OSPL_SHOTNAME_MIN_LENGTH
 from openspeleo_lib.enums import ArianeProfileType
 from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.enums import LengthUnits
 from openspeleo_lib.generators import UniqueValueGenerator
+from openspeleo_lib.geo_utils import GeoLocation
+from openspeleo_lib.geo_utils import get_declination
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 ShotID = NewType("ShotID", int)
 ShotCompassName = NewType("ShotCompassName", str)
@@ -40,8 +50,8 @@ SectionName = NewType("SectionName", str)
 class ArianeRadiusVector(BaseModel):
     angle: float
     norm: float  # Euclidian Norm aka. length
-    tension_corridor: float
-    tension_profile: float
+    tension_corridor: str | None = None
+    tension_profile: str | None = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -90,15 +100,18 @@ class Shot(BaseModel):
     shot_name: Annotated[
         str,
         StringConstraints(
-            pattern=rf"^[a-zA-Z0-9_\-~:!?.'\(\)\[\]\{{\}}@*&#%|$]{{{OSPL_SHOTNAME_MIN_LENGTH},{OSPL_SHOTNAME_MAX_LENGTH}}}$",
+            max_length=OSPL_SHOTNAME_MAX_LENGTH,
             to_upper=True,
         ),
     ] = None
 
+    # Exluded Fields - Upward keys
+    section: Section | None = Field(default=None, exclude=True)
+
     # Core Attributes
-    length: NonNegativeFloat
+    length: Annotated[float, Field(gte=0)]
     depth: float
-    azimuth: Annotated[float, Field(ge=0, lt=360)]
+    azimuth: float
 
     # Attributes
     closure_to_id: int = -1
@@ -122,20 +135,39 @@ class Shot(BaseModel):
     shot_type: ArianeShotType = ArianeShotType.REAL
 
     # LRUD
-    left: NonNegativeFloat = None
-    right: NonNegativeFloat = None
-    up: NonNegativeFloat = None
-    down: NonNegativeFloat = None
+    left: Annotated[float, Field(gte=0)] | None = None
+    right: Annotated[float, Field(gte=0)] | None = None
+    up: Annotated[float, Field(gte=0)] | None = None
+    down: Annotated[float, Field(gte=0)] | None = None
 
     model_config = ConfigDict(extra="forbid")
 
+    @field_validator("shot_type", mode="before")
+    @classmethod
+    def validate_shot_type(
+        cls, value: ArianeShotType, info: ValidationInfo
+    ) -> ArianeShotType:
+        with contextlib.suppress(KeyError):
+            return ArianeShotType.reverse(value)
+
+        return ArianeShotType.REAL
+
     @model_validator(mode="after")
     def validate_model(self) -> Self:
-        for key, dtype in [("shot_id", ShotID), ("shot_name", ShotCompassName)]:
+        # 1. Validate unique keys
+        for key, dtype in [
+            ("shot_id", ShotID),
+            # ("shot_name", ShotCompassName),
+        ]:
             if getattr(self, key) is None:
                 setattr(self, key, UniqueValueGenerator.get(vartype=dtype))
             else:
                 UniqueValueGenerator.register(vartype=dtype, value=getattr(self, key))
+
+        # 2. Validate `azimuth`
+        if self.shot_type == ArianeShotType.REAL:
+            if not (0 <= self.azimuth <= 360):
+                self.azimuth = self.azimuth % 360
 
         return self
 
@@ -145,13 +177,59 @@ class Shot(BaseModel):
             return None
         return color.original()
 
+    def length_2d(self, origin_depth: float | None) -> float:
+        """
+        Horizontal plan-view length for this shot in the same unit as `length`.
+
+        Preference order for computing horizontal component:
+        - Use `depth` if available: horizontal = sqrt(length^2 - delta_depth^2)
+        - Else, `inclination` if available: horizontal = length * cos(inclination)
+        - Otherwise: raise ValueError
+        """
+
+        if self.depth is not None:
+            if origin_depth is None:
+                raise ValueError("`origin_depth` is missing")
+
+            if (delta_depth := abs(self.depth - origin_depth)) <= self.length:
+                return math.sqrt(self.length**2 - delta_depth**2)
+
+            raise ValueError(
+                f"Shot is shorter than the vertical variation: {self.length=}, "
+                f"{delta_depth=}."
+            )
+
+        if self.inclination is not None:
+            if self.inclination < -90 or self.inclination > 90:
+                raise ValueError(f"Invalid inclination: {self.inclination}")
+
+            return self.length * math.cos(math.radians(self.inclination))
+
+        raise ValueError("Impossible to calculate length projection ...")
+
     def is_geolocation_known(self) -> bool:
         if self.latitude is None or self.longitude is None:
-            return True
+            return False
 
         return abs(self.latitude) > float(f"1e-{OSPL_GEOJSON_DIGIT_PRECISION}") and abs(
             self.longitude
         ) > float(f"1e-{OSPL_GEOJSON_DIGIT_PRECISION}")
+
+    @property
+    def azimuth_true(self) -> float:
+        if (section := self.section) is None:
+            raise ValueError(
+                "Section is not assigned. Impossible to access magnetic declination."
+            )
+
+        return (self.azimuth + section.computed_declination) % 360
+
+    @property
+    def coordinates(self) -> GeoLocation | None:
+        if not self.is_geolocation_known():
+            return None
+
+        return GeoLocation(latitude=self.latitude, longitude=self.longitude)
 
 
 class Section(BaseModel):
@@ -161,13 +239,17 @@ class Section(BaseModel):
     section_name: Annotated[
         str,
         StringConstraints(
-            pattern=rf"^[ a-zA-Z0-9_\-~:,;!?\".'\(\)\[\]\{{\}}@*&#%|$]{{{OSPL_SECTIONNAME_MIN_LENGTH},{OSPL_SECTIONNAME_MAX_LENGTH}}}$",  # noqa: E501
+            max_length=OSPL_SECTIONNAME_MAX_LENGTH,
             # to_upper=True,
         ),
     ]  # Default value not allowed - No `None` value set by default
 
+    # Exluded Fields - Upward keys
+    survey: Survey | None = Field(default=None, exclude=True)
+
     # Attributes
     date: datetime.date = None
+    description: str | None = None
     explorers: str | None = None
     surveyors: str | None = None
 
@@ -182,17 +264,16 @@ class Section(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    @field_serializer("date")
-    def serialize_dt(self, dt: datetime.date | None, _info):
-        if dt is None:
-            return None
-        return dt.strftime("%Y-%m-%d")
-
     @model_validator(mode="after")
     def validate_model(self) -> Self:
+        # 1. Assigning upward reference to the shot => section
+        for shot in self.shots:
+            shot.section = self
+
+        # 2. Key auto-generation
         for key, dtype, allow_generate in [
             ("section_id", SectionID, True),
-            ("section_name", SectionName, False),
+            # ("section_name", SectionName, False),
         ]:
             if getattr(self, key) is None:
                 if allow_generate:
@@ -205,6 +286,29 @@ class Section(BaseModel):
 
         return self
 
+    @field_serializer("date")
+    def serialize_dt(self, dt: datetime.date | None, _info):
+        if dt is None:
+            return None
+        return dt.strftime("%Y-%m-%d")
+
+    @cached_property
+    def computed_declination(self) -> float:
+        if (geo_anchor := self.survey.geo_anchor) is None:
+            raise ValueError(
+                "Impossible to find a known Lat/Long point in this survey."
+            )
+
+        # return -3.0
+
+        return round(
+            get_declination(
+                location=geo_anchor,
+                dt=datetime.datetime(self.date.year, self.date.month, self.date.day),
+            ),
+            2,
+        )
+
 
 class Survey(BaseModel):
     speleodb_id: UUID4 = Field(default_factory=uuid.uuid4)
@@ -212,23 +316,31 @@ class Survey(BaseModel):
     sections: list[Section] = []
 
     unit: LengthUnits = LengthUnits.FEET
-    first_start_absolute_elevation: NonNegativeFloat = 0.0
+    first_start_absolute_elevation: Annotated[float, Field(gte=0)] = 0.0
     use_magnetic_azimuth: bool = True
 
     ariane_viewer_layers: list[ArianeViewerLayer] = []
 
     carto_ellipse: str | None = None
-    carto_line: str | None = None
-    carto_linked_surface: str | None = None
-    carto_overlay: str | None = None
-    carto_page: str | None = None
+    carto_line: dict | None = None
+    carto_linked_surface: dict | None = None
+    carto_overlay: dict | None = None
+    carto_page: dict | None = None
     carto_rectangle: str | None = None
     carto_selection: str | None = None
-    carto_spline: str | None = None
-    constraints: str | None = None
-    list_annotation: str | None = None
+    carto_spline: dict | None = None
+    constraints: dict | None = None
+    list_annotation: dict | None = None
 
-    model_config = ConfigDict(extra="forbid")
+    # model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="after")
+    def validate_model(self) -> Self:
+        # 1. Assigning upward reference to the section => survey
+        for section in self.sections:
+            section.survey = self
+
+        return self
 
     @classmethod
     def from_json(cls, filepath: str | Path) -> Self:
@@ -255,10 +367,28 @@ class Survey(BaseModel):
             )
 
     @property
-    def shots(self) -> list[Shot]:
+    def shots(self) -> Generator[Shot]:
         """Returns a flat list of all shots in the survey."""
-        all_shots = []
         for section in self.sections:
-            all_shots.extend(section.shots)
+            yield from section.shots
 
-        return all_shots
+    @cached_property
+    def geo_anchor(self) -> GeoLocation | None:
+        """Returns the geographic anchor point for the survey.
+        This point is being used to calculate geo magnetic declination.
+        It doesn't really matter, which location is being used as the anchor point.
+        It just has to be the right "geographic area".
+
+        Result: we just return the first `GeoLocation` found.
+        """
+
+        if not self.sections:
+            return None
+
+        # Get the first section's anchor point
+        for shot in self.shots:
+            if (geoloc := shot.coordinates) is not None:
+                return geoloc
+
+        # No shot with "known location found".
+        return None

@@ -7,9 +7,7 @@ from hypothesis import strategies as st
 from pydantic import ValidationError
 
 from openspeleo_lib.constants import OSPL_SECTIONNAME_MAX_LENGTH
-from openspeleo_lib.constants import OSPL_SECTIONNAME_MIN_LENGTH
 from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
-from openspeleo_lib.constants import OSPL_SHOTNAME_MIN_LENGTH
 from openspeleo_lib.enums import ArianeProfileType
 from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.enums import LengthUnits
@@ -154,7 +152,6 @@ def test_invalid_survey():
             section_name=st.text(
                 alphabet=" a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
                 max_size=OSPL_SECTIONNAME_MAX_LENGTH,
-                min_size=OSPL_SECTIONNAME_MIN_LENGTH,
             ),
             date=st.dates(),
             explorers=st.text(),
@@ -166,7 +163,6 @@ def test_invalid_survey():
                     shot_name=st.text(
                         alphabet="a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
                         max_size=OSPL_SHOTNAME_MAX_LENGTH,
-                        min_size=OSPL_SHOTNAME_MIN_LENGTH,
                     ),
                     azimuth=st.floats(min_value=0.0, max_value=360.0, exclude_max=True),
                     closure_to_id=st.integers(),
