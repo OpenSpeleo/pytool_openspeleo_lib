@@ -3,7 +3,7 @@ from pathlib import Path
 
 from deepdiff import DeepDiff
 
-# flake8: noqa: T201 E501
+# flake8: noqa: T201
 
 
 # Function to transform from the first format to the second format
