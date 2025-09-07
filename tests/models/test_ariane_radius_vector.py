@@ -32,10 +32,13 @@ class TestArianeRadiusVector(unittest.TestCase):
         Test creating a valid ArianeRadiusVector instance.
         """
         radius_vector = ArianeRadiusVector(
-            tension_corridor=1.0, tension_profile=2.0, angle=45.0, norm=5.0
+            tension_corridor="A", 
+            tension_profile="B", 
+            angle=45.0, 
+            norm=5.0,
         )
-        assert radius_vector.tension_corridor == 1.0
-        assert radius_vector.tension_profile == 2.0
+        assert radius_vector.tension_corridor == "A"
+        assert radius_vector.tension_profile == "B"
         assert radius_vector.angle == 45.0
         assert radius_vector.norm == 5.0
 
@@ -52,8 +55,8 @@ class TestArianeRadiusVector(unittest.TestCase):
             )
 
     @given(
-        tension_corridor=st.floats(),
-        tension_profile=st.floats(),
+        tension_corridor=st.one_of(st.none(), st.text()),
+        tension_profile=st.one_of(st.none(), st.text()),
         angle=st.floats(),
         norm=st.floats(),
     )

@@ -134,11 +134,11 @@ def test_invalid_survey():
             carto_linked_surface=123,  # Should be a string or None
             carto_overlay=123,  # Should be a string or None
             carto_page=123,  # Should be a string or None
-            carto_rectangle=123,  # Should be a string or None
-            carto_selection=123,  # Should be a string or None
-            carto_spline=123,  # Should be a string or None
-            constraints=123,  # Should be a string or None
-            list_annotation=123,  # Should be a string or None
+            carto_rectangle=123,  # Should be a dict or None
+            carto_selection=123,  # Should be a dict or None
+            carto_spline=123,  # Should be a dict or None
+            constraints=123,  # Should be a dict or None
+            list_annotation=123,  # Should be a dict or None
         )
 
 
@@ -186,8 +186,8 @@ def test_invalid_survey():
                             radius_vectors=st.lists(
                                 st.builds(
                                     ArianeRadiusVector,
-                                    tension_corridor=st.floats(),
-                                    tension_profile=st.floats(),
+                                    tension_corridor=st.one_of(st.none(), st.text()),
+                                    tension_profile=st.one_of(st.none(), st.text()),
                                     angle=st.floats(),
                                     norm=st.floats(),
                                 )
@@ -236,16 +236,16 @@ def test_invalid_survey():
             visible=st.booleans(),
         )
     ),
-    carto_ellipse=st.one_of(st.none(), st.text()),
-    carto_line=st.one_of(st.none(), st.text()),
-    carto_linked_surface=st.one_of(st.none(), st.text()),
-    carto_overlay=st.one_of(st.none(), st.text()),
-    carto_page=st.one_of(st.none(), st.text()),
-    carto_rectangle=st.one_of(st.none(), st.text()),
-    carto_selection=st.one_of(st.none(), st.text()),
-    carto_spline=st.one_of(st.none(), st.text()),
-    constraints=st.one_of(st.none(), st.text()),
-    list_annotation=st.one_of(st.none(), st.text()),
+    carto_ellipse=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
+    carto_line=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
+    carto_linked_surface=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
+    carto_overlay=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
+    carto_page=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
+    carto_rectangle=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
+    carto_selection=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
+    carto_spline=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
+    constraints=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
+    list_annotation=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
 )
 def test_fuzzy_survey(
     speleodb_id,

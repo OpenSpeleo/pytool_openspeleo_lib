@@ -128,8 +128,8 @@ def test_invalid_section():
                     radius_vectors=st.lists(
                         st.builds(
                             ArianeRadiusVector,
-                            tension_corridor=st.floats(),
-                            tension_profile=st.floats(),
+                            tension_corridor=st.one_of(st.none(), st.text()),
+                            tension_profile=st.one_of(st.none(), st.text()),
                             angle=st.floats(),
                             norm=st.floats(),
                         )

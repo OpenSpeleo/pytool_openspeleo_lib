@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections import deque
 from itertools import count
 from typing import TYPE_CHECKING
@@ -68,23 +69,22 @@ def normalize_depth(depth: float, unit: LengthUnits) -> float:
 def propagate_position(
     base_lat: float, base_lon: float, length_m: float, azimuth_deg: float
 ) -> tuple[float, float]:
-    lon2, lat2, _ = GEOD.fwd(
+    longitude, latitude, _ = GEOD.fwd(
         base_lon, base_lat, azimuth_deg, length_m, return_back_azimuth=False
     )
-    return lat2, lon2
+    return latitude, longitude
 
 
 def build_shot_graph(sections: list[Section]) -> dict[int, list[int]]:
-    graph: dict[int, list[int]] = {}
+    graph: dict[int, list[int]] = defaultdict(list)
     for section in sections:
         for shot in section.shots:
             if shot.shot_type == ArianeShotType.CLOSURE:
                 continue
 
             if shot.from_id != -1:
-                graph.setdefault(shot.from_id, []).append(shot.shot_id)
-            else:
-                graph.setdefault(shot.shot_id, [])
+                graph[shot.from_id].append(shot.shot_id)
+
     return graph
 
 
@@ -172,7 +172,7 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
                 unit=survey.unit,
             )
 
-            child_latitude, child_longitude = propagate_position(
+            child_shot.latitude, child_shot.longitude = propagate_position(
                 base_lat=current_shot.latitude,
                 base_lon=current_shot.longitude,
                 length_m=length_m,
@@ -182,13 +182,10 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
             logger.debug(
                 "Propagated ID=%04d: lat=%.7f lon=%.7f from=%04d",
                 child_id,
-                child_latitude,
-                child_longitude,
+                child_shot.latitude,
+                child_shot.longitude,
                 current_id,
             )
-
-            child_shot.latitude = child_latitude
-            child_shot.longitude = child_longitude
 
             queue.append(child_id)
 
@@ -248,26 +245,16 @@ def shot_to_geojson_feature(
 def survey_to_geojson(survey: Survey) -> dict:
     shots_map: dict[int, Shot] = build_shots_map(survey)
 
-    # for shot in shots_map.values():
-    #     print(
-    #         f"[Shot ID: {shot.shot_id:04d}] Section ID: {shot.section.section_id:03d} - Dec: {shot.section.computed_declination}°"
-    #     )
-
     logger.debug("Starting coordinate propagation ...")
     propagate_coordinates(survey, shots_map)
-
-    # # Pre-Compute GPS Coordinates to the right accuracy
-    # for shot in shots_map.values():
-    #     with contextlib.suppress(AttributeError):
-    #         shot.latitude = round(shot.latitude, OSPL_GEOJSON_DIGIT_PRECISION)
-    #     with contextlib.suppress(AttributeError):
-    #         shot.longitude = round(shot.longitude, OSPL_GEOJSON_DIGIT_PRECISION)
 
     features = [
         shot_to_geojson_feature(shot, shots_map, section.section_name, survey.unit)
         for section in survey.sections
         for shot in section.shots
-        if shot.shot_type != ArianeShotType.CLOSURE and not shot.excluded
+        if shot.shot_type in [ArianeShotType.REAL, ArianeShotType.START]
+        # if shot.shot_type != ArianeShotType.CLOSURE
+        if not shot.excluded
     ]
 
     return {

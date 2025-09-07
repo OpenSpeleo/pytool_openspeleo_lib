@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import datetime
+import math
 
-import pyIGRF
+import pyIGRF14 as pyIGRF
 from pydantic import BaseModel
 from pydantic_extra_types.coordinate import Latitude  # noqa: TC002
 from pydantic_extra_types.coordinate import Longitude  # noqa: TC002
@@ -47,7 +48,7 @@ def get_declination(location: GeoLocation, dt: datetime.datetime) -> float:
         alt=0.0,
         year=decimal_year(dt),
     )
-    return declination
+    return round(declination, 2)
 
 
 if __name__ == "__main__":

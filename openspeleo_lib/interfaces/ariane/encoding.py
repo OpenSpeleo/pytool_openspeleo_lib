@@ -36,7 +36,7 @@ def ariane_encode(data: dict) -> dict:
             # ~~~~~~~~~~~~~~~~ Processing Explorers/Surveyors ~~~~~~~~~~~~~~~ #
             _explo_data = {}
             for key in ["explorers", "surveyors"]:
-                if (_value := section[key]) is not None:
+                if (_value := section[key]) is not None and _value != "":
                     _explo_data[key] = _value
 
             # In case only "explorer" data exists - Ariane doesn't store in format XML
