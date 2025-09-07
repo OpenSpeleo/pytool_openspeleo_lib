@@ -12,7 +12,10 @@ def test_valid_shape():
     Test creating a valid ArianeShape instance.
     """
     radius_vector = ArianeRadiusVector(
-        tension_corridor=1.0, tension_profile=2.0, angle=45.0, norm=5.0
+        tension_corridor="A", 
+        tension_profile="B", 
+        angle=45.0, 
+        norm=5.0,
     )
     shape = ArianeShape(
         radius_vectors=[radius_vector],
@@ -46,8 +49,8 @@ def test_invalid_shape():
     radius_vectors=st.lists(
         st.builds(
             ArianeRadiusVector,
-            tension_corridor=st.floats(),
-            tension_profile=st.floats(),
+            tension_corridor=st.one_of(st.none(), st.text()),
+            tension_profile=st.one_of(st.none(), st.text()),
             angle=st.floats(),
             norm=st.floats(),
         )

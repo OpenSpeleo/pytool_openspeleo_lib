@@ -16,7 +16,7 @@ from openspeleo_lib.interfaces.ariane.name_map import ARIANE_INVERSE_MAPPING
 from openspeleo_lib.interfaces.ariane.xml_utils import deserialize_xmlfield_to_dict
 
 logger = logging.getLogger(__name__)
-DEBUG = True
+DEBUG = False
 
 
 @lru_cache(maxsize=128)

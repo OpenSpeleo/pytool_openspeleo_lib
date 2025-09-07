@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import NewType
 from typing import Self
+import annotated_types
 
 import orjson
 from pydantic import UUID4
@@ -42,6 +43,11 @@ ShotCompassName = NewType("ShotCompassName", str)
 
 SectionID = NewType("SectionID", int)
 SectionName = NewType("SectionName", str)
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Types ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+NonNegativeFloat = Annotated[float, annotated_types.Ge(0)]
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ ARIANE SPECIFIC MODELS ~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -109,7 +115,7 @@ class Shot(BaseModel):
     section: Section | None = Field(default=None, exclude=True)
 
     # Core Attributes
-    length: Annotated[float, Field(gte=0)]
+    length: NonNegativeFloat
     depth: float
     azimuth: float
 
@@ -135,22 +141,30 @@ class Shot(BaseModel):
     shot_type: ArianeShotType = ArianeShotType.REAL
 
     # LRUD
-    left: Annotated[float, Field(gte=0)] | None = None
-    right: Annotated[float, Field(gte=0)] | None = None
-    up: Annotated[float, Field(gte=0)] | None = None
-    down: Annotated[float, Field(gte=0)] | None = None
+    left: NonNegativeFloat | None = None
+    right: NonNegativeFloat | None = None
+    up: NonNegativeFloat | None = None
+    down: NonNegativeFloat | None = None
 
     model_config = ConfigDict(extra="forbid")
 
     @field_validator("shot_type", mode="before")
     @classmethod
     def validate_shot_type(
-        cls, value: ArianeShotType, info: ValidationInfo
+        cls, value: ArianeShotType | str, info: ValidationInfo
     ) -> ArianeShotType:
-        with contextlib.suppress(KeyError):
-            return ArianeShotType.reverse(value)
+        match value:
+            case ArianeShotType():
+                return value
 
-        return ArianeShotType.REAL
+            case str():
+                with contextlib.suppress(KeyError):
+                    return ArianeShotType.reverse(value)
+
+                return ArianeShotType.REAL
+
+            case _:
+                raise ValueError(f"Unexpected type received: {type(value)}")
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
@@ -299,14 +313,9 @@ class Section(BaseModel):
                 "Impossible to find a known Lat/Long point in this survey."
             )
 
-        # return -3.0
-
-        return round(
-            get_declination(
-                location=geo_anchor,
-                dt=datetime.datetime(self.date.year, self.date.month, self.date.day),
-            ),
-            2,
+        return get_declination(
+            location=geo_anchor,
+            dt=datetime.datetime(self.date.year, self.date.month, self.date.day),
         )
 
 
@@ -316,18 +325,18 @@ class Survey(BaseModel):
     sections: list[Section] = []
 
     unit: LengthUnits = LengthUnits.FEET
-    first_start_absolute_elevation: Annotated[float, Field(gte=0)] = 0.0
+    first_start_absolute_elevation: NonNegativeFloat = 0.0
     use_magnetic_azimuth: bool = True
 
     ariane_viewer_layers: list[ArianeViewerLayer] = []
 
-    carto_ellipse: str | None = None
+    carto_ellipse: dict | None = None
     carto_line: dict | None = None
     carto_linked_surface: dict | None = None
     carto_overlay: dict | None = None
     carto_page: dict | None = None
-    carto_rectangle: str | None = None
-    carto_selection: str | None = None
+    carto_rectangle: dict | None = None
+    carto_selection: dict | None = None
     carto_spline: dict | None = None
     constraints: dict | None = None
     list_annotation: dict | None = None
