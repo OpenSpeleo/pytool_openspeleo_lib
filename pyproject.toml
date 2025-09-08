@@ -75,7 +75,7 @@ test = [
   "pytest-runner>=6.0.0,<7.0.0",
   "pytest-ordering>=0.6,<1.0.0",
   "parameterized>=0.9.0,<0.10",
-  "xmltodict>=0.13,<0.15",
+  "xmltodict>=0.13,<0.16",
 ]
 
 [project.urls]
