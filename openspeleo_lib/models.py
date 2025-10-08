@@ -38,10 +38,10 @@ if TYPE_CHECKING:
     import sys
     from collections.abc import Generator
 
-    if sys.version_info >= (3, 11):  # noqa: UP036
+    if sys.version_info >= (3, 11):
         from typing import Self
     else:
-        from typing_extensions import Self  # noqa: UP035
+        from typing_extensions import Self
 
 ShotID = NewType("ShotID", int)
 ShotCompassName = NewType("ShotCompassName", str)
