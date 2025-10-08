@@ -1,8 +1,10 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-import importlib.metadata
+"""
+"A library to read/write and convert OpenSpeleo files"
+"""
 
-__version__ = importlib.metadata.version("openspeleo_lib")
+__version__ = "0.0.6"
 
 # Initialize the logger
 from openspeleo_lib import logger  # noqa: F401

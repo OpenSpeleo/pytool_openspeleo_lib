@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # Length for the shot field `name` used by compass
 OSPL_SHOTNAME_MAX_LENGTH = 20
 OSPL_SHOTNAME_DEFAULT_LENGTH = 6

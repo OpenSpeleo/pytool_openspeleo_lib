@@ -10,8 +10,6 @@ clean-build: ## remove build artifacts
 	rm -fr build/
 	rm -fr dist/
 	rm -fr .eggs/
-	find . -name '*.egg-info' -exec rm -fr {} +
-	find . -name '*.egg' -exec rm -f {} +
 
 clean-pyc: ## remove Python file artifacts
 	find . -name '*.pyc' -exec rm -f {} +
@@ -42,7 +40,7 @@ format:
 # ============================================================================ #
 
 test: ## run tests quickly with the default Python
-	pytest
+	pytest -n 24
 
 test-all: ## run tests on every Python version with tox
 	tox
@@ -57,18 +55,12 @@ coverage: ## check code coverage quickly with the default Python
 # BUILD COMMANDS
 # ============================================================================ #
 
-build: clean ## builds source and wheel package
-	pip install --upgrade wheel
-	python3 -m build --wheel
-	ls -l dist
-
-publish: build
-	pip install --upgrade twine
-	twine upload --config-file=.pypirc dist/*.whl
+build: clean
+	flit build --format wheel
 
 # ============================================================================ #
 # INSTALL COMMANDS
 # ============================================================================ #
 
-install: clean ## install the package to the active Python's site-packages
-	pip install -e ".[dev,test]"
+install: clean
+	uv sync --all-extras --dev

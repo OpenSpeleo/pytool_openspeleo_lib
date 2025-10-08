@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import hashlib
 import zipfile
 from collections import namedtuple
 from itertools import product
 from itertools import starmap
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def named_product(**items):

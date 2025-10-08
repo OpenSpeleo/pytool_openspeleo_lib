@@ -1,16 +1,4 @@
-# class TestRadiusModels(unittest.TestCase):
-#     def test_radius_collection_from_radius_vector(self):
-#         data = {
-#             "tension_corridor": 1.0,
-#             "tension_profile": 1.0,
-#             "angle": 1.0,
-#             "norm": 1.0,
-#         }
-#         assert ArianeRadiusVector(**data).model_dump() == data
-
-
-# if __name__ == "__main__":
-#     unittest.main()
+from __future__ import annotations
 
 import unittest
 
@@ -32,9 +20,9 @@ class TestArianeRadiusVector(unittest.TestCase):
         Test creating a valid ArianeRadiusVector instance.
         """
         radius_vector = ArianeRadiusVector(
-            tension_corridor="A", 
-            tension_profile="B", 
-            angle=45.0, 
+            tension_corridor="A",
+            tension_profile="B",
+            angle=45.0,
             norm=5.0,
         )
         assert radius_vector.tension_corridor == "A"

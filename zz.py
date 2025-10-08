@@ -1,21 +1,19 @@
 #!/usr/bin/env python
 
-# ruff: noqa: T201
 
-import xmltodict
-import time
+import json
+import re
+import tempfile
+import zipfile
 from pathlib import Path
 
-import re
-import orjson, json, tempfile, zipfile
+import xmltodict
 from deepdiff import DeepDiff
 
-from openspeleo_lib.geojson import survey_to_geojson
 from openspeleo_lib.interfaces import ArianeInterface
 from openspeleo_lib.models import Survey
 
 if __name__ == "__main__":
-
     file = Path("tests/artifacts/test_simple.tml")
 
     survey: Survey = ArianeInterface.from_file(file)
@@ -43,9 +41,9 @@ if __name__ == "__main__":
             ignore_order=True,
             exclude_regex_paths=[
                 re.escape("root['CaveFile']['speleodb_id']"),
-                re.escape(
-                    "root['CaveFile']['Data']['SurveyData'][*]['Name']"
-                ).replace(r"\*", r"\d+"),
+                re.escape("root['CaveFile']['Data']['SurveyData'][*]['Name']").replace(
+                    r"\*", r"\d+"
+                ),
             ],
         )
         assert ddiff == {}, ddiff

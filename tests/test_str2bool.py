@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import unittest
 
 from openspeleo_lib.utils import str2bool

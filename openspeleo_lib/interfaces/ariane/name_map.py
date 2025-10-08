@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from bidict import frozenbidict
 
 _ARIANE_MAPPING = frozenbidict(

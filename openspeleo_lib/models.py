@@ -9,9 +9,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import NewType
-from typing import Self
-import annotated_types
 
+import annotated_types
 import orjson
 from pydantic import UUID4
 from pydantic import BaseModel
@@ -36,7 +35,13 @@ from openspeleo_lib.geo_utils import GeoLocation
 from openspeleo_lib.geo_utils import get_declination
 
 if TYPE_CHECKING:
+    import sys
     from collections.abc import Generator
+
+    if sys.version_info >= (3, 11):  # noqa: UP036
+        from typing import Self
+    else:
+        from typing_extensions import Self  # noqa: UP035
 
 ShotID = NewType("ShotID", int)
 ShotCompassName = NewType("ShotCompassName", str)

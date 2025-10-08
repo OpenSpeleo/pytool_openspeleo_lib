@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import datetime
+import sys
 
 import pytest
 from hypothesis import given
@@ -46,7 +49,9 @@ def test_valid_section():
     section = Section(
         section_id=1,
         section_name="Test Section",
-        date=datetime.datetime.now(tz=datetime.UTC).date(),
+        date=datetime.datetime.now(
+            tz=datetime.UTC if sys.version_info >= (3, 11) else datetime.timezone.utc  # noqa: UP017
+        ).date(),
         explorers="Explorer1, Explorer2",
         surveyors="Surveyor1, Surveyor2",
         shots=[shot],
@@ -58,7 +63,12 @@ def test_valid_section():
     )
     assert section.section_id == 1
     assert section.section_name == "Test Section"
-    assert section.date == datetime.datetime.now(tz=datetime.UTC).date()
+    assert (
+        section.date
+        == datetime.datetime.now(
+            tz=datetime.UTC if sys.version_info >= (3, 11) else datetime.timezone.utc  # noqa: UP017
+        ).date()
+    )
     assert section.explorers == "Explorer1, Explorer2"
     assert section.surveyors == "Surveyor1, Surveyor2"
     assert section.shots == [shot]

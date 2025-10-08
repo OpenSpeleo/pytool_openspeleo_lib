@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import unittest
 
 import pytest
@@ -29,7 +31,7 @@ class TestUniqueNameGenerator(unittest.TestCase):
             assert name in UniqueValueGenerator._used_values[str]  # noqa: SLF001
 
             with pytest.raises(
-                DuplicateValueError, match="has already been registered."
+                DuplicateValueError, match="has already been registered"
             ):
                 UniqueValueGenerator.register(vartype=str, value=name)
 
@@ -90,7 +92,7 @@ class TestUniqueIDGenerator(unittest.TestCase):
 
             with pytest.raises(
                 DuplicateValueError,
-                match="has already been registered.",
+                match="has already been registered",
             ):
                 UniqueValueGenerator.register(vartype=int, value=id_val)
 

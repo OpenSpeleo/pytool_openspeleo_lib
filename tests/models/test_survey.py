@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import datetime
+import sys
 import uuid
 
 import pytest
@@ -68,7 +71,9 @@ def test_valid_survey():
     section = Section(
         section_id=1,
         section_name="Test Section",
-        date=datetime.datetime.now(tz=datetime.UTC).date(),
+        date=datetime.datetime.now(
+            tz=datetime.UTC if sys.version_info >= (3, 11) else datetime.timezone.utc  # noqa: UP017
+        ).date(),
         explorers="Explorer1, Explorer2",
         surveyors="Surveyor1, Surveyor2",
         shots=[shot],
@@ -236,16 +241,46 @@ def test_invalid_survey():
             visible=st.booleans(),
         )
     ),
-    carto_ellipse=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
-    carto_line=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
-    carto_linked_surface=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
-    carto_overlay=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
-    carto_page=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
-    carto_rectangle=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
-    carto_selection=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
-    carto_spline=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
-    constraints=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
-    list_annotation=st.one_of(st.none(), st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text()))),
+    carto_ellipse=st.one_of(
+        st.none(),
+        st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text())),
+    ),
+    carto_line=st.one_of(
+        st.none(),
+        st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text())),
+    ),
+    carto_linked_surface=st.one_of(
+        st.none(),
+        st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text())),
+    ),
+    carto_overlay=st.one_of(
+        st.none(),
+        st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text())),
+    ),
+    carto_page=st.one_of(
+        st.none(),
+        st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text())),
+    ),
+    carto_rectangle=st.one_of(
+        st.none(),
+        st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text())),
+    ),
+    carto_selection=st.one_of(
+        st.none(),
+        st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text())),
+    ),
+    carto_spline=st.one_of(
+        st.none(),
+        st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text())),
+    ),
+    constraints=st.one_of(
+        st.none(),
+        st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text())),
+    ),
+    list_annotation=st.one_of(
+        st.none(),
+        st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text())),
+    ),
 )
 def test_fuzzy_survey(
     speleodb_id,

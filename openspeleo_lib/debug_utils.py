@@ -1,6 +1,11 @@
-from pathlib import Path
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import orjson
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def write_debugdata_to_disk(data: dict, filepath: Path) -> None:

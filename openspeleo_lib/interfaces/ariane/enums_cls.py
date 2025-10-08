@@ -1,8 +1,16 @@
-#!/usr/bin/env python
+from __future__ import annotations
 
 from enum import IntEnum
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import sys
+
+    if sys.version_info >= (3, 11):  # noqa: UP036
+        from typing import Self
+    else:
+        from typing_extensions import Self  # noqa: UP035
 
 
 class BaseEnum(IntEnum):

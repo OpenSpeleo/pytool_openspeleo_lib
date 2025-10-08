@@ -33,7 +33,7 @@ def get_section_key(
     return hash(f"{name}∎{description}∎{date}∎{explorers}∎{surveyors}")
 
 
-def ariane_decode(data: dict) -> dict:
+def ariane_decode(data: dict) -> dict:  # noqa: PLR0915
     # ===================== DICT FORMATTING TO OSPL ===================== #
 
     # 1. Apply key mapping: From Ariane to OSPL
