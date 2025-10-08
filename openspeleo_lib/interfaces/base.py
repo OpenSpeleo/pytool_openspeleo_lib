@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 from abc import ABCMeta
 from abc import abstractmethod
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from openspeleo_lib.generators import UniqueValueGenerator
-from openspeleo_lib.models import Survey
+
+if TYPE_CHECKING:
+    from openspeleo_lib.models import Survey
 
 
 class BaseInterface(metaclass=ABCMeta):

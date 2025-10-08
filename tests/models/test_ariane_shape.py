@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
@@ -12,9 +14,9 @@ def test_valid_shape():
     Test creating a valid ArianeShape instance.
     """
     radius_vector = ArianeRadiusVector(
-        tension_corridor="A", 
-        tension_profile="B", 
-        angle=45.0, 
+        tension_corridor="A",
+        tension_profile="B",
+        angle=45.0,
         norm=5.0,
     )
     shape = ArianeShape(

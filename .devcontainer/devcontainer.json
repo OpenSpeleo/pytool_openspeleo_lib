@@ -13,11 +13,11 @@
             "settings": {
                 "editor.formatOnSave": true,
                 "[python]": {
+                    "defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
                     "analysis.autoImportCompletions": true,
                     // https://github.com/microsoft/pylance-release/wiki/Pylance-Configuration-Tips
                     "analysis.languageServerMode": "light",
                     "analysis.typeCheckingMode": "basic",
-                    "defaultInterpreterPath": "/usr/local/bin/python",
                     "editor.codeActionsOnSave": {
                         "source.organizeImports": "always"
                     },
@@ -48,9 +48,10 @@
             ]
         }
     },
+    "postCreateCommand": "uv sync",
     "features": {
         "ghcr.io/devcontainers/features/common-utils:2": {
-            "username": "project",
+            "username": "openspeleo-lib",
             "installZsh": true,
             "installOhMyZsh": true,
             "configureZshAsDefaultShell": false,

@@ -1,8 +1,6 @@
-#!/usr/bin/env python3
 from __future__ import annotations
 
 import datetime
-import math
 
 import pyIGRF14 as pyIGRF
 from pydantic import BaseModel
