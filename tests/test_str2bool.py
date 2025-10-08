@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import unittest
 
+import pytest
+
 from openspeleo_lib.utils import str2bool
 
 
@@ -59,12 +61,8 @@ class TestStr2Bool(unittest.TestCase):
     def test_invalid_values(self):
         invalid_values = ["maybe", "2", "", "random", None]
         for val in invalid_values:
-            try:
+            with pytest.raises(ValueError):  # noqa: PT011
                 str2bool(val)
-            except ValueError:
-                pass
-            else:
-                raise AssertionError(f"{val} should have raised a ValueError.")
 
     def test_non_string_and_non_int(self):
         try:

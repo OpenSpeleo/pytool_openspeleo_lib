@@ -72,7 +72,7 @@ def test_valid_survey():
         section_id=1,
         section_name="Test Section",
         date=datetime.datetime.now(
-            tz=datetime.UTC if sys.version_info >= (3, 11) else datetime.timezone.utc  # noqa: UP017
+            tz=datetime.UTC if sys.version_info >= (3, 11) else datetime.timezone.utc
         ).date(),
         explorers="Explorer1, Explorer2",
         surveyors="Surveyor1, Surveyor2",

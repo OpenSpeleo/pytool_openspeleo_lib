@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import sys
 
-    if sys.version_info >= (3, 11):  # noqa: UP036
+    if sys.version_info >= (3, 11):
         from typing import Self
     else:
-        from typing_extensions import Self  # noqa: UP035
+        from typing_extensions import Self
 
 
 class BaseEnum(IntEnum):
