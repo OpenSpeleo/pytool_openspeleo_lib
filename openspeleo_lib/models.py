@@ -119,6 +119,9 @@ class Shot(BaseModel):
     # Exluded Fields - Upward keys
     section: Section | None = Field(default=None, exclude=True)
 
+    # Ariane shot type (before core fields)
+    shot_type: ArianeShotType = ArianeShotType.REAL
+
     # Core Attributes
     length: NonNegativeFloat
     depth: float
@@ -143,7 +146,6 @@ class Shot(BaseModel):
     # Ariane Specific
     shape: ArianeShape | None = None
     profiletype: ArianeProfileType = ArianeProfileType.VERTICAL
-    shot_type: ArianeShotType = ArianeShotType.REAL
 
     # LRUD
     left: NonNegativeFloat | None = None
@@ -153,9 +155,32 @@ class Shot(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    @field_validator("length", "left", "right", "up", "down", mode="before")
+    @classmethod
+    def _ensure_non_negative(
+        cls, value: float | str | None, info: ValidationInfo
+    ) -> float | str | None:
+        shot_type = info.data.get("shot_type")
+        if shot_type == ArianeShotType.REAL:
+            # Skip coercion for REAL; let type constraints handle
+            return value
+
+        match value:
+            case float():
+                return value if value >= 0 else 0.0
+            case str():
+                with contextlib.suppress(ValueError, TypeError):
+                    val = float(value)
+                    return val if val >= 0 else 0.0
+                return value
+            case None:
+                return None
+            case _:
+                return value
+
     @field_validator("shot_type", mode="before")
     @classmethod
-    def validate_shot_type(
+    def _validate_shot_type(
         cls, value: ArianeShotType | str, info: ValidationInfo
     ) -> ArianeShotType:
         match value:
