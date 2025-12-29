@@ -50,7 +50,7 @@ def generate_large_xml(filename, depth, breadth) -> str:
 
 def validate_xml(filename):
     try:
-        tree = ET.parse(filename)  # noqa: S314
+        tree = ET.parse(filename)  # noqa: S314 # nosec
         _ = tree.getroot()
         print(f"Validated XML file: {filename}")  # noqa: T201
         return True  # noqa: TRY300
