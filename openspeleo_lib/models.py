@@ -72,7 +72,7 @@ class ArianeShape(BaseModel):
     has_profile_tilt: bool
     profile_azimuth: Annotated[float, Field(ge=0, lt=360)]
     profile_tilt: float
-    radius_vectors: list[ArianeRadiusVector] = []
+    radius_vectors: Annotated[list[ArianeRadiusVector], Field(default_factory=list)]
 
     model_config = ConfigDict(extra="forbid")
 
@@ -106,7 +106,7 @@ class ArianeViewerLayer(BaseModel):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ COMMON MODELS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 class Shot(BaseModel):
     # Primary Keys
-    shot_id: NonNegativeInt = None
+    shot_id: NonNegativeInt | None = None
 
     shot_name: Annotated[
         str,
@@ -117,7 +117,7 @@ class Shot(BaseModel):
     ] = None
 
     # Exluded Fields - Upward keys
-    section: Section | None = Field(default=None, exclude=True)
+    section: Annotated[Section | None, Field(default=None, exclude=True)]
 
     # Ariane shot type (before core fields)
     shot_type: ArianeShotType = ArianeShotType.REAL
@@ -134,8 +134,8 @@ class Shot(BaseModel):
     depth_in: float = None
     inclination: float = None
 
-    latitude: Annotated[float, Field(ge=-90, le=90)] = None
-    longitude: Annotated[float, Field(ge=-180, le=180)] = None
+    latitude: Annotated[float | None, Field(ge=-90, le=90)] = None
+    longitude: Annotated[float | None, Field(ge=-180, le=180)] = None
 
     color: Color = Color("#FFB366")  # An orange color easily visible
     shot_comment: str | None = None
@@ -278,7 +278,7 @@ class Shot(BaseModel):
 
 class Section(BaseModel):
     # Primary Keys
-    section_id: NonNegativeInt = None
+    section_id: NonNegativeInt | None = None
 
     section_name: Annotated[
         str,
@@ -289,21 +289,21 @@ class Section(BaseModel):
     ]  # Default value not allowed - No `None` value set by default
 
     # Exluded Fields - Upward keys
-    survey: Survey | None = Field(default=None, exclude=True)
+    survey: Annotated[Survey | None, Field(default=None, exclude=True)]
 
     # Attributes
-    date: datetime.date = None
+    date: datetime.date | None = None
     description: str | None = None
     explorers: str | None = None
     surveyors: str | None = None
 
-    shots: list[Shot] = []
+    shots: Annotated[list[Shot], Field(default_factory=list)]
 
     # Compass Specific
     section_comment: str = ""
     compass_format: str = "DDDDUDLRLADN"
-    correction: list[float] = []
-    correction2: list[float] = []
+    correction: Annotated[list[float], Field(default_factory=list)]
+    correction2: Annotated[list[float], Field(default_factory=list)]
     declination: float = 0.0
 
     model_config = ConfigDict(extra="forbid")
@@ -350,15 +350,18 @@ class Section(BaseModel):
 
 
 class Survey(BaseModel):
-    speleodb_id: UUID4 = Field(default_factory=uuid.uuid4)
+    speleodb_id: Annotated[UUID4, Field(default_factory=uuid.uuid4)]
     cave_name: str
-    sections: list[Section] = []
+    sections: Annotated[list[Section], Field(default_factory=list)]
 
     unit: LengthUnits = LengthUnits.FEET
     first_start_absolute_elevation: NonNegativeFloat = 0.0
     use_magnetic_azimuth: bool = True
 
-    ariane_viewer_layers: list[ArianeViewerLayer] = []
+    ariane_viewer_layers: Annotated[
+        list[ArianeViewerLayer],
+        Field(default_factory=list),
+    ]
 
     carto_ellipse: dict | None = None
     carto_line: dict | None = None
