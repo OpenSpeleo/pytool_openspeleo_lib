@@ -69,7 +69,7 @@ def test_valid_survey():
         down=0.0,
     )
     section = Section(
-        section_id=1,
+        id=uuid.uuid4(),
         section_name="Test Section",
         date=datetime.datetime.now(
             tz=datetime.UTC if sys.version_info >= (3, 11) else datetime.timezone.utc
@@ -153,7 +153,7 @@ def test_invalid_survey():
     sections=st.lists(
         st.builds(
             Section,
-            section_id=st.integers(min_value=0),
+            id=st.uuids(version=4),
             section_name=st.text(
                 alphabet=" a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
                 max_size=OSPL_SECTIONNAME_MAX_LENGTH,

@@ -79,6 +79,7 @@ def ariane_decode(data: dict) -> dict:  # noqa: PLR0915
         # 3.2 Separate shots into sections
         try:
             section_name = shot.pop("section_name", "")
+
             description = ""
             if "SectionDescription" in section_name:
                 _data = deserialize_xmlfield_to_dict(section_name)
@@ -86,10 +87,18 @@ def ariane_decode(data: dict) -> dict:  # noqa: PLR0915
                 description = _data.get("SectionDescription", "")
 
             section_date = shot.pop("date", "")
+
             section_explorers = ""
             section_surveyors = ""
 
-            if ariane_explorer_field := shot.pop("explorers", ""):
+            # ==================== Explorers / Surveyors ==================== #
+            # Ariane Version >= 26
+            if any(key in shot for key in ["explorers", "surveyors"]):
+                section_explorers = shot.pop("explorers", "")
+                section_surveyors = shot.pop("surveyors", "")
+
+            # Ariane Version < 26
+            elif ariane_explorer_field := shot.pop("Explorer", ""):
                 try:
                     _data = deserialize_xmlfield_to_dict(ariane_explorer_field)
                     if isinstance(_data, str):
@@ -98,6 +107,7 @@ def ariane_decode(data: dict) -> dict:  # noqa: PLR0915
                         _data = apply_key_mapping(_data, mapping=ARIANE_INVERSE_MAPPING)
                         section_explorers = _data.get("explorers", "")
                         section_surveyors = _data.get("surveyors", "")
+
                 except ExpatError:
                     # Deserialization failed, fallback to raw string
                     section_explorers = ariane_explorer_field
