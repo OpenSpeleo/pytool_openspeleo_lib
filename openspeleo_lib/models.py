@@ -360,6 +360,7 @@ class Survey(BaseModel):
     carto_spline: dict | None = None
     constraints: dict | None = None
     list_annotation: dict | None = None
+    list_lidar_records: dict | None = None
 
     # model_config = ConfigDict(extra="forbid")
 

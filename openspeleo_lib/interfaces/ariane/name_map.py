@@ -85,6 +85,7 @@ _ARIANE_MAPPING = frozenbidict(
         "carto_spline": "CartoSpline",
         "constraints": "Constraints",
         "list_annotation": "ListAnnotation",
+        "list_lidar_records": "ListLidarRecords",
         # ====================== Non-Model Attributes ====================== #
         "data": "Data",
     }

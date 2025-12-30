@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 from pathlib import Path
+
+from openspeleo_core.legacy import serialize_dict_to_xmlfield
 
 # from openspeleo_core.legacy import apply_key_mapping
 from openspeleo_core.mapping import apply_key_mapping
@@ -32,9 +35,25 @@ def ariane_encode(data: dict) -> dict:
             shot["section_name"] = f"{section['section_name']}{desc_xml}"
             shot["date"] = section["date"]
 
-            # # ~~~~~~~~~~~~~~~~ Processing Explorers/Surveyors ~~~~~~~~~~~~~~~ #
+            # ~~~~~~~~~~~~~~~~ Processing Explorers/Surveyors ~~~~~~~~~~~~~~~ #
             shot["explorers"] = section["explorers"]
             shot["surveyors"] = section["surveyors"]
+
+            # ----------------- Legacy backport: Ariane < 26 ---------------- #
+            _explo_data = {}
+            for dest_key, orig_key in [
+                ("Explorer", "explorers"),
+                ("Surveyor", "surveyors"),
+            ]:
+                if _value := section.get(orig_key, ""):
+                    _explo_data[dest_key] = _value
+
+            # In case only "explorer" data exists - Ariane doesn't store in format XML
+            if len(_explo_data) == 1:
+                with contextlib.suppress(KeyError):
+                    _explo_data = _explo_data["explorers"]
+
+            shot["Explorer"] = serialize_dict_to_xmlfield(_explo_data)
             # # --------------------------------------------------------------- #
 
             radius_vectors = shot["shape"].pop("radius_vectors")
