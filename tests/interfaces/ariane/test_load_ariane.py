@@ -30,6 +30,7 @@ DEBUG = False
         # ("tests/artifacts/test_simple.tmlu",),
         ("tests/artifacts/test_with_walls.tml",),
         ("tests/artifacts/test_large.tml",),
+        ("tests/artifacts/test_ariane_v26.tml",),
     ],
 )
 class TestLoadTMLFile(unittest.TestCase):
@@ -58,6 +59,7 @@ class TestLoadTMLUFile(unittest.TestCase):
         # ("tests/artifacts/test_simple.tmlu",),
         ("tests/artifacts/test_with_walls.tml",),
         ("tests/artifacts/test_large.tml",),
+        ("tests/artifacts/test_ariane_v26.tml",),
     ],
 )
 class TestTMLRoundTrip(unittest.TestCase):
@@ -95,6 +97,8 @@ class TestTMLRoundTrip(unittest.TestCase):
                 exclude_regex_paths=[
                     # Ignore the survey `speleodb_id` field
                     re.escape("root['CaveFile']['speleodb_id']"),
+                    # Ignore the survey `ListLidarRecords` field
+                    re.escape("root['CaveFile']['ListLidarRecords']"),
                     # Ignore the shot `Name` field
                     re.escape(
                         "root['CaveFile']['Data']['SurveyData'][*]['Name']"
@@ -102,6 +106,10 @@ class TestTMLRoundTrip(unittest.TestCase):
                     # Ignore the shot `UUID` field
                     re.escape(
                         "root['CaveFile']['Data']['SurveyData'][*]['UUID']"
+                    ).replace(r"\*", r"\d+"),
+                    # Ignore the shot `Color` field - replaced `0x` by `#` in Ariane v26
+                    re.escape(
+                        "root['CaveFile']['Data']['SurveyData'][*]['Color']"
                     ).replace(r"\*", r"\d+"),
                     # Ignore the shot `Explorers/Surveyors` fields
                     re.escape("root['CaveFile']['Data']['SurveyData'][*]['").replace(
@@ -113,30 +121,30 @@ class TestTMLRoundTrip(unittest.TestCase):
             )
             assert ddiff == {}, ddiff
 
-            # # Verifying the JSON Data is the same
-            # original_data = survey.model_dump(mode="json")
+            # Verifying the JSON Data is the same
+            original_data = survey.model_dump(mode="json")
 
-            # if DEBUG:
-            #     with (file.parent / "round_trip_json.source.json").open("w") as f:
-            #         f.write(json.dumps(original_data, indent=2, sort_keys=True))
+            if DEBUG:
+                with (file.parent / "round_trip_json.source.json").open("w") as f:
+                    f.write(json.dumps(original_data, indent=2, sort_keys=True))
 
-            # round_trip_survey = ArianeInterface.from_file(target_f)
+            round_trip_survey = ArianeInterface.from_file(target_f)
 
-            # round_trip_data = round_trip_survey.model_dump(mode="json")
+            round_trip_data = round_trip_survey.model_dump(mode="json")
 
-            # if DEBUG:
-            #     with (file.parent / "round_trip_json.dest.json").open("w") as f:
-            #         f.write(json.dumps(round_trip_data, indent=2, sort_keys=True))
+            if DEBUG:
+                with (file.parent / "round_trip_json.dest.json").open("w") as f:
+                    f.write(json.dumps(round_trip_data, indent=2, sort_keys=True))
 
-            # ddiff = DeepDiff(
-            #     original_data,
-            #     round_trip_data,
-            #     ignore_order=True,
-            #     exclude_regex_paths=[
-            #         re.escape("root['sections'][*]['id']").replace(r"\*", r"\d+"),
-            #     ],
-            # )
-            # assert ddiff == {}, ddiff
+            ddiff = DeepDiff(
+                original_data,
+                round_trip_data,
+                ignore_order=True,
+                exclude_regex_paths=[
+                    re.escape("root['sections'][*]['id']").replace(r"\*", r"\d+"),
+                ],
+            )
+            assert ddiff == {}, ddiff
 
 
 if __name__ == "__main__":

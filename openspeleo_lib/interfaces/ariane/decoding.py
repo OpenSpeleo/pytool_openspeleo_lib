@@ -97,6 +97,9 @@ def ariane_decode(data: dict) -> dict:  # noqa: PLR0915
                 section_explorers = shot.pop("explorers", "")
                 section_surveyors = shot.pop("surveyors", "")
 
+                with contextlib.suppress(KeyError):
+                    del shot["Explorer"]
+
             # Ariane Version < 26
             elif ariane_explorer_field := shot.pop("Explorer", ""):
                 try:
