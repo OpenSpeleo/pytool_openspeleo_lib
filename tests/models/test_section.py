@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import sys
+import uuid
 
 import pytest
 from hypothesis import given
@@ -47,13 +48,13 @@ def test_valid_section():
         down=0.0,
     )
     section = Section(
-        section_id=1,
+        id=uuid.uuid4(),
         section_name="Test Section",
         date=datetime.datetime.now(
             tz=datetime.UTC if sys.version_info >= (3, 11) else datetime.timezone.utc
         ).date(),
-        explorers="Explorer1, Explorer2",
-        surveyors="Surveyor1, Surveyor2",
+        explorers="Explorer1,Explorer2",
+        surveyors="Surveyor1,Surveyor2",
         shots=[shot],
         section_comment="Test comment",
         compass_format="DDDDUDLRLADN",
@@ -61,7 +62,6 @@ def test_valid_section():
         correction2=[0.3, 0.4],
         declination=0.0,
     )
-    assert section.section_id == 1
     assert section.section_name == "Test Section"
     assert (
         section.date
@@ -69,8 +69,8 @@ def test_valid_section():
             tz=datetime.UTC if sys.version_info >= (3, 11) else datetime.timezone.utc
         ).date()
     )
-    assert section.explorers == "Explorer1, Explorer2"
-    assert section.surveyors == "Surveyor1, Surveyor2"
+    assert section.explorers == "Explorer1,Explorer2"
+    assert section.surveyors == "Surveyor1,Surveyor2"
     assert section.shots == [shot]
     assert section.section_comment == "Test comment"
     assert section.compass_format == "DDDDUDLRLADN"
@@ -85,7 +85,7 @@ def test_invalid_section():
     """
     with pytest.raises(ValidationError):
         Section(
-            section_id=-1,  # Should be a non-negative integer
+            id=1,  # Should be a UUID
             section_name="invalid name",  # Should match the pattern
             date="invalid",  # Should be a date
             explorers=["invalid"],  # Should be a string
@@ -100,7 +100,7 @@ def test_invalid_section():
 
 
 @given(
-    section_id=st.integers(min_value=0),
+    section_id=st.uuids(version=4),
     section_name=st.text(
         alphabet=" a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
         max_size=OSPL_SECTIONNAME_MAX_LENGTH,
@@ -181,7 +181,7 @@ def test_fuzzy_section(
     Fuzzy testing for Section class using Hypothesis.
     """
     section = Section(
-        section_id=section_id,
+        id=section_id,
         section_name=section_name,
         date=date,
         explorers=explorers,

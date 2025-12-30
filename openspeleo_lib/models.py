@@ -105,6 +105,8 @@ class ArianeViewerLayer(BaseModel):
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ COMMON MODELS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 class Shot(BaseModel):
+    id: Annotated[UUID4, Field(default_factory=uuid.uuid4)]
+
     # Primary Keys
     shot_id: NonNegativeInt | None = None
 
@@ -277,8 +279,7 @@ class Shot(BaseModel):
 
 
 class Section(BaseModel):
-    # Primary Keys
-    section_id: NonNegativeInt | None = None
+    id: Annotated[UUID4, Field(default_factory=uuid.uuid4)]
 
     section_name: Annotated[
         str,
@@ -313,20 +314,6 @@ class Section(BaseModel):
         # 1. Assigning upward reference to the shot => section
         for shot in self.shots:
             shot.section = self
-
-        # 2. Key auto-generation
-        for key, dtype, allow_generate in [
-            ("section_id", SectionID, True),
-            # ("section_name", SectionName, False),
-        ]:
-            if getattr(self, key) is None:
-                if allow_generate:
-                    setattr(self, key, UniqueValueGenerator.get(vartype=dtype))
-                else:
-                    raise ValueError(f"Value for `{key}` cannot be None.")
-
-            else:
-                UniqueValueGenerator.register(vartype=dtype, value=getattr(self, key))
 
         return self
 

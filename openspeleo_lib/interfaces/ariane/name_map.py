@@ -35,6 +35,7 @@ _ARIANE_MAPPING = frozenbidict(
         # ArianeViewerLayerCollection Attributes
         "layer_list": "layerList",
         # Shot Attributes
+        "id": "UUID",
         "azimuth": "Azimut",
         "closure_to_id": "ClosureToID",
         "color": "Color",
@@ -60,11 +61,11 @@ _ARIANE_MAPPING = frozenbidict(
         "up": "Up",
         "down": "Down",
         # ====================== Section Attributes ====================== #
-        # "section_id": None,
+        # "id": None,
         "section_name": "Section",
         "date": "Date",
-        "explorers": "Explorer",
-        "surveyors": "Surveyor",
+        "explorers": "XMLExplorer",
+        "surveyors": "XMLSurveyor",
         # "section_comment": None,
         "shots": "SurveyData",
         # ====================== Survey Attributes ====================== #
