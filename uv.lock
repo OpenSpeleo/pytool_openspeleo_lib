@@ -1037,6 +1037,13 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ab/65/e6220e037699886b91d7e8b5aa1eaced26aff0f3bd8c9539c20d9a1a232e/openspeleo_core-0.0.4-cp314-cp314-win_arm64.whl", hash = "sha256:bb6e8e35dda19e6eaddd7b994b3b224befb0d27764894a78e4442cb22351ab11", size = 227214, upload-time = "2025-10-08T06:07:57.154Z" },
 ]
 
+[package.optional-dependencies]
+legacy = [
+    { name = "dicttoxml2" },
+    { name = "lxml" },
+    { name = "xmltodict" },
+]
+
 [[package]]
 name = "openspeleo-lib"
 source = { editable = "." }
@@ -1044,7 +1051,7 @@ dependencies = [
     { name = "argparse" },
     { name = "bidict" },
     { name = "dicttoxml2" },
-    { name = "openspeleo-core" },
+    { name = "openspeleo-core", extra = ["legacy"] },
     { name = "orjson" },
     { name = "pydantic" },
     { name = "pydantic-extra-types" },
@@ -1087,7 +1094,7 @@ requires-dist = [
     { name = "deepdiff", marker = "extra == 'test'", specifier = ">=7.0,<9.0" },
     { name = "dicttoxml2", specifier = ">=2.1.0,<2.2" },
     { name = "hypothesis", marker = "extra == 'test'", specifier = ">=6.128,<6.149" },
-    { name = "openspeleo-core", specifier = ">=0.0.2,<0.1.0" },
+    { name = "openspeleo-core", extras = ["legacy"], specifier = ">=0.0.2,<0.1.0" },
     { name = "orjson", specifier = ">=3.10,<3.12" },
     { name = "parameterized", marker = "extra == 'test'", specifier = ">=0.9.0,<0.10" },
     { name = "pydantic", specifier = ">=2.12,<2.13" },
