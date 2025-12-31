@@ -43,6 +43,14 @@ def convert(args):
     )
 
     parser.add_argument(
+        "-b",
+        "--beautify",
+        action="store_true",
+        help="Beautify the JSON output (indent=2 and sorted).",
+        default=False,
+    )
+
+    parser.add_argument(
         "-f",
         "--format",
         type=str,
@@ -68,6 +76,7 @@ def convert(args):
     match input_file.suffix:
         case ".tml":
             survey = ArianeInterface.from_file(input_file)
+
         case _:
             raise ValueError(f"Unsupported file format: `{input_file.suffix}`")
 
@@ -75,10 +84,20 @@ def convert(args):
         case "geojson":
             geojson_data = survey_to_geojson(survey)
             with output_file.open(mode="wb") as f:
-                f.write(orjson.dumps(geojson_data))
+                f.write(
+                    orjson.dumps(
+                        geojson_data,
+                        None,
+                        option=(
+                            (orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
+                            if parsed_args.beautify
+                            else None
+                        ),
+                    )
+                )
 
         case "json":
-            survey.to_json(filepath=output_file)
+            survey.to_json(filepath=output_file, beautify=parsed_args.beautify)
 
         case _:
             raise ValueError(f"Unsupported conversion format: `{parsed_args.format}`")

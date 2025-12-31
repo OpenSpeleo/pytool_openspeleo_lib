@@ -8,8 +8,6 @@ from pydantic import ValidationError
 from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
 from openspeleo_lib.enums import ArianeProfileType
 from openspeleo_lib.enums import ArianeShotType
-from openspeleo_lib.models import ArianeRadiusVector
-from openspeleo_lib.models import ArianeShape
 from openspeleo_lib.models import Shot
 
 
@@ -17,24 +15,17 @@ def test_valid_shot():
     """
     Test creating a valid Shot instance.
     """
-    shape = ArianeShape(
-        radius_vectors=[],
-        has_profile_azimuth=True,
-        has_profile_tilt=False,
-        profile_azimuth=30.0,
-        profile_tilt=15.0,
-    )
     shot = Shot(
-        shot_id=1,
-        shot_name="TEST_SHOT",
+        id_stop=1,
+        name="TEST_SHOT",
         azimuth=45.0,
         closure_to_id=-1,
         color="#FFFFFF",
-        shot_comment="Test comment",
+        comment="Test comment",
         depth=100.0,
-        depth_in=10.0,
+        depth_start=10.0,
         excluded=False,
-        from_id=2,
+        id_start=2,
         inclination=5.0,
         latitude=40.7128,
         length=50.0,
@@ -42,22 +33,22 @@ def test_valid_shot():
         longitude=-74.0060,
         profiletype=ArianeProfileType.HORIZONTAL,
         shot_type=ArianeShotType.VIRTUAL,
-        shape=shape,
+        shape={},
         left=0.0,
         right=0.0,
         up=0.0,
         down=0.0,
     )
-    assert shot.shot_id == 1
-    assert shot.shot_name == "TEST_SHOT"
+    assert shot.id_stop == 1
+    assert shot.name == "TEST_SHOT"
     assert shot.azimuth == 45.0
     assert shot.closure_to_id == -1
-    assert str(shot.color.original()) == "#FFFFFF"
-    assert shot.shot_comment == "Test comment"
+    assert shot.color == "#FFFFFF"
+    assert shot.comment == "Test comment"
     assert shot.depth == 100.0
-    assert shot.depth_in == 10.0
+    assert shot.depth_start == 10.0
     assert shot.excluded is False
-    assert shot.from_id == 2
+    assert shot.id_start == 2
     assert shot.inclination == 5.0
     assert shot.latitude == 40.7128
     assert shot.length == 50.0
@@ -65,7 +56,7 @@ def test_valid_shot():
     assert shot.longitude == -74.0060
     assert shot.profiletype == ArianeProfileType.HORIZONTAL
     assert shot.shot_type == ArianeShotType.VIRTUAL
-    assert shot.shape == shape
+    assert shot.shape == {}
     assert shot.left == 0.0
     assert shot.right == 0.0
     assert shot.up == 0.0
@@ -78,16 +69,16 @@ def test_invalid_shot():
     """
     with pytest.raises(ValidationError):
         Shot(
-            shot_id=-1,  # Should be a non-negative integer
-            shot_name="invalid name",  # Should match the pattern
+            id_stop=-1,  # Should be a non-negative integer
+            name="invalid name",  # Should match the pattern
             azimuth="invalid",  # Should be a float
             closure_to_id="invalid",  # Should be an integer
             color=123,  # Should be a string
-            shot_comment=456,  # Should be a string or None
+            comment=456,  # Should be a string or None
             depth="invalid",  # Should be a float
-            depth_in="invalid",  # Should be a float
+            depth_start="invalid",  # Should be a float
             excluded="invalid",  # Should be a bool
-            from_id="invalid",  # Should be an integer
+            id_start="invalid",  # Should be an integer
             inclination="invalid",  # Should be a float
             latitude="invalid",  # Should be a float
             length="invalid",  # Should be a float
@@ -104,19 +95,19 @@ def test_invalid_shot():
 
 
 @given(
-    shot_id=st.integers(min_value=0),
-    shot_name=st.text(
+    id_stop=st.integers(min_value=0),
+    name=st.text(
         alphabet="a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
         max_size=OSPL_SHOTNAME_MAX_LENGTH,
     ),
     azimuth=st.floats(min_value=0.0, max_value=360.0, exclude_max=True),
     closure_to_id=st.integers(),
     color=st.from_regex(r"^#(?:[0-9a-fA-F]{3}){1,2}$"),
-    shot_comment=st.one_of(st.none(), st.text()),
+    comment=st.one_of(st.none(), st.text()),
     depth=st.floats(min_value=0.0),
-    depth_in=st.floats(),
+    depth_start=st.floats(),
     excluded=st.booleans(),
-    from_id=st.integers(),
+    id_start=st.integers(),
     inclination=st.floats(),
     latitude=st.floats(min_value=-90.0, max_value=90.0),
     length=st.floats(min_value=0.0),
@@ -126,22 +117,7 @@ def test_invalid_shot():
     shot_type=st.sampled_from(ArianeShotType),
     shape=st.one_of(
         st.none(),
-        st.builds(
-            ArianeShape,
-            radius_vectors=st.lists(
-                st.builds(
-                    ArianeRadiusVector,
-                    tension_corridor=st.one_of(st.none(), st.text()),
-                    tension_profile=st.one_of(st.none(), st.text()),
-                    angle=st.floats(),
-                    norm=st.floats(),
-                )
-            ),
-            has_profile_azimuth=st.booleans(),
-            has_profile_tilt=st.booleans(),
-            profile_azimuth=st.floats(min_value=0.0, max_value=360.0, exclude_max=True),
-            profile_tilt=st.floats(),
-        ),
+        st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text())),
     ),
     left=st.floats(min_value=0.0),
     right=st.floats(min_value=0.0),
@@ -149,16 +125,16 @@ def test_invalid_shot():
     down=st.floats(min_value=0.0),
 )
 def test_fuzzy_shot(
-    shot_id,
-    shot_name,
+    id_stop,
+    name,
     azimuth,
     closure_to_id,
     color,
-    shot_comment,
+    comment,
     depth,
-    depth_in,
+    depth_start,
     excluded,
-    from_id,
+    id_start,
     inclination,
     latitude,
     length,
@@ -176,16 +152,16 @@ def test_fuzzy_shot(
     Fuzzy testing for Shot class using Hypothesis.
     """
     shot = Shot(
-        shot_id=shot_id,
-        shot_name=shot_name,
+        id_stop=id_stop,
+        name=name,
         azimuth=azimuth,
         closure_to_id=closure_to_id,
         color=color,
-        shot_comment=shot_comment,
+        comment=comment,
         depth=depth,
-        depth_in=depth_in,
+        depth_start=depth_start,
         excluded=excluded,
-        from_id=from_id,
+        id_start=id_start,
         inclination=inclination,
         latitude=latitude,
         length=length,

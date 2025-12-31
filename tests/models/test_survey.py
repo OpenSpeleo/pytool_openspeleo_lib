@@ -14,10 +14,6 @@ from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
 from openspeleo_lib.enums import ArianeProfileType
 from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.enums import LengthUnits
-from openspeleo_lib.models import ArianeRadiusVector
-from openspeleo_lib.models import ArianeShape
-from openspeleo_lib.models import ArianeViewerLayer
-from openspeleo_lib.models import ArianeViewerLayerStyle
 from openspeleo_lib.models import Section
 from openspeleo_lib.models import Shot
 from openspeleo_lib.models import Survey
@@ -27,34 +23,17 @@ def test_valid_survey():
     """
     Test creating a valid Survey instance.
     """
-    layer_style = ArianeViewerLayerStyle(
-        dash_scale=1.0,
-        fill_color_string="#FFFFFF",
-        line_type="solid",
-        line_type_scale=1.0,
-        opacity=0.5,
-        size_mode="normal",
-        stroke_color_string="#000000",
-        stroke_thickness=2.0,
-    )
-    layer = ArianeViewerLayer(
-        constant=True,
-        locked_layer=False,
-        layer_name="Test ArianeViewerLayer",
-        style=layer_style,
-        visible=True,
-    )
     shot = Shot(
-        shot_id=1,
-        shot_name="TEST_SHOT",
+        id_stop=1,
+        name="TEST_SHOT",
         azimuth=45.0,
         closure_to_id=-1,
         color="#FFFFFF",
-        shot_comment="Test comment",
+        comment="Test comment",
         depth=100.0,
-        depth_in=10.0,
+        depth_start=10.0,
         excluded=False,
-        from_id=2,
+        id_start=2,
         inclination=5.0,
         latitude=40.7128,
         length=50.0,
@@ -70,14 +49,14 @@ def test_valid_survey():
     )
     section = Section(
         id=uuid.uuid4(),
-        section_name="Test Section",
+        name="Test Section",
         date=datetime.datetime.now(
             tz=datetime.UTC if sys.version_info >= (3, 11) else datetime.timezone.utc
         ).date(),
-        explorers="Explorer1, Explorer2",
-        surveyors="Surveyor1, Surveyor2",
+        explorers=["Explorer1", "Explorer2"],
+        surveyors=["Surveyor1", "Surveyor2"],
         shots=[shot],
-        section_comment="Test comment",
+        comment="Test comment",
         compass_format="DDDDUDLRLADN",
         correction=[0.1, 0.2],
         correction2=[0.3, 0.4],
@@ -85,12 +64,12 @@ def test_valid_survey():
     )
     survey = Survey(
         speleodb_id=uuid.uuid4(),
-        cave_name="Test Cave",
+        name="Test Cave",
         sections=[section],
         unit=LengthUnits.METERS,
         first_start_absolute_elevation=100.0,
         use_magnetic_azimuth=True,
-        ariane_viewer_layers=[layer],
+        ariane_viewer_layers={},
         carto_ellipse=None,
         carto_line=None,
         carto_linked_surface=None,
@@ -103,12 +82,12 @@ def test_valid_survey():
         list_annotation=None,
     )
     assert isinstance(survey.speleodb_id, uuid.UUID)
-    assert survey.cave_name == "Test Cave"
+    assert survey.name == "Test Cave"
     assert survey.sections == [section]
     assert survey.unit == LengthUnits.METERS
     assert survey.first_start_absolute_elevation == 100.0
     assert survey.use_magnetic_azimuth is True
-    assert survey.ariane_viewer_layers == [layer]
+    assert survey.ariane_viewer_layers == {}
     assert survey.carto_ellipse is None
     assert survey.carto_line is None
     assert survey.carto_linked_surface is None
@@ -128,12 +107,12 @@ def test_invalid_survey():
     with pytest.raises(ValidationError):
         Survey(
             speleodb_id="invalid",  # Should be a UUID4
-            cave_name=123,  # Should be a string
+            name=123,  # Should be a string
             sections="invalid",  # Should be a list of Section instances
             unit="invalid",  # Should be "M" or "FT"
             first_start_absolute_elevation="invalid",  # Should be a float
             use_magnetic_azimuth="invalid",  # Should be a bool
-            ariane_viewer_layers="invalid",  # Should be a list of ArianeViewerLayer
+            ariane_viewer_layers="invalid",  # Should be a dict
             carto_ellipse=123,  # Should be a string or None
             carto_line=123,  # Should be a string or None
             carto_linked_surface=123,  # Should be a string or None
@@ -149,34 +128,34 @@ def test_invalid_survey():
 
 @given(
     speleodb_id=st.uuids(version=4),
-    cave_name=st.text(),
+    name=st.text(),
     sections=st.lists(
         st.builds(
             Section,
             id=st.uuids(version=4),
-            section_name=st.text(
+            name=st.text(
                 alphabet=" a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
                 max_size=OSPL_SECTIONNAME_MAX_LENGTH,
             ),
             date=st.dates(),
-            explorers=st.text(),
-            surveyors=st.text(),
+            explorers=st.lists(st.text()),
+            surveyors=st.lists(st.text()),
             shots=st.lists(
                 st.builds(
                     Shot,
-                    shot_id=st.integers(min_value=0),
-                    shot_name=st.text(
+                    id_stop=st.integers(min_value=0),
+                    name=st.text(
                         alphabet="a-zA-Z0-9_-~:!?.'()[]{}@*&#%|$",
                         max_size=OSPL_SHOTNAME_MAX_LENGTH,
                     ),
                     azimuth=st.floats(min_value=0.0, max_value=360.0, exclude_max=True),
                     closure_to_id=st.integers(),
                     color=st.from_regex(r"^#(?:[0-9a-fA-F]{3}){1,2}$"),
-                    shot_comment=st.one_of(st.none(), st.text()),
+                    comment=st.one_of(st.none(), st.text()),
                     depth=st.floats(min_value=0.0),
-                    depth_in=st.floats(),
+                    depth_start=st.floats(),
                     excluded=st.booleans(),
-                    from_id=st.integers(),
+                    id_start=st.integers(),
                     inclination=st.floats(),
                     latitude=st.floats(min_value=-90.0, max_value=90.0),
                     length=st.floats(min_value=0.0),
@@ -186,23 +165,9 @@ def test_invalid_survey():
                     shot_type=st.sampled_from(ArianeShotType),
                     shape=st.one_of(
                         st.none(),
-                        st.builds(
-                            ArianeShape,
-                            radius_vectors=st.lists(
-                                st.builds(
-                                    ArianeRadiusVector,
-                                    tension_corridor=st.one_of(st.none(), st.text()),
-                                    tension_profile=st.one_of(st.none(), st.text()),
-                                    angle=st.floats(),
-                                    norm=st.floats(),
-                                )
-                            ),
-                            has_profile_azimuth=st.booleans(),
-                            has_profile_tilt=st.booleans(),
-                            profile_azimuth=st.floats(
-                                min_value=0.0, max_value=360.0, exclude_max=True
-                            ),
-                            profile_tilt=st.floats(),
+                        st.dictionaries(
+                            keys=st.text(),
+                            values=st.one_of(st.integers(), st.text()),
                         ),
                     ),
                     left=st.floats(min_value=0.0),
@@ -211,7 +176,7 @@ def test_invalid_survey():
                     down=st.floats(min_value=0.0),
                 )
             ),
-            section_comment=st.text(),
+            comment=st.text(),
             compass_format=st.text(),
             correction=st.lists(st.floats()),
             correction2=st.lists(st.floats()),
@@ -221,25 +186,9 @@ def test_invalid_survey():
     unit=st.sampled_from(LengthUnits),
     first_start_absolute_elevation=st.floats(min_value=0.0),
     use_magnetic_azimuth=st.booleans(),
-    ariane_viewer_layers=st.lists(
-        st.builds(
-            ArianeViewerLayer,
-            constant=st.booleans(),
-            locked_layer=st.booleans(),
-            layer_name=st.text(),
-            style=st.builds(
-                ArianeViewerLayerStyle,
-                dash_scale=st.floats(),
-                fill_color_string=st.text(),
-                line_type=st.text(),
-                line_type_scale=st.floats(),
-                opacity=st.floats(),
-                size_mode=st.text(),
-                stroke_color_string=st.text(),
-                stroke_thickness=st.floats(),
-            ),
-            visible=st.booleans(),
-        )
+    ariane_viewer_layers=st.dictionaries(
+        keys=st.text(),
+        values=st.one_of(st.integers(), st.text()),
     ),
     carto_ellipse=st.one_of(
         st.none(),
@@ -284,7 +233,7 @@ def test_invalid_survey():
 )
 def test_fuzzy_survey(
     speleodb_id,
-    cave_name,
+    name,
     sections,
     unit,
     first_start_absolute_elevation,
@@ -306,7 +255,7 @@ def test_fuzzy_survey(
     """
     survey = Survey(
         speleodb_id=speleodb_id,
-        cave_name=cave_name,
+        name=name,
         sections=sections,
         unit=unit,
         first_start_absolute_elevation=first_start_absolute_elevation,
