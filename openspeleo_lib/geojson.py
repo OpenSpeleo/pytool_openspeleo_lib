@@ -40,7 +40,7 @@ class IncorrectShotDataError(Exception):
     """Raised when a shot has incorrect or missing data."""
 
     def __init__(self, shot: Shot, message: str):
-        super().__init__(f"[Shot ID={shot.shot_id}]: {message}")
+        super().__init__(f"[Shot ID={shot.id_stop}]: {message}")
         self.shot = shot
         self.message = message
 
@@ -82,8 +82,8 @@ def build_shot_graph(sections: list[Section]) -> dict[int, list[int]]:
             if shot.shot_type == ArianeShotType.CLOSURE:
                 continue
 
-            if shot.from_id != -1:
-                graph[shot.from_id].append(shot.shot_id)
+            if shot.id_start != -1:
+                graph[shot.id_start].append(shot.id_stop)
 
     return graph
 
@@ -93,7 +93,7 @@ def build_shots_map(survey: Survey) -> dict[int, Shot]:
     for shot in survey.shots:
         if shot.shot_type == ArianeShotType.CLOSURE:
             continue
-        shots[shot.shot_id] = shot
+        shots[shot.id_stop] = shot
 
     return shots
 
@@ -112,14 +112,14 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
     if logger.isEnabledFor(logging.DEBUG):
         for a in anchors:
             logger.debug(
-                "[*] Anchor: shot_id=%04d, name=%s, latitude=%.7f, longitude=%.7f",
-                a.shot_id,
-                a.shot_name,
+                "[*] Anchor: id_stop=%04d, name=%s, latitude=%.7f, longitude=%.7f",
+                a.id_stop,
+                a.name,
                 a.latitude,
                 a.longitude,
             )
 
-    queue = deque(a.shot_id for a in anchors)
+    queue = deque(a.id_stop for a in anchors)
     visited = set()
 
     max_iterations = 1e6  # ridiculously high for any realistic survey
@@ -141,7 +141,7 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
         logger.debug(
             "[*] Processing Shot ID=%04d, name=%s, latitude=%.7f, longitude=%.7f",
             current_id,
-            current_shot.shot_name,
+            current_shot.name,
             current_shot.latitude,
             current_shot.longitude,
         )
@@ -191,18 +191,19 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
 
 
 def shot_to_geojson_feature(
-    shot: Shot, shots_dict: dict[int, Shot], section_name: str, unit: LengthUnits
+    shot: Shot, shots_dict: dict[int, Shot], name: str, unit: LengthUnits
 ) -> dict | None:
     props = {
-        "id": shot.shot_id,
-        # "shot_name": shot.shot_name,
+        "uuid": shot.id,
+        "id": shot.id_stop,
+        # "name": shot.name,
         "depth": normalize_depth(shot.depth, unit=unit),
-        "section_name": section_name,
+        "name": name,
         # "length": shot.length,
         # "azimuth": shot.azimuth,
         # "closure_to_id": shot.closure_to_id,
-        # "from_id": shot.from_id,
-        # "depth_in": shot.depth_in,
+        # "id_start": shot.id_start,
+        # "depth_start": shot.depth_start,
         # "inclination": shot.inclination,
         # "left": shot.left,
         # "right": shot.right,
@@ -212,8 +213,8 @@ def shot_to_geojson_feature(
     # props = {k: v for k, v in props.items() if v is not None}
 
     start_coords = None
-    if shot.from_id != -1 and shot.from_id in shots_dict:
-        from_shot = shots_dict[shot.from_id]
+    if shot.id_start != -1 and shot.id_start in shots_dict:
+        from_shot = shots_dict[shot.id_start]
         start_coords = (
             from_shot.coordinates.as_tuple() if from_shot.coordinates else None
         )
@@ -223,7 +224,7 @@ def shot_to_geojson_feature(
     # Skip feature if missing valid start or end coordinate
     if end_coords is None:
         raise DisconnectedShotError(
-            f"Shot ID={shot.shot_id} does not have a valid destination. "
+            f"Shot ID={shot.id_stop} does not have a valid destination. "
             "Impossible to determine its location."
         )
 
@@ -249,7 +250,7 @@ def survey_to_geojson(survey: Survey) -> dict:
     propagate_coordinates(survey, shots_map)
 
     features = [
-        shot_to_geojson_feature(shot, shots_map, section.section_name, survey.unit)
+        shot_to_geojson_feature(shot, shots_map, section.name, survey.unit)
         for section in survey.sections
         for shot in section.shots
         if shot.shot_type in [ArianeShotType.REAL, ArianeShotType.START]

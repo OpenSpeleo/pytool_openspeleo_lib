@@ -99,17 +99,9 @@ class TestTMLRoundTrip(unittest.TestCase):
                     re.escape("root['CaveFile']['speleodb_id']"),
                     # Ignore the survey `ListLidarRecords` field
                     re.escape("root['CaveFile']['ListLidarRecords']"),
-                    # Ignore the shot `Name` field
-                    re.escape(
-                        "root['CaveFile']['Data']['SurveyData'][*]['Name']"
-                    ).replace(r"\*", r"\d+"),
                     # Ignore the shot `UUID` field
                     re.escape(
                         "root['CaveFile']['Data']['SurveyData'][*]['UUID']"
-                    ).replace(r"\*", r"\d+"),
-                    # Ignore the shot `Color` field - replaced `0x` by `#` in Ariane v26
-                    re.escape(
-                        "root['CaveFile']['Data']['SurveyData'][*]['Color']"
                     ).replace(r"\*", r"\d+"),
                     # Ignore the shot `Explorers/Surveyors` fields
                     re.escape("root['CaveFile']['Data']['SurveyData'][*]['").replace(

@@ -4,13 +4,8 @@ import contextlib
 import logging
 from pathlib import Path
 
-from openspeleo_core.legacy import serialize_dict_to_xmlfield
-
-# from openspeleo_core.legacy import apply_key_mapping
-from openspeleo_core.mapping import apply_key_mapping
-
 from openspeleo_lib.debug_utils import write_debugdata_to_disk
-from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
+from openspeleo_lib.interfaces.ariane.xml_utils import serialize_dict_to_xmlfield
 
 logger = logging.getLogger(__name__)
 DEBUG = False
@@ -32,12 +27,12 @@ def ariane_encode(data: dict) -> dict:
             desc_xml = ""
             if description := section["description"]:
                 desc_xml = f"<SectionDescription>{description}</SectionDescription>"
-            shot["section_name"] = f"{section['section_name']}{desc_xml}"
-            shot["date"] = section["date"]
+            shot["Section"] = f"{section['name']}{desc_xml}"
+            shot["Date"] = section["date"]
 
             # ~~~~~~~~~~~~~~~~ Processing Explorers/Surveyors ~~~~~~~~~~~~~~~ #
-            shot["explorers"] = section["explorers"]
-            shot["surveyors"] = section["surveyors"]
+            shot["XMLExplorer"] = ",".join(section["explorers"])
+            shot["XMLSurveyor"] = ",".join(section["surveyors"])
 
             # ----------------- Legacy backport: Ariane < 26 ---------------- #
             _explo_data = {}
@@ -46,38 +41,26 @@ def ariane_encode(data: dict) -> dict:
                 ("Surveyor", "surveyors"),
             ]:
                 if _value := section.get(orig_key, ""):
-                    _explo_data[dest_key] = _value
+                    _explo_data[dest_key] = ",".join(_value)
 
             # In case only "explorer" data exists - Ariane doesn't store in format XML
             if len(_explo_data) == 1:
                 with contextlib.suppress(KeyError):
-                    _explo_data = _explo_data["explorers"]
+                    _explo_data = ",".join(_explo_data["explorers"])
 
             shot["Explorer"] = serialize_dict_to_xmlfield(_explo_data)
-            # # --------------------------------------------------------------- #
+            # --------------------------------------------------------------- #
 
-            radius_vectors = shot["shape"].pop("radius_vectors")
-            shot["shape"]["radius_collection"] = {"radius_vector": radius_vectors}
-            shot["color"] = shot.pop("color").replace("#", "0x")
+            # # Reverse Color standardization
+            # print(f"{shot["Color"]=}")
+            # shot["Color"] = shot.pop("Color").replace("#", "0x")
 
             shots.append(shot)
 
-    data["data"] = {"shots": shots}
+    data["Data"] = {"SurveyData": shots}
 
     if DEBUG:
         write_debugdata_to_disk(data, Path("data.export.step02.json"))
-
-    # 3. Restore ArianeViewerLayer => Layers[LayerList] = [Layer1, Layer2, ...]
-    data["ariane_viewer_layers"] = {"layer_list": data.pop("ariane_viewer_layers")}
-
-    if DEBUG:
-        write_debugdata_to_disk(data, Path("data.export.step03.json"))
-
-    # 4. Apply key mapping in reverse order
-    data = apply_key_mapping(data, mapping=ARIANE_MAPPING)
-
-    if DEBUG:
-        write_debugdata_to_disk(data, Path("data.export.mapped.json"))
 
     # ------------------------------------------------------------------- #
 

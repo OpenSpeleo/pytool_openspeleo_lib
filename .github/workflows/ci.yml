@@ -53,6 +53,8 @@ jobs:
         run: uv sync --frozen --all-extras --dev
 
       - name: Test with pytest
+        env: # Set the secret as an input
+          ARTIFACT_ENCRYPTION_KEY: ${{ secrets.ARTIFACT_ENCRYPTION_KEY }}
         run: |
           uv run python --version
           uv run pytest

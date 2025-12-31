@@ -166,6 +166,7 @@ cython_debug/
 *.geojson
 tests/*.json
 tests/*.xml
-tests/*.tml
+!tests/artifacts/*.tml
+!tests/artifacts/private/*.encrypted
 
 .DS_Store

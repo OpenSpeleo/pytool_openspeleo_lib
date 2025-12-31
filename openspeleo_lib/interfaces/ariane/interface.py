@@ -11,16 +11,23 @@ from openspeleo_lib.debug_utils import write_debugdata_to_disk
 from openspeleo_lib.interfaces.ariane.decoding import ariane_decode
 from openspeleo_lib.interfaces.ariane.encoding import ariane_encode
 from openspeleo_lib.interfaces.ariane.enums_cls import ArianeFileType
+from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
 from openspeleo_lib.interfaces.base import BaseInterface
-from openspeleo_lib.models import Survey
+from openspeleo_lib.models import Survey as BaseSurvey
+from openspeleo_lib.pydantic_utils import aliased_model
 
 logger = logging.getLogger(__name__)
 DEBUG = False
 
+ArianeSurvey = aliased_model(BaseSurvey, ARIANE_MAPPING, "Ariane")
+
 
 class ArianeInterface(BaseInterface):
     @classmethod
-    def to_file(cls, survey: Survey, filepath: Path) -> None:
+    def to_file(cls, survey: BaseSurvey, filepath: Path) -> None:
+        if not isinstance(survey, ArianeSurvey):
+            raise TypeError(f"Unexpected type received: `{type(survey)}`.")
+
         if (
             filetype := ArianeFileType.from_path(filepath=filepath)
         ) != ArianeFileType.TML:
@@ -29,7 +36,7 @@ class ArianeInterface(BaseInterface):
                 f"Expected: `{ArianeFileType.TML.name}`"
             )
 
-        data = survey.model_dump(mode="json")
+        data = survey.model_dump(mode="json", by_alias=True)
 
         # ------------------------------------------------------------------- #
 
@@ -62,7 +69,7 @@ class ArianeInterface(BaseInterface):
             zf.writestr(ARIANE_DATA_FILENAME, xml_str)
 
     @classmethod
-    def _from_file(cls, filepath: str | Path) -> Survey:
+    def _from_file(cls, filepath: str | Path) -> BaseSurvey:
         # ========================= INPUT VALIDATION ======================== #
 
         if (
@@ -105,4 +112,4 @@ class ArianeInterface(BaseInterface):
 
         # ------------------------------------------------------------------- #
 
-        return Survey.model_validate(data)
+        return ArianeSurvey.model_validate(data, by_alias=True)

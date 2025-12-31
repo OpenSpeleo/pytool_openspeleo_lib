@@ -22,7 +22,6 @@ from pydantic import ValidationInfo
 from pydantic import field_serializer
 from pydantic import field_validator
 from pydantic import model_validator
-from pydantic_extra_types.color import Color
 
 from openspeleo_lib.constants import OSPL_GEOJSON_DIGIT_PRECISION
 from openspeleo_lib.constants import OSPL_SECTIONNAME_MAX_LENGTH
@@ -55,63 +54,16 @@ SectionName = NewType("SectionName", str)
 NonNegativeFloat = Annotated[float, annotated_types.Ge(0)]
 
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~ ARIANE SPECIFIC MODELS ~~~~~~~~~~~~~~~~~~~~~~~~~ #
-
-
-class ArianeRadiusVector(BaseModel):
-    angle: float
-    norm: float  # Euclidian Norm aka. length
-    tension_corridor: str | None = None
-    tension_profile: str | None = None
-
-    model_config = ConfigDict(extra="forbid")
-
-
-class ArianeShape(BaseModel):
-    has_profile_azimuth: bool
-    has_profile_tilt: bool
-    profile_azimuth: Annotated[float, Field(ge=0, lt=360)]
-    profile_tilt: float
-    radius_vectors: Annotated[list[ArianeRadiusVector], Field(default_factory=list)]
-
-    model_config = ConfigDict(extra="forbid")
-
-
-class ArianeViewerLayerStyle(BaseModel):
-    dash_scale: float
-    fill_color_string: str
-    line_type: str
-    line_type_scale: float
-    opacity: float
-    size_mode: str
-    stroke_color_string: str
-    stroke_thickness: float
-
-    model_config = ConfigDict(extra="forbid")
-
-
-class ArianeViewerLayer(BaseModel):
-    constant: bool
-    locked_layer: bool
-    layer_name: str
-    style: ArianeViewerLayerStyle
-    visible: bool
-
-    model_config = ConfigDict(extra="forbid")
-
-
-# --------------------------------------------------------------------------- #
-
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ COMMON MODELS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 class Shot(BaseModel):
+    # Primary Key
     id: Annotated[UUID4, Field(default_factory=uuid.uuid4)]
 
-    # Primary Keys
-    shot_id: NonNegativeInt | None = None
+    id_start: int = -1  # Station ID where the shot starts, -1 means no origin
+    id_stop: NonNegativeInt  # Station ID where the shot ends
 
-    shot_name: Annotated[
-        str,
+    name: Annotated[
+        str | None,
         StringConstraints(
             max_length=OSPL_SHOTNAME_MAX_LENGTH,
             to_upper=True,
@@ -127,26 +79,25 @@ class Shot(BaseModel):
     # Core Attributes
     length: NonNegativeFloat
     depth: float
+    depth_start: float | None = None
     azimuth: float
 
     # Attributes
     closure_to_id: int = -1
-    from_id: int = -1
 
-    depth_in: float = None
     inclination: float = None
 
     latitude: Annotated[float | None, Field(ge=-90, le=90)] = None
     longitude: Annotated[float | None, Field(ge=-180, le=180)] = None
 
-    color: Color = Color("#FFB366")  # An orange color easily visible
-    shot_comment: str | None = None
+    color: str = "#FFB366"  # An orange color easily visible
+    comment: str | None = None
 
     excluded: bool = False
     locked: bool = False
 
     # Ariane Specific
-    shape: ArianeShape | None = None
+    shape: dict | None = None
     profiletype: ArianeProfileType = ArianeProfileType.VERTICAL
 
     # LRUD
@@ -155,7 +106,10 @@ class Shot(BaseModel):
     up: NonNegativeFloat | None = None
     down: NonNegativeFloat | None = None
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True)
+    # model_config = ConfigDict(
+    #     validate_by_name=True, validate_by_alias=True, extra="forbid"
+    # )
 
     @field_validator("length", "left", "right", "up", "down", mode="before")
     @classmethod
@@ -202,8 +156,8 @@ class Shot(BaseModel):
     def validate_model(self) -> Self:
         # 1. Validate unique keys
         for key, dtype in [
-            ("shot_id", ShotID),
-            # ("shot_name", ShotCompassName),
+            ("id_stop", ShotID),
+            # ("name", ShotCompassName),
         ]:
             if getattr(self, key) is None:
                 setattr(self, key, UniqueValueGenerator.get(vartype=dtype))
@@ -217,11 +171,12 @@ class Shot(BaseModel):
 
         return self
 
-    @field_serializer("color")
-    def serialize_dt(self, color: Color | None, _info):
-        if color is None:
-            return None
-        return color.original()
+    # @field_serializer("color")
+    # def serialize_color(self, color: Color | None, _info) -> str | None:
+    #     print("hello !")
+    #     if color is None:
+    #         return None
+    #     return color.as_hex()
 
     def length_2d(self, origin_depth: float | None) -> float:
         """
@@ -281,7 +236,7 @@ class Shot(BaseModel):
 class Section(BaseModel):
     id: Annotated[UUID4, Field(default_factory=uuid.uuid4)]
 
-    section_name: Annotated[
+    name: Annotated[
         str,
         StringConstraints(
             max_length=OSPL_SECTIONNAME_MAX_LENGTH,
@@ -295,19 +250,23 @@ class Section(BaseModel):
     # Attributes
     date: datetime.date | None = None
     description: str | None = None
-    explorers: str | None = None
-    surveyors: str | None = None
+
+    explorers: list[str] | None = None
+    surveyors: list[str] | None = None
 
     shots: Annotated[list[Shot], Field(default_factory=list)]
 
     # Compass Specific
-    section_comment: str = ""
+    comment: str | None = None
     compass_format: str = "DDDDUDLRLADN"
     correction: Annotated[list[float], Field(default_factory=list)]
     correction2: Annotated[list[float], Field(default_factory=list)]
     declination: float = 0.0
 
-    model_config = ConfigDict(extra="forbid")
+    # model_config = ConfigDict(validate_by_name=True, validate_by_alias=True)
+    model_config = ConfigDict(
+        validate_by_name=True, validate_by_alias=True, extra="forbid"
+    )
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
@@ -337,18 +296,16 @@ class Section(BaseModel):
 
 
 class Survey(BaseModel):
-    speleodb_id: Annotated[UUID4, Field(default_factory=uuid.uuid4)]
-    cave_name: str
+    speleodb_id: UUID4 | None = None
+
+    name: str | None = None
     sections: Annotated[list[Section], Field(default_factory=list)]
 
     unit: LengthUnits = LengthUnits.FEET
     first_start_absolute_elevation: NonNegativeFloat = 0.0
     use_magnetic_azimuth: bool = True
 
-    ariane_viewer_layers: Annotated[
-        list[ArianeViewerLayer],
-        Field(default_factory=list),
-    ]
+    ariane_viewer_layers: dict | None = None
 
     carto_ellipse: dict | None = None
     carto_line: dict | None = None
@@ -362,7 +319,10 @@ class Survey(BaseModel):
     list_annotation: dict | None = None
     list_lidar_records: dict | None = None
 
-    # model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True)
+    # model_config = ConfigDict(
+    #     validate_by_name=True, validate_by_alias=True, extra="forbid"
+    # )
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
@@ -377,7 +337,7 @@ class Survey(BaseModel):
         with Path(filepath).open(mode="rb") as f:
             return cls.model_validate(orjson.loads(f.read()))
 
-    def to_json(self, filepath: str | Path) -> None:
+    def to_json(self, filepath: str | Path, beautify: bool = True) -> None:
         """
         Serializes the model to a JSON file.
 
@@ -387,13 +347,17 @@ class Survey(BaseModel):
         Returns:
             None
         """
-        with Path(filepath).open(mode="w") as f:
+        with Path(filepath).open(mode="wb") as f:
             f.write(
                 orjson.dumps(
                     self.model_dump(mode="json"),
                     None,
-                    option=(orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS),
-                ).decode("utf-8")
+                    option=(
+                        (orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
+                        if beautify
+                        else None
+                    ),
+                )
             )
 
     @property
