@@ -6,8 +6,13 @@ from collections import deque
 from itertools import count
 from typing import TYPE_CHECKING
 
+from geojson import Feature
+from geojson import FeatureCollection
+from geojson import LineString
+from geojson import Point
 from pyproj import Geod
 
+from openspeleo_lib.constants import OSPL_GEOJSON_DIGIT_PRECISION
 from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.enums import LengthUnits
 
@@ -194,7 +199,6 @@ def shot_to_geojson_feature(
     shot: Shot, shots_dict: dict[int, Shot], name: str, unit: LengthUnits
 ) -> dict | None:
     props = {
-        "uuid": shot.id,
         "id": shot.id_stop,
         # "name": shot.name,
         "depth": normalize_depth(shot.depth, unit=unit),
@@ -230,17 +234,20 @@ def shot_to_geojson_feature(
 
     if start_coords is None:
         # No origin - it's just a Point.
-        return {
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": end_coords},
-            "properties": props,
-        }
+        return Feature(
+            id=str(shot.id) if shot.id else None,
+            geometry=Point(end_coords, precision=OSPL_GEOJSON_DIGIT_PRECISION),
+            properties=props,
+        )
 
-    return {
-        "type": "Feature",
-        "geometry": {"type": "LineString", "coordinates": [start_coords, end_coords]},
-        "properties": props,
-    }
+    return Feature(
+        id=str(shot.id) if shot.id else None,
+        geometry=LineString(
+            coordinates=[start_coords, end_coords],
+            precision=OSPL_GEOJSON_DIGIT_PRECISION,
+        ),
+        properties=props,
+    )
 
 
 def survey_to_geojson(survey: Survey) -> dict:
@@ -258,7 +265,4 @@ def survey_to_geojson(survey: Survey) -> dict:
         if not shot.excluded
     ]
 
-    return {
-        "type": "FeatureCollection",
-        "features": features,
-    }
+    return FeatureCollection(features=features)
