@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 import zipfile
 from pathlib import Path
 
@@ -25,6 +26,8 @@ ArianeSurvey = aliased_model(BaseSurvey, ARIANE_MAPPING, "Ariane")
 class ArianeInterface(BaseInterface):
     @classmethod
     def to_file(cls, survey: BaseSurvey, filepath: Path) -> None:
+        # 1. Validation
+
         if not isinstance(survey, ArianeSurvey):
             raise TypeError(f"Unexpected type received: `{type(survey)}`.")
 
@@ -36,6 +39,12 @@ class ArianeInterface(BaseInterface):
                 f"Expected: `{ArianeFileType.TML.name}`"
             )
 
+        # 2. Populate missing shot UUIDs
+        for shot in survey.shots:
+            if shot.id is None:
+                shot.id = uuid.uuid4()
+
+        # 3. Convert to dict
         data = survey.model_dump(mode="json", by_alias=True)
 
         # ------------------------------------------------------------------- #

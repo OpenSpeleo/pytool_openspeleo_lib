@@ -3,7 +3,6 @@ from __future__ import annotations
 import contextlib
 import datetime
 import math
-import uuid
 from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -57,7 +56,7 @@ NonNegativeFloat = Annotated[float, annotated_types.Ge(0)]
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ COMMON MODELS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 class Shot(BaseModel):
     # Primary Key
-    id: Annotated[UUID4, Field(default_factory=uuid.uuid4)]
+    id: UUID4 | None = None
 
     id_start: int = -1  # Station ID where the shot starts, -1 means no origin
     id_stop: NonNegativeInt  # Station ID where the shot ends
@@ -234,7 +233,7 @@ class Shot(BaseModel):
 
 
 class Section(BaseModel):
-    id: Annotated[UUID4, Field(default_factory=uuid.uuid4)]
+    id: UUID4 | None = None
 
     name: Annotated[
         str,
