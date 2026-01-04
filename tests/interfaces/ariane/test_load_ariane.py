@@ -121,7 +121,6 @@ class TestTMLRoundTrip(unittest.TestCase):
                     f.write(json.dumps(original_data, indent=2, sort_keys=True))
 
             round_trip_survey = ArianeInterface.from_file(target_f)
-
             round_trip_data = round_trip_survey.model_dump(mode="json")
 
             if DEBUG:

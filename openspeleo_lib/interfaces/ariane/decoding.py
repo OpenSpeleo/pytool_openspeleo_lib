@@ -40,14 +40,12 @@ def ariane_decode(data: dict) -> dict:  # noqa: PLR0915
         with contextlib.suppress(KeyError):
             match val := data[key].upper():
                 case "FT" | "FEET":
-                    data[key] = LengthUnits.FEET
+                    data["unit"] = LengthUnits.FEET
                 case "M" | "METERS" | "METER":
-                    data[key] = LengthUnits.METERS
+                    data["unit"] = LengthUnits.METERS
                 case _:
                     raise ValueError(f"Unknown metric value: `{val}`")
             break
-    else:
-        raise KeyError("Missing 'unit' field in data")
 
     if DEBUG:
         write_debugdata_to_disk(data, Path("data.import.step01-unit.json"))
