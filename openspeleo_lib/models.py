@@ -301,7 +301,7 @@ class Survey(BaseModel):
     name: str | None = None
     sections: Annotated[list[Section], Field(default_factory=list)]
 
-    unit: LengthUnits = LengthUnits.FEET
+    unit: LengthUnits = LengthUnits.METERS
     first_start_absolute_elevation: NonNegativeFloat = 0.0
     use_magnetic_azimuth: bool = True
 

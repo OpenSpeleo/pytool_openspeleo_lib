@@ -545,6 +545,15 @@ wheels = [
 ]
 
 [[package]]
+name = "geojson"
+version = "3.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/85/5a/33e761df75c732fcea94aaf01f993d823138581d10c91133da58bc231e63/geojson-3.2.0.tar.gz", hash = "sha256:b860baba1e8c6f71f8f5f6e3949a694daccf40820fa8f138b3f712bd85804903", size = 24574, upload-time = "2024-12-21T19:35:29.835Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/18/67/a7fa2d650602731c90e0a86279841b4586e14228199e8c09165ba4863e29/geojson-3.2.0-py3-none-any.whl", hash = "sha256:69d14156469e13c79479672eafae7b37e2dcd19bdfd77b53f74fa8fe29910b52", size = 15040, upload-time = "2024-12-21T19:37:02.149Z" },
+]
+
+[[package]]
 name = "hypothesis"
 version = "6.148.8"
 source = { registry = "https://pypi.org/simple" }
@@ -1109,6 +1118,7 @@ dependencies = [
     { name = "argparse" },
     { name = "dicttoxml2" },
     { name = "frozendict" },
+    { name = "geojson" },
     { name = "openspeleo-core" },
     { name = "orjson" },
     { name = "pydantic" },
@@ -1153,6 +1163,7 @@ requires-dist = [
     { name = "deepdiff", marker = "extra == 'test'", specifier = ">=7.0,<9.0" },
     { name = "dicttoxml2", specifier = ">=2.1.0,<2.2" },
     { name = "frozendict", specifier = ">=2.4,<2.5" },
+    { name = "geojson", specifier = ">=3.2.0,<3.3" },
     { name = "hypothesis", marker = "extra == 'test'", specifier = ">=6.128,<6.149" },
     { name = "openspeleo-core", specifier = ">=0.0.2,<0.1.0" },
     { name = "orjson", specifier = ">=3.10,<3.12" },

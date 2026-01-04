@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 import unittest
 from pathlib import Path
 
@@ -46,11 +45,5 @@ class TestConvertToGeoJson(unittest.TestCase):
                 )
             ),
             ignore_order=True,
-            exclude_regex_paths=[
-                # Ignore the shot `UUID` field
-                re.escape("root['features'][*]['properties']['uuid']").replace(
-                    r"\*", r"\d+"
-                ),
-            ],
         )
         assert ddiff == {}, ddiff
