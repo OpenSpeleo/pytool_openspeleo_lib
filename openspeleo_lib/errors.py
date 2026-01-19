@@ -7,3 +7,7 @@ class DuplicateValueError(ValueError):
 
 class MaxRetriesError(RuntimeError):
     pass
+
+
+class EmptySurveyError(ValueError):
+    pass

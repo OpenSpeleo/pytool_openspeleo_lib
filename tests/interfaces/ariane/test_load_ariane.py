@@ -13,6 +13,7 @@ import xmltodict
 from deepdiff import DeepDiff
 from parameterized import parameterized_class
 
+from openspeleo_lib.errors import EmptySurveyError
 from openspeleo_lib.interfaces.ariane.interface import ArianeInterface
 
 if TYPE_CHECKING:
@@ -39,6 +40,13 @@ class TestLoadTMLFile(unittest.TestCase):
     def test_load_ariane_file(self):
         file = Path(self.filepath)
         _ = ArianeInterface.from_file(filepath=file)
+
+
+class TestLoadInvalidTMLFile(unittest.TestCase):
+    def test_load_empty_ariane_file(self):
+        file = Path("tests/artifacts/empty.tml")
+        with pytest.raises(EmptySurveyError):
+            _ = ArianeInterface.from_file(filepath=file)
 
 
 class TestLoadTMLUFile(unittest.TestCase):
