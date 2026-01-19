@@ -9,6 +9,7 @@ from xml.parsers.expat import ExpatError
 
 from openspeleo_lib.debug_utils import write_debugdata_to_disk
 from openspeleo_lib.enums import LengthUnits
+from openspeleo_lib.errors import EmptySurveyError
 from openspeleo_lib.interfaces.ariane.xml_utils import deserialize_xmlfield_to_dict
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,13 @@ def ariane_decode(data: dict) -> dict:  # noqa: PLR0915
 
     # 3. Sort `SurveyData` into `sections`
     sections: dict[tuple[str, str], dict[str, Any]] = {}
-    for shot in data.pop("Data")["SurveyData"]:
+
+    try:
+        shots = data.pop("Data")["SurveyData"]
+    except KeyError as e:
+        raise EmptySurveyError from e
+
+    for shot in shots:
         shot: dict[str, Any]
 
         # Separate SurveyData into sections
