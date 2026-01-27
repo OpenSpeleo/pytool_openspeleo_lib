@@ -102,6 +102,142 @@ def build_shots_map(survey: Survey) -> dict[int, Shot]:
 
     return shots
 
+def find_valid_shot_ids(
+    shots_map: dict[int, Shot], graph: dict[int, list[int]]
+) -> set[int]:
+    """Find all shot IDs reachable from anchor points.
+
+    Shots NOT in the returned set are either:
+    - Orphans: shots that cannot trace back to an anchor (directly or recursively)
+    - Cycles: shots that are part of isolated cycles not connected to any anchor
+
+    Args:
+        shots_map: Mapping of shot id_stop to Shot objects
+        graph: Directed graph of shot connections (id_start -> list of id_stop)
+
+    Returns:
+        Set of valid shot IDs that are reachable from anchors
+    """
+    # Find anchor shots (shots with known geolocation)
+    anchors = {s.id_stop for s in shots_map.values() if s.is_geolocation_known()}
+
+    if not anchors:
+        logger.warning("No anchor shots found - all shots will be considered invalid")
+        return set()
+
+    # BFS from all anchor points to find all reachable shots
+    visited: set[int] = set()
+    queue = deque(anchors)
+
+    while queue:
+        current_id = queue.popleft()
+
+        if current_id in visited:
+            continue
+
+        visited.add(current_id)
+
+        # Visit all children of the current shot
+        for child_id in graph.get(current_id, []):
+            if child_id not in visited:
+                queue.append(child_id)
+
+    # Identify invalid shots and classify them
+    invalid_ids = set(shots_map.keys()) - visited
+    if invalid_ids:
+        orphans, cycles = _classify_invalid_shots(invalid_ids, shots_map)
+
+        # Log warnings for orphan shots
+        for orphan_id in sorted(orphans):
+            shot = shots_map.get(orphan_id)
+            shot_name = shot.name if shot and shot.name else f"ID={orphan_id}"
+            logger.warning(
+                "Orphan shot detected: %s (id_stop=%d) - no valid path to anchor",
+                shot_name,
+                orphan_id,
+            )
+
+        # Log warnings for cycle shots
+        if cycles:
+            cycle_ids_str = ", ".join(str(c) for c in sorted(cycles))
+            logger.warning(
+                "Cycle detected involving %d shots: [%s] - isolated from anchors",
+                len(cycles),
+                cycle_ids_str,
+            )
+            for cycle_id in sorted(cycles):
+                shot = shots_map.get(cycle_id)
+                shot_name = shot.name if shot and shot.name else f"ID={cycle_id}"
+                logger.warning(
+                    "  Cycle member: %s (id_stop=%d, id_start=%d)",
+                    shot_name,
+                    cycle_id,
+                    shot.id_start if shot else -1,
+                )
+
+    logger.debug(
+        "Found %d valid shots out of %d total (removed %d orphan/cycle shots)",
+        len(visited),
+        len(shots_map),
+        len(shots_map) - len(visited),
+    )
+
+    return visited
+
+
+
+def _classify_invalid_shots(
+    invalid_ids: set[int], shots_map: dict[int, Shot]
+) -> tuple[set[int], set[int]]:
+    """Classify invalid shots as either orphans or cycle members.
+
+    Args:
+        invalid_ids: Set of shot IDs that are not reachable from anchors
+        shots_map: Mapping of shot id_stop to Shot objects
+
+    Returns:
+        Tuple of (orphan_ids, cycle_ids)
+    """
+    orphans: set[int] = set()
+    cycles: set[int] = set()
+
+    for shot_id in invalid_ids:
+        if shot_id in orphans or shot_id in cycles:
+            continue  # Already classified
+
+        # Trace back through id_start to find the root cause
+        path: list[int] = []
+        path_set: set[int] = set()
+        current_id = shot_id
+
+        while True:
+            if current_id in path_set:
+                # Found a cycle - mark all nodes in the cycle
+                cycle_start_idx = path.index(current_id)
+                cycle_nodes = set(path[cycle_start_idx:])
+                cycles.update(cycle_nodes)
+                # Nodes before the cycle are orphans (they lead to a cycle)
+                orphans.update(path[:cycle_start_idx])
+                break
+
+            if current_id not in shots_map:
+                # Origin doesn't exist - entire path is orphaned
+                orphans.update(path)
+                break
+
+            shot = shots_map[current_id]
+            path.append(current_id)
+            path_set.add(current_id)
+
+            if shot.id_start == -1:
+                # Reached a root without coordinates - entire path is orphaned
+                orphans.update(path)
+                break
+
+            current_id = shot.id_start
+
+    return orphans, cycles
+
 
 def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
     graph = build_shot_graph(survey.sections)
@@ -252,6 +388,10 @@ def shot_to_geojson_feature(
 
 def survey_to_geojson(survey: Survey) -> dict:
     shots_map: dict[int, Shot] = build_shots_map(survey)
+    graph = build_shot_graph(survey.sections)
+
+    # Find valid shots (reachable from anchors, excluding orphans and cycles)
+    valid_shot_ids = find_valid_shot_ids(shots_map, graph)
 
     logger.debug("Starting coordinate propagation ...")
     propagate_coordinates(survey, shots_map)
@@ -263,6 +403,7 @@ def survey_to_geojson(survey: Survey) -> dict:
         if shot.shot_type in [ArianeShotType.REAL, ArianeShotType.START]
         # if shot.shot_type != ArianeShotType.CLOSURE
         if not shot.excluded
+        if shot.id_stop in valid_shot_ids  # Filter out orphans and cycles
     ]
 
     return FeatureCollection(features=features)
