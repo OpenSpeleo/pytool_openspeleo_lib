@@ -4,7 +4,7 @@
 "A library to read/write and convert OpenSpeleo files"
 """
 
-__version__ = "0.0.14"
+__version__ = "0.0.15"
 
 # Initialize the logger
 from openspeleo_lib import logger  # noqa: F401 # pyright: ignore[reportUnusedImport]
