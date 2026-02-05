@@ -17,7 +17,10 @@ logger.setLevel(logging.INFO)
 # =============================================================================
 
 ARTIFACTS_DIR = Path(__file__).parent / "artifacts"
-PRIVATE_DIR = ARTIFACTS_DIR / "private"
+PRIVATE_DATA_DIR = ARTIFACTS_DIR / "private"
+
+PRIVATE_ARIANE_DATA_DIR = PRIVATE_DATA_DIR / "ariane"
+PRIVATE_COMPASS_DATA_DIR = PRIVATE_DATA_DIR / "compass"
 
 
 # =============================================================================
@@ -28,7 +31,7 @@ PRIVATE_DIR = ARTIFACTS_DIR / "private"
 XZ_MAGIC_HEADER = b"\xfd7zXZ\x00"
 
 
-def _decrypt_artifacts() -> None:
+def _decrypt_artifacts(target_dir: Path) -> None:
     if (key_str := os.environ.get("ARTIFACT_ENCRYPTION_KEY")) is None:
         return
 
@@ -39,7 +42,7 @@ def _decrypt_artifacts() -> None:
         logger.exception("Invalid AES-SIV key provided.")
         return
 
-    for enc_f in Path("tests/artifacts/private").rglob(pattern="*.encrypted"):
+    for enc_f in target_dir.rglob(pattern="*.encrypted"):
         with enc_f.open(mode="rb") as f:
             enc_data = f.read()
 
@@ -58,4 +61,5 @@ def _decrypt_artifacts() -> None:
 
 
 def pytest_sessionstart(session) -> None:
-    _decrypt_artifacts()
+    _decrypt_artifacts(PRIVATE_ARIANE_DATA_DIR)
+    _decrypt_artifacts(PRIVATE_COMPASS_DATA_DIR)

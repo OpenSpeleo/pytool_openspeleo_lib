@@ -9,12 +9,13 @@ from parameterized import parameterized
 
 from openspeleo_lib.geojson import survey_to_geojson
 from openspeleo_lib.interfaces import ArianeInterface
+from tests.conftest import PRIVATE_ARIANE_DATA_DIR
 
 DEBUG = False
 
 
 class TestConvertToGeoJson(unittest.TestCase):
-    @parameterized.expand(sorted(Path("tests/artifacts/private").glob("*.tml")))
+    @parameterized.expand(sorted(PRIVATE_ARIANE_DATA_DIR.glob("*.tml")))
     def test_convert_to_geojson(self, filepath: Path):
         survey = ArianeInterface.from_file(filepath)
         geojson_new = survey_to_geojson(survey)

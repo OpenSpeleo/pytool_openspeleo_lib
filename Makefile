@@ -71,7 +71,7 @@ install: clean
 # Private Data Directory
 # ============================================================================ #
 
-PRIVATE_DATA_DIRS := tests/artifacts/private
+PRIVATE_DATA_DIR := tests/artifacts/private
 
 # ============================================================================ #
 # Encryption
@@ -79,7 +79,13 @@ PRIVATE_DATA_DIRS := tests/artifacts/private
 
 encrypt:
 	@shopt -s nocaseglob; \
-	for file in $(PRIVATE_DATA_DIRS)/*.{tml,mak,dat,kml,geojson,json}; do \
+	for file in $(PRIVATE_DATA_DIR)/ariane/*.{tml,tmlu,kml,geojson,json}; do \
+		if [ -f "$$file" ]; then \
+			echo "Encrypting $$file -> $$file.encrypted"; \
+			openspeleo encrypt -i "$$file" -o "$$file.encrypted" --compress -e .env -w; \
+		fi; \
+	done
+	for file in $(PRIVATE_DATA_DIR)/compass/*.{mak,dat,kml,geojson,json}; do \
 		if [ -f "$$file" ]; then \
 			echo "Encrypting $$file -> $$file.encrypted"; \
 			openspeleo encrypt -i "$$file" -o "$$file.encrypted" --compress -e .env -w; \
@@ -92,7 +98,13 @@ encrypt:
 
 regen-test-geojson:  ## rerun the json conversion to JSON of the test artifacts
 	@shopt -s nocaseglob; \
-	for file in $(PRIVATE_DATA_DIRS)/*.{tml,mak}; do \
+	for file in $(PRIVATE_DATA_DIR)/ariane/*.tml; do \
+		[ -f "$$file" ] || continue; \
+		out=$${file%.[tT][mM][lL]}.geojson; \
+		echo "Converting $$file → $$out"; \
+		openspeleo convert -i "$$file" -o "$$out" -f geojson --overwrite --beautify; \
+	done; \
+	for file in $(PRIVATE_DATA_DIR)/compass/*.mak; do \
 		[ -f "$$file" ] || continue; \
 		out=$${file%.[tT][mM][lL]}.geojson; \
 		echo "Converting $$file → $$out"; \
@@ -102,7 +114,13 @@ regen-test-geojson:  ## rerun the json conversion to JSON of the test artifacts
 
 regen-test-json:  ## rerun the json conversion to JSON of the test artifacts
 	@shopt -s nocaseglob; \
-	for file in $(PRIVATE_DATA_DIRS)/*.{tml,mak,dat}; do \
+	for file in $(PRIVATE_DATA_DIR)/ariane/*.{tml,tmlu}; do \
+		[ -f "$$file" ] || continue; \
+		out=$$file.json; \
+		echo "Converting $$file → $$out"; \
+		openspeleo convert -i "$$file" -o "$$out" -f json --overwrite --beautify; \
+	done; \
+	for file in $(PRIVATE_DATA_DIR)/compass/*.{mak,dat}; do \
 		[ -f "$$file" ] || continue; \
 		out=$$file.json; \
 		echo "Converting $$file → $$out"; \
