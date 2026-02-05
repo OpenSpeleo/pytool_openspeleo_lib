@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -64,14 +65,13 @@ class TestCompassInterfaceFromFile(unittest.TestCase):
     def test_dat_file_raises_type_error(self):
         """Test that a DAT file directly raises TypeError."""
         # Create a temporary DAT file for the test
-        import tempfile
 
         with tempfile.NamedTemporaryFile(suffix=".dat", delete=False) as f:
             f.write(b"dummy content")
             dat_path = Path(f.name)
 
         try:
-            with pytest.raises(TypeError, match="Input must be a .mak file"):
+            with pytest.raises(TypeError, match=r"Input must be a \.mak file"):
                 CompassInterface.from_file(dat_path)
         finally:
             dat_path.unlink()

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import tempfile
 import unittest
 from pathlib import Path
 
 import pytest
 
+from openspeleo_lib.interfaces.compass.interface import CompassInterface
 from tests.conftest import ALL_COMPASS_MAK_FILES
 from tests.conftest import PRIVATE_COMPASS_DATA_DIR
 
@@ -21,7 +23,6 @@ class TestLoadCompassFiles:
     @pytest.mark.parametrize("mak_path", ALL_COMPASS_MAK_FILES)
     def test_load_compass_to_survey(self, mak_path: Path) -> None:
         """Test that a Compass MAK file can be loaded as an OSPL Survey."""
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         survey = CompassInterface.from_file(mak_path)
 
@@ -33,7 +34,6 @@ class TestLoadCompassFiles:
     @pytest.mark.parametrize("mak_path", ALL_COMPASS_MAK_FILES)
     def test_loaded_survey_has_sections(self, mak_path: Path) -> None:
         """Test that loaded surveys have at least one section."""
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         survey = CompassInterface.from_file(mak_path)
         assert len(survey.sections) > 0
@@ -41,7 +41,6 @@ class TestLoadCompassFiles:
     @pytest.mark.parametrize("mak_path", ALL_COMPASS_MAK_FILES)
     def test_loaded_sections_have_shots(self, mak_path: Path) -> None:
         """Test that loaded sections have at least one shot each."""
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         survey = CompassInterface.from_file(mak_path)
 
@@ -57,7 +56,6 @@ class TestLoadCompassFiles:
         Note: depth may be None after initial load; it is calculated during
         GeoJSON generation via coordinate propagation.
         """
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         survey = CompassInterface.from_file(mak_path)
 
@@ -74,7 +72,6 @@ class TestLoadCompassFiles:
     @pytest.mark.parametrize("mak_path", ALL_COMPASS_MAK_FILES)
     def test_survey_serializes_to_json(self, mak_path: Path) -> None:
         """Test that loaded surveys can be serialized to JSON."""
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         survey = CompassInterface.from_file(mak_path)
 
@@ -87,7 +84,6 @@ class TestLoadCompassFiles:
     @pytest.mark.parametrize("mak_path", ALL_COMPASS_MAK_FILES)
     def test_station_ids_are_valid(self, mak_path: Path) -> None:
         """Test that station IDs are valid integers."""
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         survey = CompassInterface.from_file(mak_path)
 
@@ -105,16 +101,12 @@ class TestLoadCompassFileEdgeCases(unittest.TestCase):
 
     def test_load_nonexistent_file(self) -> None:
         """Test that loading a nonexistent file raises FileNotFoundError."""
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         with pytest.raises(FileNotFoundError):
             CompassInterface.from_file(Path("/nonexistent/path/cave.mak"))
 
     def test_load_wrong_extension(self) -> None:
         """Test that loading a file with wrong extension raises TypeError."""
-        import tempfile
-
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as f:
             f.write(b"dummy content")

@@ -13,6 +13,8 @@ import pytest
 
 from tests.conftest import COMPASS_WITH_GEOJSON
 from tests.conftest import PRIVATE_COMPASS_DATA_DIR
+from openspeleo_lib.geojson import survey_to_geojson
+from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
 
 @pytest.mark.skipif(
@@ -25,8 +27,6 @@ class TestCompassToGeoJSON:
     @pytest.mark.parametrize("mak_path,geojson_path", COMPASS_WITH_GEOJSON)
     def test_geojson_generation(self, mak_path: Path, geojson_path: Path) -> None:
         """Test that GeoJSON can be generated from a Compass file."""
-        from openspeleo_lib.geojson import survey_to_geojson
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         survey = CompassInterface.from_file(mak_path)
 
@@ -40,8 +40,6 @@ class TestCompassToGeoJSON:
     @pytest.mark.parametrize("mak_path,geojson_path", COMPASS_WITH_GEOJSON)
     def test_geojson_has_features(self, mak_path: Path, geojson_path: Path) -> None:
         """Test that generated GeoJSON has features."""
-        from openspeleo_lib.geojson import survey_to_geojson
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         survey = CompassInterface.from_file(mak_path)
         geojson = survey_to_geojson(survey)
@@ -52,8 +50,6 @@ class TestCompassToGeoJSON:
     @pytest.mark.parametrize("mak_path,geojson_path", COMPASS_WITH_GEOJSON)
     def test_geojson_coordinates_valid(self, mak_path: Path, geojson_path: Path) -> None:
         """Test that GeoJSON coordinates are in valid WGS84 ranges."""
-        from openspeleo_lib.geojson import survey_to_geojson
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         survey = CompassInterface.from_file(mak_path)
         geojson = survey_to_geojson(survey)
@@ -84,8 +80,6 @@ class TestGeoJSONStructure(unittest.TestCase):
     )
     def test_geojson_feature_types(self) -> None:
         """Test that GeoJSON features have valid types."""
-        from openspeleo_lib.geojson import survey_to_geojson
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         mak_files = list(PRIVATE_COMPASS_DATA_DIR.glob("*.mak"))
         if not mak_files:

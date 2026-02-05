@@ -15,6 +15,10 @@ from pathlib import Path
 import pytest
 from deepdiff import DeepDiff
 
+from openspeleo_lib.interfaces.compass.interface import CompassInterface
+from openspeleo_lib.models import Section
+from openspeleo_lib.models import Shot
+from openspeleo_lib.models import Survey
 from tests.conftest import ALL_COMPASS_MAK_FILES
 from tests.conftest import PRIVATE_COMPASS_DATA_DIR
 
@@ -32,7 +36,6 @@ class TestCompassRoundTrip:
 
         Load -> Export -> Load should produce identical JSON (excluding UUIDs).
         """
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         # Load original
         survey1 = CompassInterface.from_file(mak_path)
@@ -59,12 +62,12 @@ class TestCompassRoundTrip:
                 r".*\['speleodb_id'\]",
                 # Exclude section IDs
                 re.escape("root['sections'][*]['id']").replace(r"\*", r"\d+"),
-                # Exclude station IDs - these are internal identifiers regenerated on import
-                # The mapping from Compass station names to OSPL integer IDs is recreated each time
+                # Exclude station IDs - these are internal identifiers regenerated on import  # noqa: E501
+                # The mapping from Compass station names to OSPL integer IDs is recreated each time  # noqa: E501
                 r".*\['id_start'\]",
                 r".*\['id_stop'\]",
-                # Exclude lat/lon - Compass stores location at project level, not per-shot
-                # These are derived from project location and set on first shot during load
+                # Exclude lat/lon - Compass stores location at project level, not per-shot  # noqa: E501
+                # These are derived from project location and set on first shot during load # noqa: E501
                 r".*\['latitude'\]",
                 r".*\['longitude'\]",
                 # Exclude depth fields - calculated during GeoJSON propagation
@@ -78,7 +81,6 @@ class TestCompassRoundTrip:
     @pytest.mark.parametrize("mak_path", ALL_COMPASS_MAK_FILES)
     def test_section_count_preserved(self, mak_path: Path) -> None:
         """Test that the number of sections is preserved through round-trip."""
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         # Load original
         survey1 = CompassInterface.from_file(mak_path)
@@ -94,7 +96,6 @@ class TestCompassRoundTrip:
     @pytest.mark.parametrize("mak_path", ALL_COMPASS_MAK_FILES)
     def test_shot_count_preserved(self, mak_path: Path) -> None:
         """Test that the total number of shots is preserved through round-trip."""
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         # Load original
         survey1 = CompassInterface.from_file(mak_path)
@@ -113,7 +114,6 @@ class TestCompassRoundTrip:
     @pytest.mark.parametrize("mak_path", ALL_COMPASS_MAK_FILES)
     def test_section_names_preserved(self, mak_path: Path) -> None:
         """Test that section names are preserved through round-trip."""
-        from openspeleo_lib.interfaces.compass.interface import CompassInterface
 
         # Load original
         survey1 = CompassInterface.from_file(mak_path)
@@ -135,9 +135,6 @@ class TestRoundTripEdgeCases(unittest.TestCase):
 
     def test_survey_with_empty_name(self) -> None:
         """Test round-trip with a survey that has no name."""
-        from openspeleo_lib.models import Section
-        from openspeleo_lib.models import Shot
-        from openspeleo_lib.models import Survey
 
         # Create a minimal survey with no name
         survey = Survey(

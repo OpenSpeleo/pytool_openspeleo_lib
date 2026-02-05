@@ -64,6 +64,7 @@ dependencies = [
   "dicttoxml2>=2.1.0,<2.2",
   "frozendict>=2.4,<2.5",
   "geojson>=3.2.0,<3.3",
+  "compass_lib>=0.0.3,<0.1.0",
   "openspeleo_core>=0.0.2,<0.1.0",
   "orjson>=3.10,<3.12",
   "pyIGRF14>=1.0.3,<1.1.0",

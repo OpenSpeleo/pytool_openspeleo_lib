@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-import math
 import unittest
 
+from compass_lib.survey.models import CompassShot
+
 from openspeleo_lib.geojson import calculate_depth_from_inclination
+from openspeleo_lib.interfaces.compass.decoding import decode_shot
 from openspeleo_lib.interfaces.compass.station_mapper import StationMapper
 
 
@@ -23,7 +25,7 @@ class TestCalculateDepthFromInclination(unittest.TestCase):
             length=10.0,
             inclination=0.0,
         )
-        self.assertAlmostEqual(depth, 0.0, places=5)
+        assert abs(depth) < 1e-5
 
     def test_downward_shot(self):
         """Test that a downward shot (-45°) increases depth (goes down)."""
@@ -33,7 +35,7 @@ class TestCalculateDepthFromInclination(unittest.TestCase):
             inclination=-45.0,  # 45 degrees down
         )
         # sin(-45°) ≈ -0.707, so depth = 0 + 10 * -0.707 ≈ -7.07
-        self.assertAlmostEqual(depth, -7.071, places=2)
+        assert abs(depth + 7.071) < 1e-2
 
     def test_upward_shot(self):
         """Test that an upward shot (+45°) increases depth (goes up)."""
@@ -43,7 +45,7 @@ class TestCalculateDepthFromInclination(unittest.TestCase):
             inclination=45.0,  # 45 degrees up
         )
         # sin(45°) ≈ 0.707, so depth = 0 + 10 * 0.707 ≈ 7.07
-        self.assertAlmostEqual(depth, 7.071, places=2)
+        assert abs(depth - 7.071) < 1e-2
 
     def test_vertical_down_shot(self):
         """Test that a vertical down shot (-90°) has full length as depth."""
@@ -52,7 +54,7 @@ class TestCalculateDepthFromInclination(unittest.TestCase):
             length=100.0,
             inclination=-90.0,
         )
-        self.assertAlmostEqual(depth, -100.0, places=5)
+        assert abs(depth + 100) < 1e-5
 
     def test_vertical_up_shot(self):
         """Test that a vertical up shot (+90°) has full length as depth."""
@@ -61,7 +63,7 @@ class TestCalculateDepthFromInclination(unittest.TestCase):
             length=100.0,
             inclination=90.0,
         )
-        self.assertAlmostEqual(depth, 100.0, places=5)
+        assert abs(depth - 100) < 1e-5
 
     def test_cumulative_depth(self):
         """Test that depths accumulate correctly."""
@@ -71,7 +73,7 @@ class TestCalculateDepthFromInclination(unittest.TestCase):
             length=10.0,
             inclination=-90.0,
         )
-        self.assertAlmostEqual(depth1, -10.0, places=5)
+        assert abs(depth1 + 10) < 1e-5
 
         # Second shot: straight down from depth1
         depth2 = calculate_depth_from_inclination(
@@ -79,7 +81,7 @@ class TestCalculateDepthFromInclination(unittest.TestCase):
             length=10.0,
             inclination=-90.0,
         )
-        self.assertAlmostEqual(depth2, -20.0, places=5)
+        assert abs(depth2 + 20) < 1e-5
 
     def test_origin_depth_offset(self):
         """Test that origin_depth is used correctly."""
@@ -88,7 +90,7 @@ class TestCalculateDepthFromInclination(unittest.TestCase):
             length=10.0,
             inclination=0.0,
         )
-        self.assertAlmostEqual(depth, 100.0, places=5)
+        assert abs(depth - 100) < 1e-5
 
     def test_none_inclination_returns_origin(self):
         """Test that None inclination returns origin depth (horizontal)."""
@@ -97,7 +99,7 @@ class TestCalculateDepthFromInclination(unittest.TestCase):
             length=10.0,
             inclination=None,
         )
-        self.assertAlmostEqual(depth, 50.0, places=5)
+        assert abs(depth - 50) < 1e-5
 
 
 class TestDecodeShot(unittest.TestCase):
@@ -105,9 +107,6 @@ class TestDecodeShot(unittest.TestCase):
 
     def test_decode_shot_basic(self):
         """Test basic shot decoding."""
-        from compass_lib.survey.models import CompassShot
-
-        from openspeleo_lib.interfaces.compass.decoding import decode_shot
 
         mapper = StationMapper()
 
@@ -140,9 +139,6 @@ class TestDecodeShot(unittest.TestCase):
 
     def test_decode_shot_with_exclusion(self):
         """Test that exclusion flags are properly decoded."""
-        from compass_lib.survey.models import CompassShot
-
-        from openspeleo_lib.interfaces.compass.decoding import decode_shot
 
         mapper = StationMapper()
 
@@ -158,9 +154,6 @@ class TestDecodeShot(unittest.TestCase):
 
     def test_decode_shot_truncates_long_names(self):
         """Test that station names are truncated to 50 chars."""
-        from compass_lib.survey.models import CompassShot
-
-        from openspeleo_lib.interfaces.compass.decoding import decode_shot
 
         mapper = StationMapper()
         long_name = "A" * 100

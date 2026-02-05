@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from compass_lib.interface import CompassInterface as CompassLibInterface
 
@@ -17,9 +16,6 @@ from openspeleo_lib.interfaces.compass.decoding import compass_decode
 from openspeleo_lib.interfaces.compass.encoding import compass_encode
 from openspeleo_lib.interfaces.compass.encoding import get_dat_filename_from_mak
 from openspeleo_lib.models import Survey
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +44,9 @@ class CompassFileType:
 
         if ext == ".mak":
             return cls.MAK
-        elif ext == ".dat":
+        if ext == ".dat":
             return cls.DAT
-        else:
-            raise TypeError(
-                f"Unsupported file format: `{ext}`. "
-                f"Expected: `.mak` or `.dat`"
-            )
+        raise TypeError(f"Unsupported file format: `{ext}`. Expected: `.mak` or `.dat`")
 
 
 class CompassInterface(BaseInterface):
@@ -128,9 +120,7 @@ class CompassInterface(BaseInterface):
         # Validate file type
         filetype = CompassFileType.from_path(filepath)
         if filetype != CompassFileType.MAK:
-            raise TypeError(
-                f"Output must be a .mak file, got: `{filepath.suffix}`"
-            )
+            raise TypeError(f"Output must be a .mak file, got: `{filepath.suffix}`")
 
         # Generate DAT filename
         dat_filename = get_dat_filename_from_mak(filepath)
@@ -166,9 +156,7 @@ class CompassInterface(BaseInterface):
         # Validate file type
         filetype = CompassFileType.from_path(filepath)
         if filetype != CompassFileType.MAK:
-            raise TypeError(
-                f"Input must be a .mak file, got: `{filepath.suffix}`"
-            )
+            raise TypeError(f"Input must be a .mak file, got: `{filepath.suffix}`")
 
         logger.debug("Loading Compass file: %s", filepath)
 

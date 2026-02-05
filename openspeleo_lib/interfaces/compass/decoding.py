@@ -11,14 +11,12 @@ from typing import TYPE_CHECKING
 
 import utm
 
-from openspeleo_lib.interfaces.compass.defaults import (
-    DEFAULT_COMPASS_FORMAT,
-    DEFAULT_PROFILE_TYPE,
-    DEFAULT_SECTION_NAME,
-    DEFAULT_SHOT_COLOR,
-    DEFAULT_SHOT_TYPE,
-    DEFAULT_START_ELEVATION,
-)
+from openspeleo_lib.interfaces.compass.defaults import DEFAULT_COMPASS_FORMAT
+from openspeleo_lib.interfaces.compass.defaults import DEFAULT_PROFILE_TYPE
+from openspeleo_lib.interfaces.compass.defaults import DEFAULT_SECTION_NAME
+from openspeleo_lib.interfaces.compass.defaults import DEFAULT_SHOT_COLOR
+from openspeleo_lib.interfaces.compass.defaults import DEFAULT_SHOT_TYPE
+from openspeleo_lib.interfaces.compass.defaults import DEFAULT_START_ELEVATION
 from openspeleo_lib.interfaces.compass.station_mapper import StationMapper
 
 if TYPE_CHECKING:
@@ -64,13 +62,15 @@ def get_project_anchor_wgs84(project: CompassMakFile) -> tuple[float, float] | N
             )
             logger.debug(
                 "Using project location: (%.6f, %.6f) from UTM zone %d",
-                lat, lon, project.utm_zone
+                lat,
+                lon,
+                project.utm_zone,
             )
-            return (lat, lon)
-        except Exception as e:  # noqa: BLE001
-            logger.warning(
-                "Failed to convert project location to lat/lon: %s", e
-            )
+        except Exception:
+            logger.exception("Failed to convert project location to lat/lon")
+            raise
+
+        return lat, lon
 
     # Try 2: Use first fixed station with coordinates
     fixed_stations = project.get_fixed_stations()
@@ -88,19 +88,21 @@ def get_project_anchor_wgs84(project: CompassMakFile) -> tuple[float, float] | N
                 lat, lon = utm.to_latlon(easting, northing, utm_zone, northern=northern)
                 logger.debug(
                     "Using fixed station '%s' as anchor: (%.6f, %.6f)",
-                    first_fixed.name, lat, lon
+                    first_fixed.name,
+                    lat,
+                    lon,
                 )
-                return (lat, lon)
-            except Exception as e:  # noqa: BLE001
-                logger.warning(
-                    "Failed to convert fixed station '%s' to lat/lon: %s",
-                    first_fixed.name, e
+
+            except Exception:
+                logger.exception(
+                    "Failed to convert fixed station '%s' to lat/lon", first_fixed.name
                 )
+                raise
+
+            return lat, lon
 
     logger.debug("No valid anchor location found for project")
     return None
-
-
 
 
 def decode_shot(
@@ -124,7 +126,9 @@ def decode_shot(
         "id_stop": to_id,
         "name": shot.to_station_name[:50].upper() if shot.to_station_name else None,
         "length": shot.length if shot.length is not None else 0.0,
-        "azimuth": shot.frontsight_azimuth if shot.frontsight_azimuth is not None else 0.0,
+        "azimuth": shot.frontsight_azimuth
+        if shot.frontsight_azimuth is not None
+        else 0.0,
         "inclination": shot.frontsight_inclination,
         "left": shot.left,
         "right": shot.right,
@@ -234,7 +238,8 @@ def compass_decode(project: CompassMakFile) -> dict:
                 anchor_set = True
                 logger.debug(
                     "Set anchor coordinates on first shot: (%.6f, %.6f)",
-                    anchor_coords[0], anchor_coords[1]
+                    anchor_coords[0],
+                    anchor_coords[1],
                 )
 
             sections.append(section)

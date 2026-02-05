@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from collections import defaultdict
 from collections import deque
 from itertools import count
@@ -272,7 +273,6 @@ def calculate_depth_from_inclination(
     """
     if inclination is None:
         return origin_depth
-    import math
 
     vertical = length * math.sin(math.radians(inclination))
     return origin_depth + vertical

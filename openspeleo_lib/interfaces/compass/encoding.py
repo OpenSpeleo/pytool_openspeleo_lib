@@ -7,7 +7,6 @@ to Compass MAK/DAT format for round-trip capability.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from compass_lib.project.models import CompassMakFile
@@ -18,6 +17,8 @@ from compass_lib.survey.models import CompassTrip
 from compass_lib.survey.models import CompassTripHeader
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from openspeleo_lib.models import Section
     from openspeleo_lib.models import Shot
     from openspeleo_lib.models import Survey
@@ -62,7 +63,11 @@ def encode_shot(
         A Compass shot model.
     """
     # Get station names, generating synthetic names if needed
-    from_name = station_names.get(shot.id_start, f"S{shot.id_start}") if shot.id_start >= 0 else f"S{shot.id_stop}O"
+    from_name = (
+        station_names.get(shot.id_start, f"S{shot.id_start}")
+        if shot.id_start >= 0
+        else f"S{shot.id_stop}O"
+    )
     to_name = station_names.get(shot.id_stop, f"S{shot.id_stop}")
 
     return CompassShot(
@@ -113,9 +118,13 @@ def encode_section(
         declination=section.declination,
         length_correction=corrections[0] if len(corrections) > 0 else 0.0,
         frontsight_azimuth_correction=corrections[1] if len(corrections) > 1 else 0.0,
-        frontsight_inclination_correction=corrections[2] if len(corrections) > 2 else 0.0,
+        frontsight_inclination_correction=corrections[2]
+        if len(corrections) > 2
+        else 0.0,
         backsight_azimuth_correction=corrections2[0] if len(corrections2) > 0 else 0.0,
-        backsight_inclination_correction=corrections2[1] if len(corrections2) > 1 else 0.0,
+        backsight_inclination_correction=corrections2[1]
+        if len(corrections2) > 1
+        else 0.0,
     )
 
     return CompassTrip(header=header, shots=shots)

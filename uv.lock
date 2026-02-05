@@ -262,6 +262,25 @@ wheels = [
 ]
 
 [[package]]
+name = "compass-lib"
+version = "0.0.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "geojson" },
+    { name = "orjson" },
+    { name = "pydantic" },
+    { name = "pydantic-extra-types" },
+    { name = "pyigrf14" },
+    { name = "pyproj", version = "3.7.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pyproj", version = "3.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "utm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/76/c2/e94af4590a43e81c8a481d069cb7346e473a70c17e8585c472e1023a525a/compass_lib-0.0.3.tar.gz", hash = "sha256:ce04d3192f1676c209d0783e6db9b3e3fe6cbbe1804efb7252998b99a8ef4834", size = 53392, upload-time = "2026-02-05T05:14:27.038Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/46/ac/7e6bcb133c48547b3d8bd4240443cb886973f31f7bb446954651b027d3e3/compass_lib-0.0.3-py3-none-any.whl", hash = "sha256:be98c17ba90cbcf2957a97fbb7685f42f22a73193b3856169387cae559468d77", size = 62701, upload-time = "2026-02-05T05:14:25.445Z" },
+]
+
+[[package]]
 name = "coverage"
 version = "7.13.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1111,6 +1130,7 @@ name = "openspeleo-lib"
 source = { editable = "." }
 dependencies = [
     { name = "argparse" },
+    { name = "compass-lib" },
     { name = "dicttoxml2" },
     { name = "frozendict" },
     { name = "geojson" },
@@ -1155,6 +1175,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "argparse", specifier = ">=1.4,<1.5" },
+    { name = "compass-lib", specifier = ">=0.0.3,<0.1.0" },
     { name = "deepdiff", marker = "extra == 'test'", specifier = ">=7.0,<9.0" },
     { name = "dicttoxml2", specifier = ">=2.1.0,<2.2" },
     { name = "frozendict", specifier = ">=2.4,<2.5" },
@@ -2177,6 +2198,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c7/24/5f1b3bdffd70275f6661c76461e25f024d5a38a46f04aaca912426a2b1d3/urllib3-2.6.3.tar.gz", hash = "sha256:1b62b6884944a57dbe321509ab94fd4d3b307075e0c2eae991ac71ee15ad38ed", size = 435556, upload-time = "2026-01-07T16:24:43.925Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/39/08/aaaad47bc4e9dc8c725e68f9d04865dbcb2052843ff09c97b08904852d84/urllib3-2.6.3-py3-none-any.whl", hash = "sha256:bf272323e553dfb2e87d9bfd225ca7b0f467b919d7bbd355436d3fd37cb0acd4", size = 131584, upload-time = "2026-01-07T16:24:42.685Z" },
+]
+
+[[package]]
+name = "utm"
+version = "0.8.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/c4/f7662574e0d8c883cea257a59efdc2dbb21f19f4a78e7c54be570d740f24/utm-0.8.1.tar.gz", hash = "sha256:634d5b6221570ddc6a1e94afa5c51bae92bcead811ddc5c9bc0a20b847c2dafa", size = 13128, upload-time = "2025-03-06T11:40:56.022Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3b/a4/0698f3e5c397442ec9323a537e48cc63b846288b6878d38efd04e91005e3/utm-0.8.1-py3-none-any.whl", hash = "sha256:e3d5e224082af138e40851dcaad08d7f99da1cc4b5c413a7de34eabee35f434a", size = 8613, upload-time = "2025-03-06T11:40:54.273Z" },
 ]
 
 [[package]]
