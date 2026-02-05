@@ -61,7 +61,9 @@ def length_to_meters(length: float, unit: LengthUnits) -> float:
             raise ValueError(f"Unsupported length unit: {unit}")
 
 
-def normalize_depth(depth: float, unit: LengthUnits) -> float:
+def normalize_depth(depth: float | None, unit: LengthUnits) -> float | None:
+    if depth is None:
+        return None
     match unit:
         case LengthUnits.FEET:
             return round(depth)
@@ -94,11 +96,25 @@ def build_shot_graph(sections: list[Section]) -> dict[int, list[int]]:
 
 
 def build_shots_map(survey: Survey) -> dict[int, Shot]:
-    shots = {}
+    """Build a mapping from station ID to Shot.
+
+    When multiple shots have the same id_stop (common in Compass loop closures),
+    prefer the shot that has known geolocation to preserve anchor information.
+    """
+    shots: dict[int, Shot] = {}
     for shot in survey.shots:
         if shot.shot_type == ArianeShotType.CLOSURE:
             continue
-        shots[shot.id_stop] = shot
+
+        # If this id_stop already exists, only overwrite if current has no coords
+        # and the new shot does (preserve anchors)
+        if shot.id_stop in shots:
+            existing = shots[shot.id_stop]
+            # Keep the one with known geolocation, or the existing one if neither has it
+            if not existing.is_geolocation_known() and shot.is_geolocation_known():
+                shots[shot.id_stop] = shot
+        else:
+            shots[shot.id_stop] = shot
 
     return shots
 
@@ -239,7 +255,40 @@ def _classify_invalid_shots(
     return orphans, cycles
 
 
+def calculate_depth_from_inclination(
+    origin_depth: float,
+    length: float,
+    inclination: float | None,
+) -> float:
+    """Calculate depth at the end of a shot from inclination.
+
+    Args:
+        origin_depth: Depth at the start of the shot.
+        length: Shot length.
+        inclination: Vertical angle in degrees (positive = up, negative = down).
+
+    Returns:
+        Depth at the end of the shot.
+    """
+    if inclination is None:
+        return origin_depth
+    import math
+
+    vertical = length * math.sin(math.radians(inclination))
+    return origin_depth + vertical
+
+
 def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
+    """Propagate coordinates and depth through the survey graph via BFS.
+
+    Starting from anchor shots (shots with known lat/lon), this function
+    traverses the shot graph and calculates:
+    1. Depth for each shot (if not already set) from inclination
+    2. Lat/lon coordinates from the parent shot's position
+
+    This unified approach ensures consistent depth and coordinate propagation
+    across all survey formats (Ariane, Compass, etc.).
+    """
     graph = build_shot_graph(survey.sections)
 
     anchors = [s for s in shots_map.values() if s.is_geolocation_known()]
@@ -250,14 +299,21 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
             "This survey has no anchor shots with known coordinates."
         )
 
+    # Ensure anchor shots have a valid depth (default to 0 if not set)
+    for anchor in anchors:
+        if anchor.depth is None:
+            anchor.depth = survey.first_start_absolute_elevation
+            anchor.depth_start = survey.first_start_absolute_elevation
+
     if logger.isEnabledFor(logging.DEBUG):
         for a in anchors:
             logger.debug(
-                "[*] Anchor: id_stop=%04d, name=%s, latitude=%.7f, longitude=%.7f",
+                "[*] Anchor: id_stop=%04d, name=%s, latitude=%.7f, longitude=%.7f, depth=%.2f",
                 a.id_stop,
                 a.name,
                 a.latitude,
                 a.longitude,
+                a.depth if a.depth is not None else 0.0,
             )
 
     queue = deque(a.id_stop for a in anchors)
@@ -303,10 +359,19 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
                     shot=child_shot, message="Missing azimuth for propagation"
                 )
 
+            # Calculate depth during traversal if not already set
+            # This handles Compass data where depth is derived from inclination
             if child_shot.depth is None:
-                raise IncorrectShotDataError(
-                    shot=child_shot, message="Missing depth for propagation"
-                )
+                if child_shot.inclination is None:
+                    # No inclination data - assume horizontal (depth unchanged)
+                    child_shot.depth = current_shot.depth
+                else:
+                    child_shot.depth = calculate_depth_from_inclination(
+                        origin_depth=current_shot.depth,
+                        length=child_shot.length,
+                        inclination=child_shot.inclination,
+                    )
+                child_shot.depth_start = current_shot.depth
 
             length_m = length_to_meters(
                 child_shot.length_2d(origin_depth=current_shot.depth),
@@ -321,10 +386,11 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
             )
 
             logger.debug(
-                "Propagated ID=%04d: lat=%.7f lon=%.7f from=%04d",
+                "Propagated ID=%04d: lat=%.7f lon=%.7f depth=%.2f from=%04d",
                 child_id,
                 child_shot.latitude,
                 child_shot.longitude,
+                child_shot.depth,
                 current_id,
             )
 
@@ -395,6 +461,19 @@ def survey_to_geojson(survey: Survey) -> dict:
 
     logger.debug("Starting coordinate propagation ...")
     propagate_coordinates(survey, shots_map)
+
+    # Propagate coordinates from shots_map to ALL shots with the same id_stop
+    # This handles loop closures where multiple shots terminate at the same station
+    for section in survey.sections:
+        for shot in section.shots:
+            if shot.id_stop in shots_map:
+                source = shots_map[shot.id_stop]
+                # Copy propagated coordinates and depth to all shots with same id_stop
+                if source is not shot:
+                    shot.latitude = source.latitude
+                    shot.longitude = source.longitude
+                    shot.depth = source.depth
+                    shot.depth_start = source.depth_start
 
     features = [
         shot_to_geojson_feature(shot, shots_map, section.name, survey.unit)
