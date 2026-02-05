@@ -1,23 +1,42 @@
 from __future__ import annotations
 
+import base64
 import logging
+import lzma
 import os
 from pathlib import Path
 
-from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives.ciphers.aead import AESSIV
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+# =============================================================================
+# Path Constants
+# =============================================================================
+
+ARTIFACTS_DIR = Path(__file__).parent / "artifacts"
+PRIVATE_DIR = ARTIFACTS_DIR / "private"
+
+
+# =============================================================================
+# Decryption
+# =============================================================================
+
+# XZ format magic bytes: 0xFD + "7zXZ" + 0x00
+XZ_MAGIC_HEADER = b"\xfd7zXZ\x00"
+
+
 def _decrypt_artifacts() -> None:
-    if (fernet_key := os.environ.get("ARTIFACT_ENCRYPTION_KEY")) is None:
+    if (key_str := os.environ.get("ARTIFACT_ENCRYPTION_KEY")) is None:
         return
 
     try:
-        fernet_key = Fernet(fernet_key)
+        key_bytes = base64.urlsafe_b64decode(key_str.encode("ascii"))
+        aead = AESSIV(key_bytes)
     except ValueError:
-        logger.exception("Invalid Fernet key provided.")
+        logger.exception("Invalid AES-SIV key provided.")
         return
 
     for enc_f in Path("tests/artifacts/private").rglob(pattern="*.encrypted"):
@@ -25,10 +44,14 @@ def _decrypt_artifacts() -> None:
             enc_data = f.read()
 
         try:
-            dec_data = fernet_key.decrypt(enc_data)
+            dec_data = aead.decrypt(enc_data, None)
         except Exception:
             logger.exception("Failed to decrypt: `%s`.", enc_f)
             continue
+
+        # Auto-detect and decompress XZ/LZMA compressed data
+        if dec_data.startswith(XZ_MAGIC_HEADER):
+            dec_data = lzma.decompress(dec_data)
 
         with (enc_f.parent / enc_f.stem).open(mode="wb") as f:
             f.write(dec_data)

@@ -68,16 +68,21 @@ install: clean
 	uv sync --all-extras --dev
 
 # ============================================================================ #
+# Private Data Directory
+# ============================================================================ #
+
+PRIVATE_DATA_DIRS := tests/artifacts/private
+
+# ============================================================================ #
 # Encryption
 # ============================================================================ #
 
-ENCRYPTED_FILES_DIR := tests/artifacts/private
-
 encrypt:
-	@for file in ${ENCRYPTED_FILES_DIR}/*.clear.tml ${ENCRYPTED_FILES_DIR}/*.clear.geojson; do \
+	@shopt -s nocaseglob; \
+	for file in $(PRIVATE_DATA_DIRS)/*.{tml,mak,dat,kml,geojson,json}; do \
 		if [ -f "$$file" ]; then \
 			echo "Encrypting $$file -> $$file.encrypted"; \
-			openspeleo encrypt -i "$$file" -o "$$file.encrypted" -e .env -w; \
+			openspeleo encrypt -i "$$file" -o "$$file.encrypted" --compress -e .env -w; \
 		fi; \
 	done
 
@@ -85,14 +90,25 @@ encrypt:
 # GeoJSON File Generation
 # ============================================================================ #
 
-PRIVATE_DATA_DIRS := tests/artifacts/private
-
 regen-test-geojson:  ## rerun the json conversion to JSON of the test artifacts
 	@shopt -s nocaseglob; \
-	for file in $(PRIVATE_DATA_DIRS)/*.tml; do \
+	for file in $(PRIVATE_DATA_DIRS)/*.{tml,mak}; do \
 		[ -f "$$file" ] || continue; \
 		out=$${file%.[tT][mM][lL]}.geojson; \
 		echo "Converting $$file → $$out"; \
 		openspeleo convert -i "$$file" -o "$$out" -f geojson --overwrite --beautify; \
 	done; \
 	shopt -u nocaseglob;
+
+regen-test-json:  ## rerun the json conversion to JSON of the test artifacts
+	@shopt -s nocaseglob; \
+	for file in $(PRIVATE_DATA_DIRS)/*.{tml,mak,dat}; do \
+		[ -f "$$file" ] || continue; \
+		out=$$file.json; \
+		echo "Converting $$file → $$out"; \
+		openspeleo convert -i "$$file" -o "$$out" -f json --overwrite --beautify; \
+	done; \
+	shopt -u nocaseglob;
+
+
+regen-test-files: regen-test-geojson regen-test-json encrypt

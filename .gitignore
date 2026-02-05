@@ -159,14 +159,18 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+# MacOS
+.DS_Store
+
 # Debug Files
 *.json
 *.xml
+*.kml
 *.tml
+*.dat
+*.mak
 *.geojson
 tests/*.json
 tests/*.xml
 !tests/artifacts/*.tml
 !tests/artifacts/private/*.encrypted
-
-.DS_Store
