@@ -15,7 +15,7 @@ dev = [
   "wheel>=0.45",
   # Benchmarking
   "pyinstrument>=5.0,<6.0",
-  "rxml>=2.3,<2.4",
+  "rxml>=2.3,<2.5",
   "lxml>=6.0,<7.0",
   # File encryption/decryption
   "python-dotenv>=1.0.0,<2.0.0",
