@@ -77,7 +77,7 @@ class Shot(BaseModel):
 
     # Core Attributes
     length: NonNegativeFloat
-    depth: float
+    depth: float | None = None  # Can be None; calculated during GeoJSON propagation
     depth_start: float | None = None
     azimuth: float
 
@@ -186,18 +186,26 @@ class Shot(BaseModel):
         - Else, `inclination` if available: horizontal = length * cos(inclination)
         - Otherwise: raise ValueError
         """
+        # Small tolerance for floating point comparison (sub-millimeter precision)
+        EPSILON = 1e-9
 
         if self.depth is not None:
             if origin_depth is None:
                 raise ValueError("`origin_depth` is missing")
 
-            if (delta_depth := abs(self.depth - origin_depth)) <= self.length:
-                return math.sqrt(self.length**2 - delta_depth**2)
+            delta_depth = abs(self.depth - origin_depth)
 
-            raise ValueError(
-                f"Shot is shorter than the vertical variation: {self.length=}, "
-                f"{delta_depth=}."
-            )
+            # Clamp delta_depth to length if within floating point tolerance
+            if delta_depth > self.length:
+                if delta_depth - self.length < EPSILON:
+                    delta_depth = self.length
+                else:
+                    raise ValueError(
+                        f"Shot is shorter than the vertical variation: {self.length=}, "
+                        f"{delta_depth=}."
+                    )
+
+            return math.sqrt(self.length**2 - delta_depth**2)
 
         if self.inclination is not None:
             if self.inclination < -90 or self.inclination > 90:

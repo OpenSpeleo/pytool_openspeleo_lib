@@ -7,7 +7,7 @@ on:
       - master
       - dev
     tags:
-      - '*'
+      - "*"
   pull_request:
   workflow_dispatch:
 
@@ -22,14 +22,15 @@ jobs:
       - name: Checkout Code Repository
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - uses: j178/prek-action@v1
         with:
-          python-version: "3.14"
+          install-only: true
 
-      # Consider using pre-commit.ci for open source project
-      - name: Run pre-commit
-        uses: pre-commit/action@v3.0.1
+      - run: |
+          prek run \
+            --show-diff-on-failure \
+            --color always \
+            --all-files
 
   # With no caching at all the entire ci process takes 3m to complete!
   pytest:
@@ -99,7 +100,7 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: 'dist/*'
+          subject-path: "dist/*"
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -107,4 +108,4 @@ jobs:
           print-hash: true
           skip-existing: true
           verbose: true
-          packages-dir: 'dist'
+          packages-dir: "dist"
