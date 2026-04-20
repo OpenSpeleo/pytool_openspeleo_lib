@@ -33,13 +33,8 @@ from openspeleo_lib.geo_utils import GeoLocation
 from openspeleo_lib.geo_utils import get_declination
 
 if TYPE_CHECKING:
-    import sys
     from collections.abc import Generator
-
-    if sys.version_info >= (3, 11):
-        from typing import Self
-    else:
-        from typing_extensions import Self
+    from typing import Self
 
 ShotID = NewType("ShotID", int)
 ShotCompassName = NewType("ShotCompassName", str)

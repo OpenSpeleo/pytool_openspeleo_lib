@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime
-import sys
 import uuid
 
 import pytest
@@ -50,9 +49,7 @@ def test_valid_survey():
     section = Section(
         id=uuid.uuid4(),
         name="Test Section",
-        date=datetime.datetime.now(
-            tz=datetime.UTC if sys.version_info >= (3, 11) else datetime.timezone.utc
-        ).date(),
+        date=datetime.datetime.now(tz=datetime.UTC).date(),
         explorers=["Explorer1", "Explorer2"],
         surveyors=["Surveyor1", "Surveyor2"],
         shots=[shot],
