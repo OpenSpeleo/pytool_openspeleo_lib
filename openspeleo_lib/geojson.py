@@ -119,6 +119,7 @@ def build_shots_map(survey: Survey) -> dict[int, Shot]:
 
     return shots
 
+
 def find_valid_shot_ids(
     shots_map: dict[int, Shot], graph: dict[int, list[int]]
 ) -> set[int]:
@@ -200,7 +201,6 @@ def find_valid_shot_ids(
     )
 
     return visited
-
 
 
 def _classify_invalid_shots(
@@ -303,17 +303,19 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
     for anchor in anchors:
         if anchor.depth is None:
             anchor.depth = survey.first_start_absolute_elevation
+        if anchor.depth_start is None:
             anchor.depth_start = survey.first_start_absolute_elevation
 
     if logger.isEnabledFor(logging.DEBUG):
         for a in anchors:
             logger.debug(
-                "[*] Anchor: id_stop=%04d, name=%s, latitude=%.7f, longitude=%.7f, depth=%.2f",
+                "[*] Anchor: id_stop=%04d, name=%s, latitude=%.7f, longitude=%.7f,"
+                "depth=%.2f",
                 a.id_stop,
                 a.name,
                 a.latitude,
                 a.longitude,
-                a.depth if a.depth is not None else 0.0,
+                a.depth_start if a.depth_start is not None else 0.0,
             )
 
     queue = deque(a.id_stop for a in anchors)
@@ -361,20 +363,19 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
 
             # Calculate depth during traversal if not already set
             # This handles Compass data where depth is derived from inclination
-            if child_shot.depth is None:
+            if child_shot.depth_start is None:
                 if child_shot.inclination is None:
                     # No inclination data - assume horizontal (depth unchanged)
-                    child_shot.depth = current_shot.depth
+                    child_shot.depth_start = current_shot.depth_start
                 else:
-                    child_shot.depth = calculate_depth_from_inclination(
-                        origin_depth=current_shot.depth,
+                    child_shot.depth_start = calculate_depth_from_inclination(
+                        origin_depth=current_shot.depth_start,
                         length=child_shot.length,
                         inclination=child_shot.inclination,
                     )
-                child_shot.depth_start = current_shot.depth
 
             length_m = length_to_meters(
-                child_shot.length_2d(origin_depth=current_shot.depth),
+                child_shot.length_2d(origin_depth=current_shot.depth_start),
                 unit=survey.unit,
             )
 
@@ -390,7 +391,7 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
                 child_id,
                 child_shot.latitude,
                 child_shot.longitude,
-                child_shot.depth,
+                child_shot.depth_start,
                 current_id,
             )
 
@@ -403,7 +404,7 @@ def shot_to_geojson_feature(
     props = {
         "id": shot.id_stop,
         # "name": shot.name,
-        "depth": normalize_depth(shot.depth, unit=unit),
+        "depth": normalize_depth(shot.depth_start, unit=unit),
         "name": name,
         # "length": shot.length,
         # "azimuth": shot.azimuth,
