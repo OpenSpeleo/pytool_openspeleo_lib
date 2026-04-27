@@ -16,7 +16,7 @@ dev = [
   "lxml>=6.0,<7.0",
   # File encryption/decryption
   "python-dotenv>=1.2.2,<2.0.0",
-  "cryptography>=46.0.7,<47.0.0",
+  "cryptography>=46.0.7,<48.0.0",
 ]
 
 [project]
