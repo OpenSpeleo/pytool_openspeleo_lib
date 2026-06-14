@@ -5,12 +5,9 @@ from __future__ import annotations
 import logging
 import unittest
 
-from openspeleo_lib.geojson import (
-    _classify_invalid_shots,
-    build_shot_graph,
-    find_valid_shot_ids,
-)
 from openspeleo_lib.enums import ArianeShotType
+from openspeleo_lib.geojson import _classify_invalid_shots
+from openspeleo_lib.geojson import find_valid_shot_ids
 from openspeleo_lib.models import Shot
 
 

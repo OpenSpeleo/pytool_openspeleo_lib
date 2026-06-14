@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import orjson
 from deepdiff import DeepDiff
@@ -10,6 +10,9 @@ from parameterized import parameterized
 from openspeleo_lib.geojson import survey_to_geojson
 from openspeleo_lib.interfaces import ArianeInterface
 from tests.conftest import PRIVATE_ARIANE_DATA_DIR
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 DEBUG = False
 
