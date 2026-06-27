@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 GEOD = Geod(ellps="WGS84")
 FEET_TO_METERS = float("0.3048")
 METERS_TO_FEET = float("1.0") / FEET_TO_METERS
+MAX_GEOLOCATION_DISCREPANCY_M = 500.0
 
 
 class DisconnectedShotError(Exception):
@@ -48,6 +49,42 @@ class IncorrectShotDataError(Exception):
         super().__init__(f"[Shot ID={shot.id_stop}]: {message}")
         self.shot = shot
         self.message = message
+
+
+class InconsistentShotCoordinatesError(IncorrectShotDataError):
+    """Raised when explicit coordinates catastrophically disagree with a shot.
+
+    For example, synthetic Shot ID 4242 would be reported when its supplied
+    endpoint ``(-70, 40)`` is over 500 m from its calculated endpoint.
+    """
+
+    def __init__(
+        self,
+        shot: Shot,
+        supplied_coordinates: tuple[float, float],
+        calculated_coordinates: tuple[float, float],
+        discrepancy_m: float,
+        max_discrepancy_m: float,
+    ):
+        self.supplied_coordinates = supplied_coordinates
+        self.calculated_coordinates = calculated_coordinates
+        self.discrepancy_m = discrepancy_m
+        self.max_discrepancy_m = max_discrepancy_m
+
+        supplied_latitude, supplied_longitude = supplied_coordinates
+        calculated_latitude, calculated_longitude = calculated_coordinates
+        super().__init__(
+            shot=shot,
+            message=(
+                "Explicit coordinates are inconsistent with shot measurements: "
+                f"supplied=(latitude={supplied_latitude:.7f}, "
+                f"longitude={supplied_longitude:.7f}), "
+                f"calculated=(latitude={calculated_latitude:.7f}, "
+                f"longitude={calculated_longitude:.7f}), "
+                f"discrepancy={discrepancy_m:,.3f} m exceeds the "
+                f"maximum allowed discrepancy={max_discrepancy_m:.3f} m"
+            ),
+        )
 
 
 def length_to_meters(length: float, unit: LengthUnits) -> float:
@@ -101,6 +138,7 @@ def build_shots_map(survey: Survey) -> dict[int, Shot]:
         shots[shot.id_stop] = shot
 
     return shots
+
 
 def find_valid_shot_ids(
     shots_map: dict[int, Shot], graph: dict[int, list[int]]
@@ -183,7 +221,6 @@ def find_valid_shot_ids(
     )
 
     return visited
-
 
 
 def _classify_invalid_shots(
@@ -331,6 +368,64 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
             queue.append(child_id)
 
 
+def validate_explicit_shot_coordinates(
+    survey: Survey,
+    shots_map: dict[int, Shot],
+    explicit_coordinate_ids: set[int],
+    valid_shot_ids: set[int],
+) -> None:
+    """Reject explicit endpoints that are over 500 m from their measured position.
+
+    Root anchors and connected anchors whose parents cannot be resolved have no
+    measured endpoint to compare against and are therefore skipped. For example,
+    synthetic Shot ID 4242 with swapped ``(-70, 40)`` coordinates is rejected.
+    This is a catastrophic-data guardrail, not a survey-accuracy validation.
+    """
+    for shot_id in sorted(explicit_coordinate_ids & valid_shot_ids):
+        shot = shots_map[shot_id]
+        if shot.id_start == -1:
+            continue
+
+        origin_shot = shots_map.get(shot.id_start)
+        if origin_shot is None or origin_shot.coordinates is None:
+            continue
+
+        supplied_coordinates = shot.coordinates
+        if supplied_coordinates is None:
+            continue
+
+        horizontal_length_m = length_to_meters(
+            shot.length_2d(origin_depth=origin_shot.depth),
+            unit=survey.unit,
+        )
+        calculated_coordinates = propagate_position(
+            base_lat=origin_shot.latitude,
+            base_lon=origin_shot.longitude,
+            length_m=horizontal_length_m,
+            azimuth_deg=shot.azimuth_true,
+        )
+
+        calculated_latitude, calculated_longitude = calculated_coordinates
+        _, _, discrepancy_m = GEOD.inv(
+            calculated_longitude,
+            calculated_latitude,
+            supplied_coordinates.longitude,
+            supplied_coordinates.latitude,
+        )
+
+        if discrepancy_m > MAX_GEOLOCATION_DISCREPANCY_M:
+            raise InconsistentShotCoordinatesError(
+                shot=shot,
+                supplied_coordinates=(
+                    supplied_coordinates.latitude,
+                    supplied_coordinates.longitude,
+                ),
+                calculated_coordinates=calculated_coordinates,
+                discrepancy_m=discrepancy_m,
+                max_discrepancy_m=MAX_GEOLOCATION_DISCREPANCY_M,
+            )
+
+
 def shot_to_geojson_feature(
     shot: Shot, shots_dict: dict[int, Shot], name: str, unit: LengthUnits
 ) -> dict | None:
@@ -387,14 +482,30 @@ def shot_to_geojson_feature(
 
 
 def survey_to_geojson(survey: Survey) -> dict:
+    """Convert a survey to GeoJSON after validating explicit shot coordinates.
+
+    Raises:
+        InconsistentShotCoordinatesError: If a connected shot's explicit endpoint
+            is more than 500 metres from the endpoint implied by its measurements.
+    """
     shots_map: dict[int, Shot] = build_shots_map(survey)
     graph = build_shot_graph(survey.sections)
+    explicit_coordinate_ids = {
+        shot.id_stop for shot in shots_map.values() if shot.is_geolocation_known()
+    }
 
     # Find valid shots (reachable from anchors, excluding orphans and cycles)
     valid_shot_ids = find_valid_shot_ids(shots_map, graph)
 
     logger.debug("Starting coordinate propagation ...")
     propagate_coordinates(survey, shots_map)
+
+    validate_explicit_shot_coordinates(
+        survey=survey,
+        shots_map=shots_map,
+        explicit_coordinate_ids=explicit_coordinate_ids,
+        valid_shot_ids=valid_shot_ids,
+    )
 
     features = [
         shot_to_geojson_feature(shot, shots_map, section.name, survey.unit)
