@@ -47,9 +47,14 @@ def ariane_encode(data: dict) -> dict:
             )
             # --------------------------------------------------------------- #
 
-            # # Reverse Color standardization
-            # print(f"{shot["Color"]=}")
-            # shot["Color"] = shot.pop("Color").replace("#", "0x")
+            # Color standardization: Ariane-authored files use 0xrrggbbaa;
+            # the model's CSS-style default (#FFB366) is not an Ariane format.
+            color = shot.get("Color")
+            if isinstance(color, str) and color.startswith("#"):
+                hex_part = color[1:].lower()
+                if len(hex_part) == 6:
+                    hex_part += "ff"  # opaque, as on Ariane-authored shots
+                shot["Color"] = f"0x{hex_part}"
 
             shots.append(shot)
 
