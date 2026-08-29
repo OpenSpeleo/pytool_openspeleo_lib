@@ -31,29 +31,30 @@ def ariane_encode(data: dict) -> dict:
             shot["Date"] = section["date"]
 
             # ~~~~~~~~~~~~~~~~ Processing Explorers/Surveyors ~~~~~~~~~~~~~~~ #
-            shot["XMLExplorer"] = ",".join(section["explorers"])
-            shot["XMLSurveyor"] = ",".join(section["surveyors"])
-
-            # ----------------- Legacy backport: Ariane < 26 ---------------- #
-            _explo_data = {}
-            for dest_key, orig_key in [
-                ("Explorer", "explorers"),
-                ("Surveyor", "surveyors"),
-            ]:
-                if _value := section.get(orig_key, ""):
-                    _explo_data[dest_key] = ",".join(_value)
-
-            # In case only "explorer" data exists - Ariane doesn't store in format XML
-            if len(_explo_data) == 1:
-                with contextlib.suppress(KeyError):
-                    _explo_data = ",".join(_explo_data["explorers"])
-
-            shot["Explorer"] = serialize_dict_to_xmlfield(_explo_data)
+            # Ariane stores this field as an escaped embedded fragment with
+            # BOTH tags, even when one is empty (see
+            # tests/artifacts/hand_survey.tml, authored by Ariane itself):
+            #     <Explorer>E</Explorer><Surveyor>S</Surveyor>
+            # Any deviation - a Surveyor-only fragment (previous behavior when
+            # explorers was empty), a bare string, or extra XMLExplorer /
+            # XMLSurveyor sibling tags - is rendered by Ariane as literal text
+            # in the data table's Explorer column.
+            shot["Explorer"] = serialize_dict_to_xmlfield(
+                {
+                    "Explorer": ",".join(section["explorers"]),
+                    "Surveyor": ",".join(section["surveyors"]),
+                }
+            )
             # --------------------------------------------------------------- #
 
-            # # Reverse Color standardization
-            # print(f"{shot["Color"]=}")
-            # shot["Color"] = shot.pop("Color").replace("#", "0x")
+            # Color standardization: Ariane-authored files use 0xrrggbbaa;
+            # the model's CSS-style default (#FFB366) is not an Ariane format.
+            color = shot.get("Color")
+            if isinstance(color, str) and color.startswith("#"):
+                hex_part = color[1:].lower()
+                if len(hex_part) == 6:
+                    hex_part += "ff"  # opaque, as on Ariane-authored shots
+                shot["Color"] = f"0x{hex_part}"
 
             shots.append(shot)
 
