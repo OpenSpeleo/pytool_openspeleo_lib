@@ -27,7 +27,7 @@ repos:
 
   # Run the Ruff linter.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.16.6
     hooks:
       # Linter
       - id: ruff
@@ -38,7 +38,7 @@ repos:
         exclude: ^tests/artifacts/
 
   - repo: https://github.com/PyCQA/autoflake
-    rev: v2.3.3 # check for the latest version
+    rev: v2.4.0 # check for the latest version
     hooks:
       - id: autoflake
         args:
@@ -56,7 +56,7 @@ repos:
 
   - repo: https://github.com/astral-sh/uv-pre-commit
     # uv version.
-    rev: 0.11.25
+    rev: 0.12.10
     hooks:
       - id: uv-lock
         args: ["--check"]
@@ -72,7 +72,7 @@ repos:
         args: ["-iii", "-ll"]
 
   - repo: https://github.com/pysentry/pysentry-pre-commit
-    rev: v0.4.6
+    rev: v0.5.0
     hooks:
       - id: pysentry
         args:

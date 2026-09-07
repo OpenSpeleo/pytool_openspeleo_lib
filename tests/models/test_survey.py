@@ -228,7 +228,7 @@ def test_invalid_survey():
         st.dictionaries(keys=st.text(), values=st.one_of(st.integers(), st.text())),
     ),
 )
-def test_fuzzy_survey(
+def test_fuzzy_survey(  # noqa: PLR0917
     speleodb_id,
     name,
     sections,

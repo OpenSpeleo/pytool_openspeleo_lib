@@ -124,7 +124,7 @@ def test_invalid_shot():
     up=st.floats(min_value=0.0),
     down=st.floats(min_value=0.0),
 )
-def test_fuzzy_shot(
+def test_fuzzy_shot(  # noqa: PLR0917
     id_stop,
     name,
     azimuth,
@@ -147,7 +147,7 @@ def test_fuzzy_shot(
     right,
     up,
     down,
-):
+):  # ruff: noqa: PLR0917
     """
     Fuzzy testing for Shot class using Hypothesis.
     """

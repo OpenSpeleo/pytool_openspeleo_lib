@@ -139,7 +139,7 @@ def test_invalid_section():
     correction2=st.lists(st.floats()),
     declination=st.floats(),
 )
-def test_fuzzy_section(
+def test_fuzzy_section(  # noqa: PLR0917
     section_id,
     name,
     date,
