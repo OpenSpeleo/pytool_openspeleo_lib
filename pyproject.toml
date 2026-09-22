@@ -14,7 +14,7 @@ dev = [
     "ruff>=0.16,<1",
     # Benchmarking
     "pyinstrument>=5.0,<6",
-    "rxml>=2.3,<3",
+    "rxml>=2.3,<4",
     "lxml>=6.0,<7",
     # File encryption/decryption
     "python-dotenv>=1.2.2,<2",
