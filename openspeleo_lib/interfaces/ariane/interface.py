@@ -6,6 +6,7 @@ import zipfile
 from pathlib import Path
 
 from openspeleo_core import ariane_core
+from pydantic import ValidationError
 
 from openspeleo_lib.constants import ARIANE_DATA_FILENAME
 from openspeleo_lib.debug_utils import write_debugdata_to_disk
@@ -13,6 +14,7 @@ from openspeleo_lib.interfaces.ariane.decoding import ariane_decode
 from openspeleo_lib.interfaces.ariane.encoding import ariane_encode
 from openspeleo_lib.interfaces.ariane.enums_cls import ArianeFileType
 from openspeleo_lib.interfaces.ariane.name_map import ARIANE_MAPPING
+from openspeleo_lib.interfaces.ariane.validation import add_coordinate_error_notes
 from openspeleo_lib.interfaces.base import BaseInterface
 from openspeleo_lib.models import Survey as BaseSurvey
 from openspeleo_lib.pydantic_utils import aliased_model
@@ -121,4 +123,8 @@ class ArianeInterface(BaseInterface):
 
         # ------------------------------------------------------------------- #
 
-        return ArianeSurvey.model_validate(data, by_alias=True)
+        try:
+            return ArianeSurvey.model_validate(data, by_alias=True)
+        except ValidationError as exc:
+            add_coordinate_error_notes(exc, data)
+            raise

@@ -8,6 +8,8 @@ from itertools import product
 from itertools import starmap
 from typing import TYPE_CHECKING
 
+from openspeleo_core import ariane_core
+
 from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.enums import LengthUnits
 from openspeleo_lib.models import Section
@@ -117,3 +119,32 @@ def make_synthetic_geolocation_survey(
         sections=[section],
         unit=unit,
     )
+
+
+def write_synthetic_tml(filepath: Path, *, coordinates=None, comment=None) -> None:
+    """Write a tiny XML archive without model validation, for parser regressions."""
+    shots = []
+    coordinates = coordinates or [(40, -70), (40, -70)]
+    if len(coordinates) == 1:
+        coordinates = coordinates * 2
+    for index, (latitude, longitude) in enumerate(coordinates):
+        shots.append(
+            {
+                "ID": index,
+                "FromID": -1,
+                "Name": f"ANCHOR{index}",
+                "Type": "START",
+                "Section": "Synthetic anchors",
+                "Date": "2025-01-01",
+                "Length": 0,
+                "Depth": 0,
+                "Azimut": 0,
+                "Latitude": latitude,
+                "Longitude": longitude,
+                "Comment": comment,
+            }
+        )
+    data = {"unit": "m", "Data": {"SurveyData": shots}}
+    xml = ariane_core.dict_to_xml_str(data, root_name="CaveFile")
+    with zipfile.ZipFile(filepath, "w") as archive:
+        archive.writestr("Data.xml", xml)

@@ -16,6 +16,20 @@ GeoJSON preserves recorded Ariane shot colors, with survey-color fallback for
 missing or invalid values. See [shot-color export](docs/shot-colors.md) for the
 normalization, compatibility, and verification contract.
 
+### Coordinate validation
+
+Ariane imports enforce the same constraints as the base survey models. Latitude
+must be between -90 and 90 degrees, longitude between -180 and 180 degrees, and
+both must be finite when provided. Invalid coordinates raise `ValidationError`
+during parsing, with notes identifying the section, station, shot ID, field, and
+supplied value. Comments are descriptive text; they never supply coordinates,
+UTM zones, or magnetic declination.
+
+Run `openspeleo validate_tml -i survey.tml` to check structural/model validity.
+Run full conversion to check geographic consistency as well. See
+[coordinate validation](docs/coordinate-validation.md) for diagnostics and the
+application integration contract.
+
 ### Coordinate safety guard
 
 A connected shot can contain both survey measurements and an explicit geographic

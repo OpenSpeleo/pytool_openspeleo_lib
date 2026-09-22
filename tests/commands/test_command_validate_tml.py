@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import shlex
 import subprocess
+import sys
 import unittest
 from pathlib import Path
+
+from tests.utils import write_synthetic_tml
 
 
 class TestValidateTMLCommand(unittest.TestCase):
@@ -45,3 +48,23 @@ class TestValidateTMLCommand(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_validate_reports_all_invalid_anchor_fields(tmp_path):
+    source = tmp_path / "invalid.tml"
+    write_synthetic_tml(source, coordinates=[(40, -183)] * 4)
+    result = subprocess.run(  # noqa: S603
+        [
+            str(Path(sys.executable).with_name("openspeleo")),
+            "validate_tml",
+            "-i",
+            str(source),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    for index in range(4):
+        assert f"station 'ANCHOR{index}'" in result.stderr
+    assert "[-180, 180]" in result.stderr
