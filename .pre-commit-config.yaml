@@ -25,6 +25,15 @@ repos:
       - id: check-docstring-first
       - id: detect-private-key
 
+  # Markdown formatting
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.9.5
+    hooks:
+      - id: prettier
+        name: prettier markdown
+        types_or: [markdown]
+        args: [--prose-wrap=always]
+
   # Run the Ruff linter.
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.6
