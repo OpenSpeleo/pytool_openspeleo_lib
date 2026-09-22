@@ -12,6 +12,7 @@ from geojson import LineString
 from geojson import Point
 from pyproj import Geod
 
+from openspeleo_lib.colors import normalize_shot_color
 from openspeleo_lib.constants import OSPL_GEOJSON_DIGIT_PRECISION
 from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.enums import LengthUnits
@@ -445,7 +446,11 @@ def shot_to_geojson_feature(
         # "up": shot.up,
         # "down": shot.down,
     }
-    # props = {k: v for k, v in props.items() if v is not None}
+    # An implicit model default is not a recorded source color.
+    if "color" in shot.model_fields_set:
+        color = normalize_shot_color(shot.color)
+        if color is not None:
+            props["color"] = color
 
     start_coords = None
     if shot.id_start != -1 and shot.id_start in shots_dict:

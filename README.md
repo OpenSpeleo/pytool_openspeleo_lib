@@ -10,6 +10,12 @@ Convert an Ariane TML survey with:
 openspeleo convert -i survey.tml -o survey.geojson -f geojson
 ```
 
+### Shot colors
+
+GeoJSON preserves recorded Ariane shot colors, with survey-color fallback for
+missing or invalid values. See [shot-color export](docs/shot-colors.md) for the
+normalization, compatibility, and verification contract.
+
 ### Coordinate safety guard
 
 A connected shot can contain both survey measurements and an explicit geographic

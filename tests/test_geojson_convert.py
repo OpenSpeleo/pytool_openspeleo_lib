@@ -7,6 +7,7 @@ import orjson
 from deepdiff import DeepDiff
 from parameterized import parameterized
 
+from openspeleo_lib.colors import normalize_shot_color
 from openspeleo_lib.geojson import MAX_GEOLOCATION_DISCREPANCY_M
 from openspeleo_lib.geojson import InconsistentShotCoordinatesError
 from openspeleo_lib.geojson import survey_to_geojson
@@ -38,6 +39,18 @@ class TestConvertToGeoJson(unittest.TestCase):
 
         with (filepath.parent / f"{filepath.stem}.geojson").open(mode="rb") as f:
             geojson_original = orjson.loads(f.read())
+
+        # Legacy goldens pin geometry and all pre-existing metadata. Verify
+        # additive color metadata separately against the original source shots.
+        shots_by_id = {shot.id_stop: shot for shot in survey.shots}
+        for feature in geojson_new["features"]:
+            shot = shots_by_id[feature["properties"]["id"]]
+            expected_color = (
+                normalize_shot_color(shot.color)
+                if "color" in shot.model_fields_set
+                else None
+            )
+            assert feature["properties"].pop("color", None) == expected_color
 
         if DEBUG:
             with (filepath.parent / f"{filepath.stem}.new.geojson").open(
