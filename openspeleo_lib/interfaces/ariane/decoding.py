@@ -83,10 +83,16 @@ def ariane_decode(data: dict) -> dict:  # noqa: PLR0915
             section_surveyors = ""
 
             # ==================== Explorers / Surveyors ==================== #
-            # Ariane Version >= 26
-            if any(key in shot for key in ["explorers", "surveyors"]):
-                section_explorers = shot.pop("explorers", "")
-                section_surveyors = shot.pop("surveyors", "")
+            # Ariane Version >= 26 - or files written by this library, which
+            # always carry the split in XMLExplorer/XMLSurveyor
+            if any(
+                key in shot
+                for key in ["explorers", "surveyors", "XMLExplorer", "XMLSurveyor"]
+            ):
+                _xml_explorers = shot.pop("XMLExplorer", "") or ""
+                _xml_surveyors = shot.pop("XMLSurveyor", "") or ""
+                section_explorers = shot.pop("explorers", "") or _xml_explorers
+                section_surveyors = shot.pop("surveyors", "") or _xml_surveyors
 
                 with contextlib.suppress(KeyError):
                     del shot["Explorer"]
