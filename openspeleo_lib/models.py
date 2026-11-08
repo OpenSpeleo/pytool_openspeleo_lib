@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import contextlib
-import datetime
+import datetime as dt
 import math
 from functools import cached_property
 from pathlib import Path
@@ -242,7 +242,7 @@ class Section(BaseModel):
     survey: Annotated[Survey | None, Field(default=None, exclude=True)]
 
     # Attributes
-    date: datetime.date | None = None
+    date: dt.date | None = None
     description: str | None = None
 
     explorers: list[str] | None = None
@@ -271,10 +271,10 @@ class Section(BaseModel):
         return self
 
     @field_serializer("date")
-    def serialize_dt(self, dt: datetime.date | None, _info):
-        if dt is None:
+    def serialize_dt(self, value: dt.date | None, _info):
+        if value is None:
             return None
-        return dt.strftime("%Y-%m-%d")
+        return value.strftime("%Y-%m-%d")
 
     @cached_property
     def computed_declination(self) -> float:
@@ -285,7 +285,7 @@ class Section(BaseModel):
 
         return get_declination(
             location=geo_anchor,
-            dt=datetime.datetime(self.date.year, self.date.month, self.date.day),
+            dt=dt.datetime(self.date.year, self.date.month, self.date.day),
         )
 
 

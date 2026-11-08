@@ -147,7 +147,7 @@ def test_fuzzy_shot(  # noqa: PLR0917
     right,
     up,
     down,
-):  # ruff: noqa: PLR0917
+):
     """
     Fuzzy testing for Shot class using Hypothesis.
     """

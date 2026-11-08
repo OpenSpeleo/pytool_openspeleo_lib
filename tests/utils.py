@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import hashlib
 import zipfile
 from collections import namedtuple
@@ -109,7 +109,7 @@ def make_synthetic_geolocation_survey(
 
     section = Section(
         name="Synthetic Section",
-        date=datetime.date(2025, 1, 1),
+        date=dt.date(2025, 1, 1),
         explorers=[],
         surveyors=[],
         shots=[root, child],

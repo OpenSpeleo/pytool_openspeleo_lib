@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import uuid
 
 import pytest
@@ -47,7 +47,7 @@ def test_valid_section():
     section = Section(
         id=uuid.uuid4(),
         name="Test Section",
-        date=datetime.datetime.now(tz=datetime.UTC).date(),
+        date=dt.datetime.now(tz=dt.UTC).date(),
         explorers=["Explorer1", "Explorer2"],
         surveyors=["Surveyor1", "Surveyor2"],
         shots=[shot],
@@ -58,7 +58,7 @@ def test_valid_section():
         declination=0.0,
     )
     assert section.name == "Test Section"
-    assert section.date == datetime.datetime.now(tz=datetime.UTC).date()
+    assert section.date == dt.datetime.now(tz=dt.UTC).date()
     assert section.explorers == ["Explorer1", "Explorer2"]
     assert section.surveyors == ["Surveyor1", "Surveyor2"]
     assert section.shots == [shot]
