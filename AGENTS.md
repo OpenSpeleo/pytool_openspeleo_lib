@@ -8,6 +8,8 @@
 - `openspeleo_lib/models.py` and `interfaces/`: survey models and format
   adapters.
 - `openspeleo_lib/interfaces/ariane/`: Ariane encoding, decoding, and mappings.
+- `openspeleo_lib/interfaces/stalagmight.py`: native StalagMight input adapter;
+  SQLite parsing belongs to `stalagmight_lib`, geographic export stays shared.
 - `openspeleo_lib/geojson.py` and `geo_utils.py`: geographic conversion.
 - `openspeleo_lib/commands/`: the `openspeleo` CLI, conversion, and TML
   validation.
@@ -21,6 +23,15 @@ create nor overwrite output. Do not guess coordinate corrections.
 Some private fixtures require `ARTIFACT_ENCRYPTION_KEY` through the existing
 test environment. Never print or commit the key or decrypted survey data; report
 fixture coverage that could not run without it.
+
+## Documentation references
+
+Do not copy literal commit SHAs, checksums, UUID values, or current package,
+dependency, and runtime version numbers into documentation or agent
+instructions. Refer to authoritative manifests, lockfiles, CI configuration,
+source paths, and regression tests instead. Describe UUID behavior without
+sample identity values. Stable file-format schema requirements and protocol
+discriminants may be stated when they define supported behavior.
 
 ## Temporary agent files
 
@@ -56,9 +67,9 @@ files.
 
 ## Python development and verification
 
-Python support and dependencies are defined in `pyproject.toml`; the current
-minimum is Python 3.11 and CI covers Python 3.11 through 3.14. Keep code
-compatible with that range. Follow the configured Ruff rules, use existing
+Python support and dependencies are defined in `pyproject.toml`; the supported
+Python range and CI matrix are authoritative there and in CI configuration. Keep
+code compatible with that range. Follow the configured Ruff rules, use existing
 package constants and helpers, and add regression coverage at the affected
 parser, model, or command boundary.
 

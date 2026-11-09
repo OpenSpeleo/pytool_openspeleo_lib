@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import pathlib
 
 import orjson
 
 from openspeleo_lib.geojson import survey_to_geojson
 from openspeleo_lib.interfaces import ArianeInterface
+from openspeleo_lib.interfaces import StalagMightInterface
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -22,7 +24,7 @@ def convert(args):
         "--input_file",
         type=pathlib.Path,
         required=True,
-        help="Path to the TML file to be validated",
+        help="Path to the TML or STALX survey",
     )
 
     parser.add_argument(
@@ -67,37 +69,54 @@ def convert(args):
     if not input_file.exists():
         raise FileNotFoundError(f"File not found: `{input_file}`")
 
+    source_stat = input_file.stat()
+
+    if input_file.resolve() == output_file.resolve() or (
+        output_file.exists() and input_file.samefile(output_file)
+    ):
+        raise ValueError("Input and output refer to the same file")
+
     if output_file.exists() and not parsed_args.overwrite:
         raise FileExistsError(
             f"The file `{output_file}` already existing. "
             "Please pass the flag `--overwrite` to ignore."
         )
 
-    match input_file.suffix:
+    match input_file.suffix.lower():
         case ".tml":
             survey = ArianeInterface.from_file(input_file)
+
+        case ".stalx":
+            survey = StalagMightInterface.from_file(input_file)
 
         case _:
             raise ValueError(f"Unsupported file format: `{input_file.suffix}`")
 
     match parsed_args.format:
         case "geojson":
-            geojson_data = survey_to_geojson(survey)
-            with output_file.open(mode="wb") as f:
-                f.write(
-                    orjson.dumps(
-                        geojson_data,
-                        None,
-                        option=(
-                            (orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
-                            if parsed_args.beautify
-                            else None
-                        ),
-                    )
-                )
+            data = survey_to_geojson(survey)
 
         case "json":
-            survey.to_json(filepath=output_file, beautify=parsed_args.beautify)
+            data = survey.model_dump(mode="json")
 
         case _:
             raise ValueError(f"Unsupported conversion format: `{parsed_args.format}`")
+
+    payload = orjson.dumps(
+        data,
+        None,
+        option=(
+            (orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
+            if parsed_args.beautify
+            else None
+        ),
+    )
+    # Exclusive creation enforces no-overwrite even if a file appears during
+    # conversion. Append mode opens existing targets without truncating them,
+    # letting us verify the actual descriptor before changing its contents.
+    with output_file.open(mode="ab" if parsed_args.overwrite else "xb") as output:
+        if os.path.samestat(source_stat, os.fstat(output.fileno())):
+            raise ValueError("Input and output refer to the same file")
+        if parsed_args.overwrite:
+            output.truncate(0)
+        output.write(payload)

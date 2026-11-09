@@ -4,6 +4,14 @@ requires = [
 ]
 build-backend = "flit_core.buildapi"
 
+[tool.flit.sdist]
+include = [
+    "docs/*.md",
+    "tests/*.py",
+    "tests/artifacts/example.stalx",
+    "tests/artifacts/stalagmight.geojson",
+]
+
 [tool.uv]
 package = true
 
@@ -64,6 +72,7 @@ dependencies = [
     "frozendict>=2.4,<3",
     "geojson>=3.2.0,<4",
     "openspeleo_core>=0.0.5,<1",
+    "stalagmight_lib>=0.0.1,<1",
     "orjson>=3.12,<4",
     "pyIGRF14>=1.0.3,<2",
     "pydantic-extra-types>=2.10,<3",
