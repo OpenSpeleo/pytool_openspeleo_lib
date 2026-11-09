@@ -69,8 +69,6 @@ def convert(args):
     if not input_file.exists():
         raise FileNotFoundError(f"File not found: `{input_file}`")
 
-    source_stat = input_file.stat()
-
     if input_file.resolve() == output_file.resolve() or (
         output_file.exists() and input_file.samefile(output_file)
     ):
@@ -81,6 +79,19 @@ def convert(args):
             f"The file `{output_file}` already existing. "
             "Please pass the flag `--overwrite` to ignore."
         )
+
+    if not input_file.is_file():
+        raise ValueError("Input must be a regular file")
+
+    # Keep the inode alive even if a producer removes or replaces the path.
+    # A stat snapshot alone can match an unrelated output after inode reuse.
+    with input_file.open(mode="rb") as source:
+        _convert_file(parsed_args, source_stat=os.fstat(source.fileno()))
+
+
+def _convert_file(parsed_args, source_stat):
+    input_file = parsed_args.input_file
+    output_file = parsed_args.output_file
 
     match input_file.suffix.lower():
         case ".tml":

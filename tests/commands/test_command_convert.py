@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
 
+import orjson
+import pytest
+
+from openspeleo_lib.commands.convert import convert
+from openspeleo_lib.interfaces import StalagMightInterface
+from tests.stalagmight_helpers import write_stalx
 from tests.utils import write_synthetic_tml
 
 SYNTHETIC_INVALID_TML = (
@@ -65,3 +72,78 @@ def test_out_of_range_coordinates_preserve_output_and_report_stations(tmp_path):
         assert "[-180, 180]" in result.stderr
     assert not new_output.exists()
     assert existing_output.read_bytes() == b"keep this"
+
+
+@pytest.mark.parametrize("failure", [None, "read", "geometry", "serialization"])
+def test_source_identity_stays_pinned_and_handle_closes(tmp_path, monkeypatch, failure):
+    source = write_stalx(
+        tmp_path / "survey.stalx",
+        [{"id": 42, "shots": [{}]}],
+        [(1, 42, 0, 40.0, -70.0, 0.0)],
+    )
+    output = tmp_path / "output.geojson"
+    source_stat = source.stat()
+    source_handles = []
+    original_open = Path.open
+    original_read = StalagMightInterface.from_file
+
+    def track_source_handles(path, *args, **kwargs):
+        handle = original_open(path, *args, **kwargs)
+        if path == source:
+            source_handles.append(handle)
+        return handle
+
+    def assert_source_pinned():
+        assert any(
+            not handle.closed
+            and os.path.samestat(source_stat, os.fstat(handle.fileno()))
+            for handle in source_handles
+        ), "The source inode must remain pinned until conversion finishes"
+
+    def read_then_remove(path):
+        if failure == "read":
+            assert_source_pinned()
+            raise ValueError("synthetic read failure")
+        survey = original_read(path)
+        assert_source_pinned()
+        path.unlink()
+        return survey
+
+    def fail_conversion(*args, **kwargs):
+        raise ValueError(f"synthetic {failure} failure")
+
+    monkeypatch.setattr(Path, "open", track_source_handles)
+    monkeypatch.setattr(StalagMightInterface, "from_file", read_then_remove)
+    if failure == "geometry":
+        monkeypatch.setattr(
+            "openspeleo_lib.commands.convert.survey_to_geojson", fail_conversion
+        )
+    elif failure == "serialization":
+        monkeypatch.setattr(orjson, "dumps", fail_conversion)
+    args = ["-i", str(source), "-o", str(output), "-f", "geojson"]
+    if failure is None:
+        convert(args)
+        assert output.exists()
+    else:
+        with pytest.raises(ValueError, match=f"synthetic {failure} failure"):
+            convert(args)
+        assert not output.exists()
+    assert source_handles
+    assert all(handle.closed for handle in source_handles)
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="Named pipes require POSIX")
+def test_non_regular_input_is_rejected_without_opening(tmp_path, monkeypatch):
+    source = tmp_path / "pipe.stalx"
+    output = tmp_path / "output.json"
+    os.mkfifo(source)
+    original_open = Path.open
+
+    def refuse_pipe_open(path, *args, **kwargs):
+        assert path != source, "Opening a named pipe could block conversion"
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", refuse_pipe_open)
+    with pytest.raises(ValueError, match="regular file"):
+        convert(["-i", str(source), "-o", str(output), "-f", "json"])
+    assert not output.exists()
