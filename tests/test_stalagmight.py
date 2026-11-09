@@ -4,8 +4,11 @@ import json
 import shutil
 import sqlite3
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
+from threading import Event
+from threading import local
 from uuid import UUID
 
 import orjson
@@ -402,6 +405,47 @@ def test_long_native_section_name_is_preserved(tmp_path):
     )
 
 
+def test_simultaneous_native_loads_have_independent_id_registries(
+    tmp_path, monkeypatch
+):
+    source = write_stalx(tmp_path / "survey.stalx", [{"id": 42, "shots": [{}]}])
+    second_entered = Event()
+    first_registered = Event()
+    second_finished = Event()
+    worker = local()
+    original_read = StalagMightInterface._from_file  # noqa: SLF001
+    original_register = UniqueValueGenerator.register
+
+    def gated_read(filepath):
+        if worker.first:
+            assert second_entered.wait(10)
+        else:
+            second_entered.set()
+            assert first_registered.wait(10)
+        return original_read(filepath)
+
+    def gated_register(vartype, value):
+        original_register(vartype, value)
+        if worker.first and not first_registered.is_set():
+            first_registered.set()
+            assert second_finished.wait(10)
+
+    def load_in_worker(first):
+        worker.first = first
+        try:
+            return StalagMightInterface.from_file(source).model_dump()
+        finally:
+            if not first:
+                second_finished.set()
+
+    monkeypatch.setattr(StalagMightInterface, "_from_file", gated_read)
+    monkeypatch.setattr(UniqueValueGenerator, "register", gated_register)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(load_in_worker, first=True)
+        second = executor.submit(load_in_worker, first=False)
+        assert first.result(timeout=15) == second.result(timeout=15)
+
+
 @pytest.mark.parametrize("fmt", ["json", "geojson"])
 @pytest.mark.parametrize("alias", ["symlink", "hardlink"])
 def test_cli_detects_alias_replaced_at_output_open(tmp_path, monkeypatch, fmt, alias):
@@ -428,6 +472,70 @@ def test_cli_detects_alias_replaced_at_output_open(tmp_path, monkeypatch, fmt, a
     with pytest.raises(ValueError, match="same file"):
         convert([*cli_args(source, output, fmt), "--overwrite"])
     assert source.read_bytes() == before
+
+
+@pytest.mark.parametrize("fmt", ["json", "geojson"])
+@pytest.mark.parametrize("alias", ["symlink", "hardlink"])
+def test_cli_protects_atomically_replaced_input(tmp_path, monkeypatch, fmt, alias):
+    sections = [{"id": 42, "shots": [{}]}]
+    datums = [(1, 42, 0, 40.0, -70.0, 0.0)]
+    source = write_stalx(tmp_path / "survey.stalx", sections, datums)
+    replacement = write_stalx(tmp_path / "replacement.stalx", sections, datums)
+    before = replacement.read_bytes()
+    output = tmp_path / "output.json"
+    original_read = StalagMightInterface.from_file
+
+    def replace_before_read(path):
+        replacement.replace(source)
+        if alias == "symlink":
+            output.symlink_to(source)
+        else:
+            output.hardlink_to(source)
+        return original_read(path)
+
+    monkeypatch.setattr(StalagMightInterface, "from_file", replace_before_read)
+    with pytest.raises(ValueError, match="same file"):
+        convert([*cli_args(source, output, fmt), "--overwrite"])
+    assert source.read_bytes() == before
+    assert output.read_bytes() == before
+
+
+def test_cli_protects_original_input_inode_after_replacement(tmp_path, monkeypatch):
+    sections = [{"id": 42, "shots": [{}]}]
+    source = write_stalx(tmp_path / "survey.stalx", sections)
+    replacement = write_stalx(tmp_path / "replacement.stalx", sections)
+    archived = tmp_path / "original.stalx"
+    output = tmp_path / "output.json"
+    before = source.read_bytes()
+    original_read = StalagMightInterface.from_file
+
+    def replace_after_read(path):
+        survey = original_read(path)
+        source.rename(archived)
+        replacement.replace(source)
+        output.hardlink_to(archived)
+        return survey
+
+    monkeypatch.setattr(StalagMightInterface, "from_file", replace_after_read)
+    with pytest.raises(ValueError, match="same file"):
+        convert([*cli_args(source, output, "json"), "--overwrite"])
+    assert archived.read_bytes() == before
+    assert output.read_bytes() == before
+
+
+def test_cli_allows_input_removed_after_read(tmp_path, monkeypatch):
+    source = write_stalx(tmp_path / "survey.stalx", [{"id": 42, "shots": [{}]}])
+    output = tmp_path / "output.json"
+    original_read = StalagMightInterface.from_file
+
+    def remove_after_read(path):
+        survey = original_read(path)
+        path.unlink()
+        return survey
+
+    monkeypatch.setattr(StalagMightInterface, "from_file", remove_after_read)
+    convert(cli_args(source, output, "json"))
+    assert json.loads(output.read_text())["name"] == "Cave"
 
 
 @pytest.mark.parametrize("fmt", ["json", "geojson"])

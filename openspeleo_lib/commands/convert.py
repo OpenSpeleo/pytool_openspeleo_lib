@@ -115,7 +115,18 @@ def convert(args):
     # conversion. Append mode opens existing targets without truncating them,
     # letting us verify the actual descriptor before changing its contents.
     with output_file.open(mode="ab" if parsed_args.overwrite else "xb") as output:
-        if os.path.samestat(source_stat, os.fstat(output.fileno())):
+        output_stat = os.fstat(output.fileno())
+        # A producer can replace the input atomically while we parse it. Protect
+        # both the original inode and the current input, which may be the inode
+        # the parser actually read, before truncating an output alias.
+        try:
+            current_source_stat = input_file.stat()
+        except FileNotFoundError:
+            current_source_stat = None
+        if os.path.samestat(source_stat, output_stat) or (
+            current_source_stat is not None
+            and os.path.samestat(current_source_stat, output_stat)
+        ):
             raise ValueError("Input and output refer to the same file")
         if parsed_args.overwrite:
             output.truncate(0)

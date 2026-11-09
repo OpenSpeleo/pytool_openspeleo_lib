@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from contextlib import nullcontext
 
 import pytest
 
@@ -8,6 +9,29 @@ from openspeleo_lib.constants import OSPL_MAX_RETRY_ATTEMPTS
 from openspeleo_lib.constants import OSPL_SHOTNAME_MAX_LENGTH
 from openspeleo_lib.errors import DuplicateValueError
 from openspeleo_lib.generators import UniqueValueGenerator
+
+
+@pytest.mark.parametrize("inner_failure", [False, True])
+def test_nested_uniqueness_restores_outer_registry(inner_failure):
+    def register_inner():
+        with UniqueValueGenerator.activate_uniqueness():
+            UniqueValueGenerator.register(vartype=int, value=100)
+            UniqueValueGenerator.register(vartype=int, value=200)
+            if inner_failure:
+                raise ValueError("inner failure")
+
+    with UniqueValueGenerator.activate_uniqueness():
+        UniqueValueGenerator.register(vartype=int, value=100)
+        expected = (
+            pytest.raises(ValueError, match="inner failure")
+            if inner_failure
+            else nullcontext()
+        )
+        with expected:
+            register_inner()
+        with pytest.raises(DuplicateValueError, match="already been registered"):
+            UniqueValueGenerator.register(vartype=int, value=100)
+        UniqueValueGenerator.register(vartype=int, value=200)
 
 
 class TestUniqueNameGenerator(unittest.TestCase):
@@ -24,11 +48,10 @@ class TestUniqueNameGenerator(unittest.TestCase):
 
         # Without active context
         UniqueValueGenerator.register(vartype=str, value=name)
-        assert UniqueValueGenerator._used_values is None  # noqa: SLF001
+        UniqueValueGenerator.register(vartype=str, value=name)
 
         with UniqueValueGenerator.activate_uniqueness():
             UniqueValueGenerator.register(vartype=str, value=name)
-            assert name in UniqueValueGenerator._used_values[str]  # noqa: SLF001
 
             with pytest.raises(
                 DuplicateValueError, match="has already been registered"
@@ -39,7 +62,7 @@ class TestUniqueNameGenerator(unittest.TestCase):
         name = "UNIQUE2"
 
         with UniqueValueGenerator.activate_uniqueness():
-            UniqueValueGenerator._used_values[str].add(name)  # noqa: SLF001
+            UniqueValueGenerator.register(vartype=str, value=name)
             generated_name = UniqueValueGenerator.get(vartype=str)
             assert generated_name != name
 
@@ -63,12 +86,11 @@ class TestUniqueNameGenerator(unittest.TestCase):
     def test_reset_used_values(self):
         with UniqueValueGenerator.activate_uniqueness():
             name = UniqueValueGenerator.get(vartype=str)
-            assert name in UniqueValueGenerator._used_values[str]  # noqa: SLF001
+            with pytest.raises(DuplicateValueError):
+                UniqueValueGenerator.register(vartype=str, value=name)
 
         with UniqueValueGenerator.activate_uniqueness():
-            new_name = UniqueValueGenerator.get(vartype=str)
-            assert new_name in UniqueValueGenerator._used_values[str]  # noqa: SLF001
-            assert name not in UniqueValueGenerator._used_values[str]  # noqa: SLF001
+            UniqueValueGenerator.register(vartype=str, value=name)
 
 
 class TestUniqueIDGenerator(unittest.TestCase):
@@ -84,11 +106,10 @@ class TestUniqueIDGenerator(unittest.TestCase):
     def test_register_id(self):
         id_val = "1234"
         UniqueValueGenerator.register(vartype=int, value=id_val)
-        assert UniqueValueGenerator._used_values is None  # noqa: SLF001
+        UniqueValueGenerator.register(vartype=int, value=id_val)
 
         with UniqueValueGenerator.activate_uniqueness():
             UniqueValueGenerator.register(vartype=int, value=id_val)
-            assert int(id_val) in UniqueValueGenerator._used_values[int]  # noqa: SLF001
 
             with pytest.raises(
                 DuplicateValueError,
@@ -99,7 +120,7 @@ class TestUniqueIDGenerator(unittest.TestCase):
     def test_prevent_duplicate_id_generation(self):
         id_val = 1
         with UniqueValueGenerator.activate_uniqueness():
-            UniqueValueGenerator._used_values[int].add(id_val)  # noqa: SLF001
+            UniqueValueGenerator.register(vartype=int, value=id_val)
             generated_id = UniqueValueGenerator.get(vartype=int)
             assert generated_id != id_val
 

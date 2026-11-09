@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import random
 from collections import defaultdict
+from contextvars import ContextVar
 from typing import Any
 from typing import NewType
 
@@ -14,7 +15,7 @@ from openspeleo_lib.errors import MaxRetriesError
 
 
 class UniqueValueGenerator:
-    _used_values = None
+    _used_values = ContextVar("unique_values", default=None)
     VOCAB = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
     def __init__(self):
@@ -23,26 +24,27 @@ class UniqueValueGenerator:
     @classmethod
     @contextlib.contextmanager
     def activate_uniqueness(cls):
+        token = cls._used_values.set(defaultdict(set))
         try:
-            cls._used_values = defaultdict(set)
             yield
         finally:
-            cls._used_values = None
+            cls._used_values.reset(token)
 
     @classmethod
     def register(cls, vartype: type, value: Any) -> None:
         """Register the generated value."""
-        if cls._used_values is None:  # uniqueness is not activated
+        used_values = cls._used_values.get()
+        if used_values is None:  # uniqueness is not activated
             return
 
         value = vartype(value)
 
-        if value in cls._used_values[vartype]:
+        if value in used_values[vartype]:
             raise DuplicateValueError(
                 f"Value `{value}` for type `{vartype}` has already been registered."
             )
 
-        cls._used_values[vartype].add(value)
+        used_values[vartype].add(value)
 
     @classmethod
     def get(cls, vartype: type, **kwargs) -> Any:
@@ -65,10 +67,9 @@ class UniqueValueGenerator:
                 elif vartype is int or (
                     isinstance(vartype, NewType) and vartype.__supertype__ is int
                 ):
+                    used_values = cls._used_values.get()
                     value = cls._generate_int(
-                        known_values=(
-                            cls._used_values[vartype] if cls._used_values else []
-                        )
+                        known_values=used_values[vartype] if used_values else []
                     )
                 else:
                     raise TypeError(f"Unsupported type: `{vartype}`")
