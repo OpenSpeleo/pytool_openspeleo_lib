@@ -14,6 +14,13 @@ include = [
 
 [tool.uv]
 package = true
+required-version = ">=0.12.17"
+# Limit the Cachebox metadata correction to the validated DeepDiff release.
+override-dependencies = [
+    { package = { name = "deepdiff", version = "9.1.0" }, dependencies = [
+        "cachebox>=6.2.10,<7",
+    ] },
+]
 
 [dependency-groups]
 dev = [
@@ -84,7 +91,7 @@ dynamic = ["description", "version"]
 
 [project.optional-dependencies]
 test = [
-    "deepdiff>=7.0,<10",
+    "deepdiff>=9.1.0,<10",
     "hypothesis>=6.128,<7",
     "pytest>=8.0.0,<10",
     "pytest-cov>=5.0.0,<8",
