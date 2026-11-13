@@ -9,7 +9,7 @@ import orjson
 import pytest
 
 from openspeleo_lib.commands.convert import convert
-from openspeleo_lib.interfaces import StalagMightInterface
+from openspeleo_lib.interfaces import StalagmightInterface
 from tests.stalagmight_helpers import write_stalx
 from tests.utils import write_synthetic_tml
 
@@ -18,7 +18,7 @@ SYNTHETIC_INVALID_TML = (
 )
 
 
-def run_convert(input_file: Path, output_file: Path):
+def run_convert(input_file: Path, output_file: Path, *, loop_closure=False):
     executable = Path(sys.executable).with_name("openspeleo")
     return subprocess.run(  # noqa: S603
         [
@@ -31,6 +31,7 @@ def run_convert(input_file: Path, output_file: Path):
             "--format",
             "geojson",
             "--overwrite",
+            *(["--loop-closure"] if loop_closure else []),
         ],
         capture_output=True,
         text=True,
@@ -38,14 +39,21 @@ def run_convert(input_file: Path, output_file: Path):
     )
 
 
-def test_invalid_coordinates_abort_without_modifying_output(tmp_path: Path):
+@pytest.mark.parametrize("loop_closure", [False, True])
+def test_invalid_coordinates_abort_without_modifying_output(
+    tmp_path: Path, loop_closure
+):
     new_output = tmp_path / "new.geojson"
     existing_output = tmp_path / "existing.geojson"
     existing_contents = b"existing output must be preserved"
     existing_output.write_bytes(existing_contents)
 
-    new_result = run_convert(SYNTHETIC_INVALID_TML, new_output)
-    overwrite_result = run_convert(SYNTHETIC_INVALID_TML, existing_output)
+    new_result = run_convert(
+        SYNTHETIC_INVALID_TML, new_output, loop_closure=loop_closure
+    )
+    overwrite_result = run_convert(
+        SYNTHETIC_INVALID_TML, existing_output, loop_closure=loop_closure
+    )
 
     for result in [new_result, overwrite_result]:
         assert result.returncode != 0
@@ -85,7 +93,7 @@ def test_source_identity_stays_pinned_and_handle_closes(tmp_path, monkeypatch, f
     source_stat = source.stat()
     source_handles = []
     original_open = Path.open
-    original_read = StalagMightInterface.from_file
+    original_read = StalagmightInterface.from_file
 
     def track_source_handles(path, *args, **kwargs):
         handle = original_open(path, *args, **kwargs)
@@ -113,7 +121,7 @@ def test_source_identity_stays_pinned_and_handle_closes(tmp_path, monkeypatch, f
         raise ValueError(f"synthetic {failure} failure")
 
     monkeypatch.setattr(Path, "open", track_source_handles)
-    monkeypatch.setattr(StalagMightInterface, "from_file", read_then_remove)
+    monkeypatch.setattr(StalagmightInterface, "from_file", read_then_remove)
     if failure == "geometry":
         monkeypatch.setattr(
             "openspeleo_lib.commands.convert.survey_to_geojson", fail_conversion

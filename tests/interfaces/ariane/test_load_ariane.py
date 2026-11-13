@@ -28,7 +28,7 @@ DEBUG = False
         ("tests/artifacts/hand_survey.tml",),
         ("tests/artifacts/test_simple.mini.tml",),
         ("tests/artifacts/test_simple.tml",),
-        # ("tests/artifacts/test_simple.tmlu",),
+        ("tests/artifacts/test_simple.tmlu",),
         ("tests/artifacts/test_with_walls.tml",),
         ("tests/artifacts/test_large.tml",),
         ("tests/artifacts/test_ariane_v26.tml",),
@@ -54,8 +54,8 @@ class TestLoadTMLUFile(unittest.TestCase):
 
     def test_load_ariane_file(self):
         file = Path("tests/artifacts/test_simple.tmlu")
-        with pytest.raises(TypeError, match="Unsupported fileformat: `TMLU`"):
-            _ = ArianeInterface.from_file(filepath=file)
+        survey = ArianeInterface.from_file(filepath=file)
+        assert sum(1 for _ in survey.shots) == 2440
 
 
 @parameterized_class(

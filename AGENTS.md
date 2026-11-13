@@ -8,9 +8,13 @@
 - `openspeleo_lib/models.py` and `interfaces/`: survey models and format
   adapters.
 - `openspeleo_lib/interfaces/ariane/`: Ariane encoding, decoding, and mappings.
-- `openspeleo_lib/interfaces/stalagmight.py`: native StalagMight input adapter;
-  SQLite parsing belongs to `stalagmight_lib`, geographic export stays shared.
+- `openspeleo_lib/interfaces/stalagmight.py`: the sole Stalagmight boundary;
+  convert reader models to plain OpenSpeleo Survey/Section/Shot models.
+  Downstream geometry and loop closure must never call the native reader.
 - `openspeleo_lib/geojson.py` and `geo_utils.py`: geographic conversion.
+- `openspeleo_lib/loop_closure.py`: required loop-closure support for OpenSpeleo
+  surveys and immutable numerical snapshots. Preparation and export preserve
+  source measurements; readers have no solver dependency.
 - `openspeleo_lib/commands/`: the `openspeleo` CLI, conversion, and TML
   validation.
 - `tests/`: model, interface, GeoJSON, and command regression coverage.

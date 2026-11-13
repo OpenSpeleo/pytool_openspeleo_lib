@@ -47,7 +47,7 @@ class TestFindValidShotIds(unittest.TestCase):
 
         valid_ids = find_valid_shot_ids(shots_map, graph)
 
-        self.assertEqual(valid_ids, {0, 1, 2, 3})
+        assert valid_ids == {0, 1, 2, 3}
 
     def test_simple_orphan_no_origin(self):
         """Shot with no origin (id_start=-1) and no coordinates is an orphan."""
@@ -62,8 +62,8 @@ class TestFindValidShotIds(unittest.TestCase):
 
         valid_ids = find_valid_shot_ids(shots_map, graph)
 
-        self.assertEqual(valid_ids, {0, 1})
-        self.assertNotIn(2, valid_ids)
+        assert valid_ids == {0, 1}
+        assert 2 not in valid_ids
 
     def test_orphan_missing_parent(self):
         """Shot pointing to non-existent parent is orphan."""
@@ -78,8 +78,8 @@ class TestFindValidShotIds(unittest.TestCase):
 
         valid_ids = find_valid_shot_ids(shots_map, graph)
 
-        self.assertEqual(valid_ids, {0, 1})
-        self.assertNotIn(3, valid_ids)
+        assert valid_ids == {0, 1}
+        assert 3 not in valid_ids
 
     def test_recursive_orphan_chain(self):
         """A -> B -> None: both A and B should be removed (recursive orphan)."""
@@ -97,9 +97,9 @@ class TestFindValidShotIds(unittest.TestCase):
 
         valid_ids = find_valid_shot_ids(shots_map, graph)
 
-        self.assertEqual(valid_ids, {0, 1})
-        self.assertNotIn(2, valid_ids)  # Orphan
-        self.assertNotIn(3, valid_ids)  # Recursive orphan
+        assert valid_ids == {0, 1}
+        assert 2 not in valid_ids  # Orphan
+        assert 3 not in valid_ids  # Recursive orphan
 
     def test_simple_cycle_two_nodes(self):
         """A -> B -> A: both should be removed if not connected to anchor."""
@@ -115,9 +115,9 @@ class TestFindValidShotIds(unittest.TestCase):
 
         valid_ids = find_valid_shot_ids(shots_map, graph)
 
-        self.assertEqual(valid_ids, {0, 1})
-        self.assertNotIn(2, valid_ids)
-        self.assertNotIn(3, valid_ids)
+        assert valid_ids == {0, 1}
+        assert 2 not in valid_ids
+        assert 3 not in valid_ids
 
     def test_cycle_three_nodes(self):
         """A -> B -> C -> A: all three should be removed if isolated."""
@@ -134,10 +134,10 @@ class TestFindValidShotIds(unittest.TestCase):
 
         valid_ids = find_valid_shot_ids(shots_map, graph)
 
-        self.assertEqual(valid_ids, {0, 1})
-        self.assertNotIn(2, valid_ids)
-        self.assertNotIn(3, valid_ids)
-        self.assertNotIn(4, valid_ids)
+        assert valid_ids == {0, 1}
+        assert 2 not in valid_ids
+        assert 3 not in valid_ids
+        assert 4 not in valid_ids
 
     def test_cycle_connected_to_anchor_is_valid(self):
         """Cycle that IS connected to anchor should be valid."""
@@ -154,7 +154,7 @@ class TestFindValidShotIds(unittest.TestCase):
         valid_ids = find_valid_shot_ids(shots_map, graph)
 
         # All should be valid because they're reachable from anchor
-        self.assertEqual(valid_ids, {0, 1, 2, 3})
+        assert valid_ids == {0, 1, 2, 3}
 
     def test_mixed_valid_orphan_and_cycle(self):
         """Complex scenario with valid shots, orphans, and cycles."""
@@ -175,14 +175,14 @@ class TestFindValidShotIds(unittest.TestCase):
 
         valid_ids = find_valid_shot_ids(shots_map, graph)
 
-        self.assertEqual(valid_ids, {0, 1, 2})
+        assert valid_ids == {0, 1, 2}
         # Orphans
-        self.assertNotIn(3, valid_ids)
-        self.assertNotIn(4, valid_ids)
+        assert 3 not in valid_ids
+        assert 4 not in valid_ids
         # Cycle
-        self.assertNotIn(5, valid_ids)
-        self.assertNotIn(6, valid_ids)
-        self.assertNotIn(7, valid_ids)
+        assert 5 not in valid_ids
+        assert 6 not in valid_ids
+        assert 7 not in valid_ids
 
     def test_no_anchor_returns_empty(self):
         """If no anchor exists, all shots are invalid."""
@@ -194,7 +194,7 @@ class TestFindValidShotIds(unittest.TestCase):
 
         valid_ids = find_valid_shot_ids(shots_map, graph)
 
-        self.assertEqual(valid_ids, set())
+        assert valid_ids == set()
 
     def test_multiple_anchors(self):
         """Multiple anchors should each define valid regions."""
@@ -212,8 +212,8 @@ class TestFindValidShotIds(unittest.TestCase):
 
         valid_ids = find_valid_shot_ids(shots_map, graph)
 
-        self.assertEqual(valid_ids, {0, 1, 2, 3})
-        self.assertNotIn(4, valid_ids)
+        assert valid_ids == {0, 1, 2, 3}
+        assert 4 not in valid_ids
 
     def test_branching_tree(self):
         """Anchor with branching children should all be valid."""
@@ -232,7 +232,7 @@ class TestFindValidShotIds(unittest.TestCase):
 
         valid_ids = find_valid_shot_ids(shots_map, graph)
 
-        self.assertEqual(valid_ids, {0, 1, 2, 3, 4, 5})
+        assert valid_ids == {0, 1, 2, 3, 4, 5}
 
     def test_empty_survey(self):
         """Empty survey should return empty set."""
@@ -241,7 +241,7 @@ class TestFindValidShotIds(unittest.TestCase):
 
         valid_ids = find_valid_shot_ids(shots_map, graph)
 
-        self.assertEqual(valid_ids, set())
+        assert valid_ids == set()
 
 
 class TestClassifyInvalidShots(unittest.TestCase):
@@ -256,8 +256,8 @@ class TestClassifyInvalidShots(unittest.TestCase):
 
         orphans, cycles = _classify_invalid_shots(invalid_ids, shots_map)
 
-        self.assertEqual(orphans, {1})
-        self.assertEqual(cycles, set())
+        assert orphans == {1}
+        assert cycles == set()
 
     def test_recursive_orphan(self):
         """Chain leading to orphan should all be classified as orphans."""
@@ -270,8 +270,8 @@ class TestClassifyInvalidShots(unittest.TestCase):
 
         orphans, cycles = _classify_invalid_shots(invalid_ids, shots_map)
 
-        self.assertEqual(orphans, {1, 2, 3})
-        self.assertEqual(cycles, set())
+        assert orphans == {1, 2, 3}
+        assert cycles == set()
 
     def test_simple_cycle(self):
         """Two-node cycle should be classified as cycle."""
@@ -283,8 +283,8 @@ class TestClassifyInvalidShots(unittest.TestCase):
 
         orphans, cycles = _classify_invalid_shots(invalid_ids, shots_map)
 
-        self.assertEqual(cycles, {1, 2})
-        self.assertEqual(orphans, set())
+        assert cycles == {1, 2}
+        assert orphans == set()
 
     def test_three_node_cycle(self):
         """Three-node cycle should all be classified as cycle."""
@@ -297,8 +297,8 @@ class TestClassifyInvalidShots(unittest.TestCase):
 
         orphans, cycles = _classify_invalid_shots(invalid_ids, shots_map)
 
-        self.assertEqual(cycles, {1, 2, 3})
-        self.assertEqual(orphans, set())
+        assert cycles == {1, 2, 3}
+        assert orphans == set()
 
     def test_orphan_leading_to_cycle(self):
         """Orphan chain leading to a cycle: chain is orphan, cycle is cycle."""
@@ -313,8 +313,8 @@ class TestClassifyInvalidShots(unittest.TestCase):
 
         orphans, cycles = _classify_invalid_shots(invalid_ids, shots_map)
 
-        self.assertEqual(cycles, {1, 2})
-        self.assertEqual(orphans, {3, 4})
+        assert cycles == {1, 2}
+        assert orphans == {3, 4}
 
     def test_missing_parent(self):
         """Shot pointing to non-existent parent is orphan."""
@@ -325,8 +325,8 @@ class TestClassifyInvalidShots(unittest.TestCase):
 
         orphans, cycles = _classify_invalid_shots(invalid_ids, shots_map)
 
-        self.assertEqual(orphans, {1})
-        self.assertEqual(cycles, set())
+        assert orphans == {1}
+        assert cycles == set()
 
 
 class TestWarningLogging(unittest.TestCase):
@@ -345,9 +345,8 @@ class TestWarningLogging(unittest.TestCase):
             find_valid_shot_ids(shots_map, graph)
 
         # Check that orphan warning was logged
-        self.assertTrue(
-            any("Orphan shot detected" in msg for msg in cm.output),
-            f"Expected orphan warning in logs: {cm.output}",
+        assert any("Orphan shot detected" in msg for msg in cm.output), (
+            f"Expected orphan warning in logs: {cm.output}"
         )
 
     def test_cycle_warning_logged(self):
@@ -364,9 +363,8 @@ class TestWarningLogging(unittest.TestCase):
             find_valid_shot_ids(shots_map, graph)
 
         # Check that cycle warning was logged
-        self.assertTrue(
-            any("Cycle detected" in msg for msg in cm.output),
-            f"Expected cycle warning in logs: {cm.output}",
+        assert any("Cycle detected" in msg for msg in cm.output), (
+            f"Expected cycle warning in logs: {cm.output}"
         )
 
 

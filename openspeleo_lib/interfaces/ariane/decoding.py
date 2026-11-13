@@ -15,6 +15,56 @@ from openspeleo_lib.interfaces.ariane.xml_utils import deserialize_xmlfield_to_d
 logger = logging.getLogger(__name__)
 DEBUG = False
 
+TMLU_SHOT_FIELDS = {
+    "AZ": "Azimut",
+    "CID": "ClosureToID",
+    "CL": "Color",
+    "CM": "Comment",
+    "D": "Down",
+    "DP": "Depth",
+    "DPI": "DepthIn",
+    "DT": "Date",
+    "EX": "Explorer",
+    "EXC": "Excluded",
+    "FRID": "FromID",
+    "INC": "Inclination",
+    "L": "Left",
+    "LG": "Length",
+    "LGT": "Longitude",
+    "LK": "Locked",
+    "LT": "Latitude",
+    "NM": "Name",
+    "PRTY": "Profiletype",
+    "R": "Right",
+    "SC": "Section",
+    "SH": "Shape",
+    "TY": "Type",
+    "U": "Up",
+}
+
+
+def expand_tmlu_shots(data: dict) -> dict:
+    """Expand the abbreviated survey record tags used by uncompressed Ariane XML."""
+    records = data.get("Data", {})
+    if "SRVD" not in records:
+        return data
+    if "SurveyData" in records:
+        raise ValueError("Ariane data mixes SRVD and SurveyData records")
+    shots = records.pop("SRVD")
+    if isinstance(shots, dict):
+        shots = [shots]
+    expanded = []
+    for shot in shots:
+        record = {}
+        for key, value in shot.items():
+            field = TMLU_SHOT_FIELDS.get(key, key)
+            if field in record:
+                raise ValueError(f"Duplicate Ariane shot field: {field}")
+            record[field] = value
+        expanded.append(record)
+    records["SurveyData"] = expanded
+    return data
+
 
 @lru_cache(maxsize=128)
 def get_section_key(
@@ -32,6 +82,8 @@ def get_section_key(
 
 def ariane_decode(data: dict) -> dict:  # noqa: PLR0915
     # ===================== DICT FORMATTING TO OSPL ===================== #
+
+    data = expand_tmlu_shots(data)
 
     if DEBUG:
         write_debugdata_to_disk(data, Path("data.import.step00-start.json"))

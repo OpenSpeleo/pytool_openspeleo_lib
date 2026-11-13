@@ -6,10 +6,13 @@ import os
 import pathlib
 
 import orjson
+from cave_closure import LoopClosureAlgorithm
+from cave_closure import LoopClosureMode
 
 from openspeleo_lib.geojson import survey_to_geojson
 from openspeleo_lib.interfaces import ArianeInterface
-from openspeleo_lib.interfaces import StalagMightInterface
+from openspeleo_lib.interfaces import StalagmightInterface
+from openspeleo_lib.loop_closure import LoopClosureSolver
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -24,7 +27,7 @@ def convert(args):
         "--input_file",
         type=pathlib.Path,
         required=True,
-        help="Path to the TML or STALX survey",
+        help="Path to the TML, TMLU, or STALX survey",
     )
 
     parser.add_argument(
@@ -61,6 +64,31 @@ def convert(args):
         help="Conversion format used.",
     )
 
+    parser.add_argument(
+        "--algorithm",
+        choices=[algorithm.name for algorithm in LoopClosureAlgorithm.variants()],
+        default=LoopClosureAlgorithm.LSE_REDUCED_PCG.name,
+    )
+    parser.add_argument(
+        "--mode",
+        type=LoopClosureMode,
+        choices=list(LoopClosureMode),
+        default=LoopClosureMode.HORIZONTAL,
+    )
+    parser.add_argument("--sigma-m", type=float, default=1.0)
+    parser.add_argument(
+        "--loop-closure",
+        action="store_true",
+        help="Apply loop closure to measured geometry",
+    )
+    parser.add_argument(
+        "--accept-adjusted-measurements",
+        action="store_true",
+        help=(
+            "Explicitly accept native measurements previously changed "
+            "by an applied loop closure"
+        ),
+    )
     parsed_args = parser.parse_args(args)
 
     input_file: pathlib.Path = parsed_args.input_file
@@ -94,18 +122,30 @@ def _convert_file(parsed_args, source_stat):
     output_file = parsed_args.output_file
 
     match input_file.suffix.lower():
-        case ".tml":
+        case ".tml" | ".tmlu":
             survey = ArianeInterface.from_file(input_file)
 
         case ".stalx":
-            survey = StalagMightInterface.from_file(input_file)
+            survey = StalagmightInterface.from_file(input_file)
 
         case _:
             raise ValueError(f"Unsupported file format: `{input_file.suffix}`")
 
     match parsed_args.format:
         case "geojson":
-            data = survey_to_geojson(survey)
+            data = survey_to_geojson(
+                survey,
+                loop_closure_solver=(
+                    LoopClosureSolver(
+                        mode=parsed_args.mode,
+                        sigma_m=parsed_args.sigma_m,
+                        algorithm=getattr(LoopClosureAlgorithm, parsed_args.algorithm),
+                        accept_adjusted_measurements=parsed_args.accept_adjusted_measurements,
+                    )
+                    if parsed_args.loop_closure
+                    else None
+                ),
+            )
 
         case "json":
             data = survey.model_dump(mode="json")
