@@ -5,6 +5,7 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.generators import UniqueValueGenerator
 
 if TYPE_CHECKING:
@@ -29,7 +30,14 @@ class BaseInterface(metaclass=ABCMeta):
             raise FileNotFoundError(f"File not found: `{filepath}`")
 
         with UniqueValueGenerator.activate_uniqueness():
-            return cls._from_file(filepath=filepath)
+            survey = cls._from_file(filepath=filepath)
+            # Capture evidence before any exporter populates coordinate fields.
+            survey._coordinate_origin_map = {  # noqa: SLF001 - parse provenance
+                shot.id_stop: "explicit" if shot.is_geolocation_known() else "derived"
+                for shot in survey.shots
+                if shot.shot_type != ArianeShotType.CLOSURE and not shot.excluded
+            }
+            return survey
 
     @classmethod
     @abstractmethod

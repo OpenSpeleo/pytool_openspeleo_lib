@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from parameterized import parameterized
 
+from openspeleo_lib.errors import EmptySurveyError
 from openspeleo_lib.interfaces.ariane.enums_cls import ArianeFileType
 from openspeleo_lib.interfaces.ariane.interface import ArianeInterface
 
@@ -38,7 +39,7 @@ class TestArianeParser(unittest.TestCase):
             with file_path.open("w") as f:
                 f.write("<CaveFile><Test>Value</Test></CaveFile>")
 
-            with pytest.raises(TypeError, match="Unsupported fileformat: `TMLU`"):
+            with pytest.raises(EmptySurveyError):
                 ArianeInterface.from_file(file_path)
 
     def test_from_ariane_file_nonexistent(self):

@@ -5,14 +5,12 @@ requires = [
 build-backend = "flit_core.buildapi"
 
 [tool.flit.sdist]
-include = [
-    "docs/*.md",
-    "tests/*.py",
-    "tests/artifacts/example.stalx",
-    "tests/artifacts/stalagmight.geojson",
-]
+include = ["docs/"]
+exclude = ["tests/"]
 
 [tool.uv]
+# Flit derives version metadata from the package module.
+cache-keys = [{ file = "pyproject.toml" }, { file = "openspeleo_lib/__init__.py" }]
 package = true
 required-version = ">=0.12.17"
 # Limit the Cachebox metadata correction to the validated DeepDiff release.
@@ -75,11 +73,12 @@ classifiers = [
 ]
 dependencies = [
     "argparse>=1.4,<2",
+    "cave-closure>=0.0.6,<0.1",
     "dicttoxml2>=2.1.0,<3",
     "frozendict>=2.4,<3",
     "geojson>=3.2.0,<4",
-    "openspeleo_core>=0.0.5,<1",
-    "stalagmight_lib>=0.0.1,<1",
+    "openspeleo_core>=0.0.7,<1",
+    "stalagmight_lib>=0.0.2,<1",
     "orjson>=3.12,<4",
     "pyIGRF14>=1.0.3,<2",
     "pydantic-extra-types>=2.10,<3",

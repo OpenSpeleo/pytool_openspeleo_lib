@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import os
 import unittest
 from typing import TYPE_CHECKING
 
@@ -12,6 +14,9 @@ from openspeleo_lib.geojson import MAX_GEOLOCATION_DISCREPANCY_M
 from openspeleo_lib.geojson import InconsistentShotCoordinatesError
 from openspeleo_lib.geojson import survey_to_geojson
 from openspeleo_lib.interfaces import ArianeInterface
+from openspeleo_lib.loop_closure.presets import (
+    InverseLengthWeightedLeastSquaresHorizontalSolver,
+)
 from tests.conftest import PRIVATE_ARIANE_DATA_DIR
 
 if TYPE_CHECKING:
@@ -77,3 +82,41 @@ class TestConvertToGeoJson(unittest.TestCase):
             ignore_order=True,
         )
         assert ddiff == {}, ddiff
+
+    @parameterized.expand(
+        sorted(
+            path.with_suffix("")
+            for path in PRIVATE_ARIANE_DATA_DIR.glob("*.tml.encrypted")
+        )
+    )
+    def test_convert_to_geojson_inverse_length_weighted_horizontal(
+        self, filepath: Path
+    ):
+        solver = InverseLengthWeightedLeastSquaresHorizontalSolver
+        golden = filepath.with_name(f"{filepath.stem}-{solver.name}.geojson")
+        if not filepath.exists() and not os.environ.get("ARTIFACT_ENCRYPTION_KEY"):
+            self.skipTest("Private fixtures require ARTIFACT_ENCRYPTION_KEY")
+        survey = ArianeInterface.from_file(filepath)
+        before = hashlib.sha256(survey.model_dump_json().encode()).digest()
+        try:
+            converted = survey_to_geojson(
+                survey,
+                loop_closure_solver=solver,
+            )
+        except InconsistentShotCoordinatesError as error:
+            assert_invalid_coordinate_rejection(error)
+            assert not golden.with_suffix(".geojson.encrypted").exists()
+            return
+        except Exception as error:  # noqa: BLE001 - never print private survey details
+            raise AssertionError(
+                f"{filepath.name}: weighted horizontal export failed "
+                f"({type(error).__name__}); survey data omitted"
+            ) from None
+        finally:
+            after = hashlib.sha256(survey.model_dump_json().encode()).digest()
+            assert after == before, "Loop closure changed the input survey"
+        if not golden.exists() and not os.environ.get("ARTIFACT_ENCRYPTION_KEY"):
+            self.skipTest("Private goldens require ARTIFACT_ENCRYPTION_KEY")
+        actual = orjson.dumps(converted, option=orjson.OPT_SORT_KEYS)
+        if actual != golden.read_bytes():
+            raise AssertionError(f"{golden.name}: weighted horizontal golden differs")

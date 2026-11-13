@@ -1,0 +1,1 @@
+{"features":[{"geometry":{"coordinates":[-70.0,40.0],"type":"Point"},"properties":{"color":"#00ffff","depth":0,"id":0,"name":"Start"},"type":"Feature"},{"geometry":{"coordinates":[[-70.0,40.0],[-70.0,40.0]],"type":"LineString"},"properties":{"color":"#f811e1","depth":0,"id":1,"name":"Section 1"},"type":"Feature"}],"type":"FeatureCollection"}

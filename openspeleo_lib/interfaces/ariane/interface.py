@@ -83,13 +83,7 @@ class ArianeInterface(BaseInterface):
     def _from_file(cls, filepath: str | Path) -> BaseSurvey:
         # ========================= INPUT VALIDATION ======================== #
 
-        if (
-            filetype := ArianeFileType.from_path(filepath=filepath)
-        ) != ArianeFileType.TML:
-            raise TypeError(
-                f"Unsupported fileformat: `{filetype.name}`. "
-                f"Expected: `{ArianeFileType.TML.name}`"
-            )
+        filetype = ArianeFileType.from_path(filepath=filepath)
 
         logging.debug(
             "Loading %(filetype)s File: `%(filepath)s`",
@@ -105,6 +99,11 @@ class ArianeInterface(BaseInterface):
                 data = ariane_core.load_ariane_tml_file_to_dict(path=filepath)[
                     "CaveFile"
                 ]
+
+            case ArianeFileType.TMLU:
+                data = ariane_core.xml_str_to_dict(
+                    Path(filepath).read_text(encoding="utf-8-sig"), keep_null=False
+                )["CaveFile"]
 
             case _:
                 raise NotImplementedError(

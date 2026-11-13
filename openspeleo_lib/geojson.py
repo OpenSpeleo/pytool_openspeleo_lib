@@ -18,6 +18,7 @@ from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.enums import LengthUnits
 
 if TYPE_CHECKING:
+    from openspeleo_lib.loop_closure import LoopClosureSolver
     from openspeleo_lib.models import Section
     from openspeleo_lib.models import Shot
     from openspeleo_lib.models import Survey
@@ -355,7 +356,11 @@ def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
                 base_lat=current_shot.latitude,
                 base_lon=current_shot.longitude,
                 length_m=length_m,
-                azimuth_deg=child_shot.azimuth_true,
+                azimuth_deg=(
+                    child_shot.azimuth_true
+                    if survey.use_magnetic_azimuth
+                    else child_shot.azimuth
+                ),
             )
 
             logger.debug(
@@ -403,7 +408,9 @@ def validate_explicit_shot_coordinates(
             base_lat=origin_shot.latitude,
             base_lon=origin_shot.longitude,
             length_m=horizontal_length_m,
-            azimuth_deg=shot.azimuth_true,
+            azimuth_deg=(
+                shot.azimuth_true if survey.use_magnetic_azimuth else shot.azimuth
+            ),
         )
 
         calculated_latitude, calculated_longitude = calculated_coordinates
@@ -486,7 +493,7 @@ def shot_to_geojson_feature(
     )
 
 
-def survey_to_geojson(survey: Survey) -> dict:
+def measured_survey_to_geojson(survey: Survey) -> dict:
     """Convert a survey to GeoJSON after validating explicit shot coordinates.
 
     Raises:
@@ -523,3 +530,14 @@ def survey_to_geojson(survey: Survey) -> dict:
     ]
 
     return FeatureCollection(features=features)
+
+
+def survey_to_geojson(
+    survey: Survey,
+    *,
+    loop_closure_solver: LoopClosureSolver | None = None,
+) -> dict:
+    """Export measured geometry, optionally applying a configured closure solver."""
+    if loop_closure_solver is None:
+        return measured_survey_to_geojson(survey)
+    return loop_closure_solver.to_geojson(survey)

@@ -180,3 +180,17 @@ def test_fuzzy_shot(  # noqa: PLR0917
 
 if __name__ == "__main__":
     pytest.main()
+
+
+@pytest.mark.parametrize("authoritative", [False, True])
+def test_start_depth_policy_survives_serialization(authoritative):
+    shot = Shot(
+        id_stop=1,
+        length=5,
+        depth=0,
+        depth_start=3,
+        azimuth=0,
+        depth_start_is_authoritative=authoritative,
+    )
+    restored = Shot.model_validate_json(shot.model_dump_json())
+    assert restored.length_2d(origin_depth=0) == (4 if authoritative else 5)

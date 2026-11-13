@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import NonNegativeInt
+from pydantic import PrivateAttr
 from pydantic import StringConstraints
 from pydantic import ValidationInfo
 from pydantic import field_serializer
@@ -74,12 +75,20 @@ class Shot(BaseModel):
     length: NonNegativeFloat
     depth: float
     depth_start: float | None = None
+    # Some readers preserve an independently measured start depth. Legacy
+    # Ariane DepthIn is ancillary; ordinary propagation uses the parent depth.
+    depth_start_is_authoritative: bool = Field(
+        default=False, exclude_if=lambda value: not value
+    )
     azimuth: float
+    azimuth_secondary: float | None = Field(
+        default=None, allow_inf_nan=False, exclude_if=lambda value: value is None
+    )
 
     # Attributes
     closure_to_id: int = -1
 
-    inclination: float = None
+    inclination: float | None = None
 
     latitude: Annotated[float | None, Field(ge=-90, le=90)] = None
     longitude: Annotated[float | None, Field(ge=-180, le=180)] = None
@@ -104,6 +113,24 @@ class Shot(BaseModel):
     # model_config = ConfigDict(
     #     validate_by_name=True, validate_by_alias=True, extra="forbid"
     # )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _closure_identity_defaults(cls, value):
+        if not isinstance(value, dict):
+            return value
+        type_alias = cls.model_fields["shot_type"].alias or "shot_type"
+        kind = value.get("shot_type", value.get(type_alias))
+        if kind in (ArianeShotType.CLOSURE, ArianeShotType.CLOSURE.value):
+            # Identity records have no measurements. Preserve supplied payload
+            # and support both the common model and native Ariane field aliases.
+            defaults = {}
+            for name in ("length", "depth", "azimuth"):
+                alias = cls.model_fields[name].alias or name
+                if name not in value and alias not in value:
+                    defaults[alias] = 0.0
+            value = {**defaults, **value}
+        return value
 
     @field_validator("length", "left", "right", "up", "down", mode="before")
     @classmethod
@@ -148,6 +175,10 @@ class Shot(BaseModel):
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
+        if self.shot_type == ArianeShotType.CLOSURE:
+            # These IDs reference stations defined elsewhere; they do not
+            # allocate a new station or participate in station-key uniqueness.
+            return self
         # 1. Validate unique keys
         for key, dtype in [
             ("id_stop", ShotID),
@@ -176,12 +207,17 @@ class Shot(BaseModel):
         """
         Horizontal plan-view length for this shot in the same unit as `length`.
 
+        An authoritative independent `depth_start` overrides `origin_depth`.
+        Otherwise use the caller's parent depth, preserving legacy projection.
+
         Preference order for computing horizontal component:
         - Use `depth` if available: horizontal = sqrt(length^2 - delta_depth^2)
         - Else, `inclination` if available: horizontal = length * cos(inclination)
         - Otherwise: raise ValueError
         """
 
+        if self.depth_start_is_authoritative and self.depth_start is not None:
+            origin_depth = self.depth_start
         if self.depth is not None:
             if origin_depth is None:
                 raise ValueError("`origin_depth` is missing")
@@ -244,6 +280,7 @@ class Section(BaseModel):
     # Attributes
     date: dt.date | None = None
     description: str | None = None
+    quality: float | None = Field(default=None, exclude_if=lambda value: value is None)
 
     explorers: list[str] | None = None
     surveyors: list[str] | None = None
@@ -290,6 +327,8 @@ class Section(BaseModel):
 
 
 class Survey(BaseModel):
+    _coordinate_origin_map: dict[int, str] | None = PrivateAttr(default=None)
+
     speleodb_id: UUID4 | None = None
 
     name: str | None = None
@@ -298,6 +337,9 @@ class Survey(BaseModel):
     unit: LengthUnits = LengthUnits.METERS
     first_start_absolute_elevation: NonNegativeFloat = 0.0
     use_magnetic_azimuth: bool = True
+    measurements_are_adjusted: bool = Field(
+        default=False, exclude_if=lambda value: not value
+    )
 
     ariane_viewer_layers: dict | None = None
 
