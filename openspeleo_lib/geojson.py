@@ -15,11 +15,14 @@ from openspeleo_lib.colors import normalize_shot_color
 from openspeleo_lib.constants import OSPL_GEOJSON_DIGIT_PRECISION
 from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.enums import LengthUnits
+from openspeleo_lib.resolved_shot import ResolvedShot
 from openspeleo_lib.survey_graph import closure_endpoints
 from openspeleo_lib.survey_graph import prepare_graph
 from openspeleo_lib.survey_graph import records
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from openspeleo_lib.loop_closure import LoopClosureSolver
     from openspeleo_lib.models import Section
     from openspeleo_lib.models import Shot
@@ -490,7 +493,51 @@ def shot_to_geojson_feature(
     )
 
 
-def measured_survey_to_geojson(survey: Survey, *, selection=None, nodes=None) -> dict:
+def notify_resolved_shots(
+    survey: Survey,
+    nodes: dict[int, Shot],
+    station_ids: set[int] | frozenset[int],
+    on_resolved_shot: Callable[[ResolvedShot], None],
+) -> None:
+    """Report original real shots using the coordinates of their native TO end."""
+    for shot in survey.shots:
+        if (
+            shot.excluded
+            or shot.shot_type != ArianeShotType.REAL
+            or shot.id_stop not in station_ids
+        ):
+            continue
+        source = shot.source_identity
+        endpoint = nodes[
+            shot.id_start if source and source.destination_at_start else shot.id_stop
+        ]
+        coordinates = endpoint.coordinates
+        if coordinates is None:
+            continue
+        on_resolved_shot(
+            ResolvedShot(
+                uuid=source.uuid if source else str(shot.id) if shot.id else None,
+                shot_id=source.shot_id if source else str(shot.id_stop),
+                from_id=source.from_id if source else str(shot.id_start),
+                namespace=(),
+                length_m=source.length_m
+                if source
+                else length_to_meters(shot.length, survey.unit),
+                azimuth=source.azimuth if source else shot.azimuth,
+                comment=shot.comment,
+                longitude=coordinates.longitude,
+                latitude=coordinates.latitude,
+            )
+        )
+
+
+def measured_survey_to_geojson(
+    survey: Survey,
+    *,
+    selection=None,
+    nodes=None,
+    on_resolved_shot: Callable[[ResolvedShot], None] | None = None,
+) -> dict:
     """Place and validate only the selected GPS-connected physical graph."""
     selection = selection or prepare_graph(survey)
     shots_map = selection.nodes(survey) if nodes is None else nodes
@@ -510,7 +557,7 @@ def measured_survey_to_geojson(survey: Survey, *, selection=None, nodes=None) ->
     validate_explicit_shot_coordinates(
         survey, validation_nodes, explicit, set(validation_nodes)
     )
-    return FeatureCollection(
+    output = FeatureCollection(
         features=[
             shot_to_geojson_feature(
                 shot,
@@ -525,14 +572,18 @@ def measured_survey_to_geojson(survey: Survey, *, selection=None, nodes=None) ->
             and shot.shot_type in {ArianeShotType.REAL, ArianeShotType.START}
         ]
     )
+    if on_resolved_shot is not None:
+        notify_resolved_shots(survey, shots_map, selection.stations, on_resolved_shot)
+    return output
 
 
 def survey_to_geojson(
     survey: Survey,
     *,
     loop_closure_solver: LoopClosureSolver | None = None,
+    on_resolved_shot: Callable[[ResolvedShot], None] | None = None,
 ) -> dict:
     """Export measured geometry, optionally applying a configured closure solver."""
     if loop_closure_solver is None:
-        return measured_survey_to_geojson(survey)
-    return loop_closure_solver.to_geojson(survey)
+        return measured_survey_to_geojson(survey, on_resolved_shot=on_resolved_shot)
+    return loop_closure_solver.to_geojson(survey, on_resolved_shot=on_resolved_shot)

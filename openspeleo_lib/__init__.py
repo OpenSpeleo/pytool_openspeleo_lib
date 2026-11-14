@@ -15,6 +15,7 @@ from openspeleo_lib.loop_closure import prepare_loop_closure
 from openspeleo_lib.models import Section
 from openspeleo_lib.models import Shot
 from openspeleo_lib.models import Survey
+from openspeleo_lib.resolved_shot import ResolvedShot
 
 __all__ = [
     "ArianeProfileType",
@@ -23,6 +24,7 @@ __all__ = [
     "LoopClosureMethod",
     "LoopClosureSolver",
     "LoopClosureWeighting",
+    "ResolvedShot",
     "Section",
     "Shot",
     "Survey",

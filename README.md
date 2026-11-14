@@ -4,6 +4,10 @@ OpenSpeleoLib reads, writes, validates, and converts cave-survey data.
 
 ## GeoJSON conversion
 
+Applications importing shot annotations can use the optional
+[`on_resolved_shot` callback](docs/resolved-shots.md) to receive native
+identity, comments, measurements, and the solved original destination.
+
 Convert an Ariane TML or TMLU survey with:
 
 ```console

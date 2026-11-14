@@ -13,10 +13,13 @@ from stalagmight_lib.graph import SHOT_START_INDEX_FLAG
 
 from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.interfaces.base import BaseInterface
+from openspeleo_lib.models import ShotSource
 from openspeleo_lib.models import Survey
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import stalagmight_lib
 
 
 def _topology(native):
@@ -86,7 +89,9 @@ def _topology(native):
     return references, observations, links
 
 
-def _normalized_shot(source, section, start, stop, *, correction, reverse, uuid):
+def _normalized_shot(
+    source, section, start, stop, *, correction, reverse, uuid, from_id
+):
     depth_start, depth = (
         (source.depth_out, source.depth_in)
         if reverse
@@ -112,6 +117,14 @@ def _normalized_shot(source, section, start, stop, *, correction, reverse, uuid)
         raise ValueError(f"{context}: invalid measured geometry") from exc
     return {
         "id": uuid,
+        "source_identity": ShotSource(
+            uuid=str(source.uuid) if source.uuid is not None else None,
+            shot_id=str(source.id),
+            from_id=from_id,
+            length_m=source.length,
+            azimuth=source.azimuth_in,
+            destination_at_start=reverse,
+        ),
         "id_start": start,
         "id_stop": stop,
         "shot_type": ArianeShotType.REAL
@@ -205,8 +218,38 @@ def _observation_adjacency(observations, find):
     return adjacency
 
 
+def _native_from_ids(native: stalagmight_lib.Survey) -> dict[int, str]:
+    """Use native predecessor rows, never generated traversal station numbers."""
+    result: dict[int, str] = {}
+    for section in native.sections:
+        previous = f"section:{section.id}:root"
+        for shot in section.shots:
+            result[shot.id] = previous
+            previous = str(shot.id)
+    if native.schema_version == 19 and native.shot_graph.explicit:
+        numbers = native.live_numbers()
+        rows = {
+            numbers[section.id, shot.sequence_order]: shot.id
+            for section in native.sections
+            for shot in section.shots
+        }
+        origins = {item.number: item.parent for item in native.shot_graph.origins}
+        for section in native.sections:
+            for shot in section.shots:
+                parent = origins[numbers[section.id, shot.sequence_order]]
+                while parent is not None and parent not in rows:
+                    parent = origins[parent]
+                result[shot.id] = (
+                    str(rows[parent])
+                    if parent is not None
+                    else f"section:{section.id}:root"
+                )
+    return result
+
+
 def _adapt(native):
     references, observations, links = _topology(native)
+    from_ids = _native_from_ids(native)
     parents = {key: key for key in references.values()}
 
     def find(key):
@@ -266,6 +309,7 @@ def _adapt(native):
                     correction=correction,
                     reverse=reverse,
                     uuid=uuids[index],
+                    from_id=from_ids[source.id],
                 )
                 output[section.id].append(values)
                 nodes[index] = values

@@ -50,9 +50,24 @@ NonNegativeFloat = Annotated[float, annotated_types.Ge(0)]
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ COMMON MODELS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+class ShotSource(BaseModel):
+    """Native identity and measurements retained across topology normalization."""
+
+    uuid: str | None
+    shot_id: str
+    from_id: str
+    length_m: float
+    azimuth: float
+    destination_at_start: bool
+
+    model_config = ConfigDict(frozen=True)
+
+
 class Shot(BaseModel):
     # Primary Key
     id: UUID4 | None = None
+
+    source_identity: ShotSource | None = Field(default=None, exclude=True)
 
     id_start: int = -1  # Station ID where the shot starts, -1 means no origin
     id_stop: NonNegativeInt  # Station ID where the shot ends

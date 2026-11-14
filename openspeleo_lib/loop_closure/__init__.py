@@ -12,6 +12,7 @@ import json
 import math
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 import orjson
 from cave_closure import LoopClosureAlgorithm
@@ -29,6 +30,12 @@ from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.models import Survey
 from openspeleo_lib.survey_graph import SurveyGraph
 from openspeleo_lib.survey_graph import prepare_graph
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from openspeleo_lib.models import ShotSource
+    from openspeleo_lib.resolved_shot import ResolvedShot
 
 
 def _digest(value):
@@ -208,10 +215,17 @@ class LoopClosureSolver:
     def prepare(self, source: Survey) -> LoopClosureSnapshot:
         return self._prepare(source)
 
-    def to_geojson(self, source: Survey):
+    def to_geojson(
+        self,
+        source: Survey,
+        *,
+        on_resolved_shot: Callable[[ResolvedShot], None] | None = None,
+    ):
         snapshot = self._prepare(source, compute=True)
         result = LoopClosureResult(snapshot.fingerprint, snapshot.prepared)
-        return loop_closed_survey_to_geojson(snapshot, result, source=source)
+        return loop_closed_survey_to_geojson(
+            snapshot, result, source=source, on_resolved_shot=on_resolved_shot
+        )
 
 
 @dataclass(frozen=True)
@@ -295,6 +309,7 @@ class LoopClosureSnapshot:
     mode: LoopClosureMode
     algorithm: LoopClosureAlgorithm | None
     graph: SurveyGraph
+    source_identities: tuple[tuple[int, int, ShotSource], ...]
 
     def solve(self, **kwargs):
         report = self.prepared.solve(**kwargs)
@@ -302,8 +317,21 @@ class LoopClosureSnapshot:
         return LoopClosureResult(self.fingerprint, report)
 
     def validate_source(self, source):
-        if _digest(source.model_dump_json()) != self.source_fingerprint:
+        if (
+            _digest(source.model_dump_json()) != self.source_fingerprint
+            or _shot_sources(source) != self.source_identities
+        ):
             raise ValueError("source no longer matches its loop-closure snapshot")
+
+
+def _shot_sources(source: Survey) -> tuple[tuple[int, int, ShotSource], ...]:
+    """Capture immutable adapter evidence outside the public JSON representation."""
+    return tuple(
+        (section_index, shot_index, shot.source_identity)
+        for section_index, section in enumerate(source.sections)
+        for shot_index, shot in enumerate(section.shots)
+        if shot.source_identity is not None
+    )
 
 
 def geographic_projection(origin):
@@ -538,6 +566,7 @@ def _build_loop_closure_snapshot(
     ):
         raise ValueError("sigma_m must be positive and finite")
     source_json = source.model_dump_json()
+    source_identities = _shot_sources(source)
     # All ordinary safety validation and propagation operate on this disposable
     # model; evidence captured above stays unchanged even if validation fails.
     baseline = Survey.model_validate_json(source_json)
@@ -637,6 +666,10 @@ def _build_loop_closure_snapshot(
         json.dumps(
             [
                 source_json,
+                [
+                    (section_index, shot_index, identity.model_dump())
+                    for section_index, shot_index, identity in source_identities
+                ],
                 mode,
                 algorithm.name if algorithm is not None else None,
                 sigma_m,
@@ -677,6 +710,7 @@ def _build_loop_closure_snapshot(
         mode,
         algorithm,
         graph,
+        source_identities,
     )
 
 
@@ -685,6 +719,7 @@ def loop_closed_survey_to_geojson(
     result: LoopClosureResult,
     *,
     source=None,
+    on_resolved_shot: Callable[[ResolvedShot], None] | None = None,
 ):
     """Export a converged matching result; never alter source or ordinary conversion."""
     if result.fingerprint != snapshot.fingerprint:
@@ -694,6 +729,8 @@ def loop_closed_survey_to_geojson(
         snapshot.validate_source(source)
     origin = snapshot.origin
     view = Survey.model_validate_json(snapshot.source_json)
+    for section_index, shot_index, identity in snapshot.source_identities:
+        view.sections[section_index].shots[shot_index].source_identity = identity
     nodes = snapshot.graph.nodes(view)
     _, inverse = geographic_projection(origin)
     solved_ids = {int(identity) for identity, _ in result.report.coordinates}
@@ -702,7 +739,7 @@ def loop_closed_survey_to_geojson(
         node.longitude, node.latitude = inverse.transform(value[0], value[1])
         if snapshot.mode == LoopClosureMode.SPATIAL:
             node.depth = -value[2] / geojson.length_to_meters(1.0, view.unit)
-    return FeatureCollection(
+    output = FeatureCollection(
         features=[
             geojson.shot_to_geojson_feature(
                 shot,
@@ -718,6 +755,9 @@ def loop_closed_survey_to_geojson(
             and shot.shot_type in {ArianeShotType.REAL, ArianeShotType.START}
         ]
     )
+    if on_resolved_shot is not None:
+        geojson.notify_resolved_shots(view, nodes, solved_ids, on_resolved_shot)
+    return output
 
 
 def _prepare_rows(
