@@ -2,7 +2,6 @@
 
 __version__ = "0.0.23"
 
-
 from openspeleo_lib import logger
 from openspeleo_lib.enums import ArianeProfileType
 from openspeleo_lib.enums import ArianeShotType
