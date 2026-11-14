@@ -6,6 +6,7 @@ import unittest
 from typing import TYPE_CHECKING
 
 import orjson
+import pytest
 from deepdiff import DeepDiff
 from parameterized import parameterized
 
@@ -81,7 +82,11 @@ class TestConvertToGeoJson(unittest.TestCase):
             ),
             ignore_order=True,
         )
-        assert ddiff == {}, ddiff
+        if ddiff:
+            pytest.fail(
+                f"{filepath.stem}: measured golden differs; private data omitted",
+                pytrace=False,
+            )
 
     @parameterized.expand(
         sorted(

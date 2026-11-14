@@ -30,6 +30,16 @@ Run full conversion to check geographic consistency as well. See
 [coordinate validation](docs/coordinate-validation.md) for diagnostics and the
 application integration contract.
 
+### Graph cleanup
+
+Conversion retains components connected to active GPS anchors through ordinary
+shots in either direction and closure equivalences. It warns and drops
+unanchored components and dangling connections before geometry or loop closure.
+Excluded records cannot anchor or connect geometry. A station may survive even
+when its incoming measurement references a missing origin. See
+[graph validation](docs/graph-validation.md) for aliases, warnings, placement,
+and synthetic regression coverage.
+
 ### Coordinate safety guard
 
 A connected shot can contain both survey measurements and an explicit geographic

@@ -105,7 +105,7 @@ def test_targetless_closure_only_equates_id_with_fromid():
             length=123456.0,
             depth=765432.0,
             azimuth=211.0,
-            excluded=True,
+            excluded=False,
         )
     )
     before = source.model_dump_json()

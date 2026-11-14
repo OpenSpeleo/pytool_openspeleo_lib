@@ -25,7 +25,7 @@ algorithm selects the numerical backend independently of the coordinate mode and
 graph policy. Other supported least-squares backends can be selected on a
 customized instance. The shared source checks, coordinate provenance, local
 WGS84 azimuthal-equidistant projection, and immutable snapshots live in
-`openspeleo_lib/loop_closure.py`. Every preset computes in the Rust
+`openspeleo_lib/loop_closure/__init__.py`. Every preset computes in the Rust
 `cave-closure` library. `openspeleo_lib` maps models, units, coordinate
 provenance and geographic projections into that interface; it performs no
 loop-closure numerics. The Rust implementation lives in
@@ -36,8 +36,9 @@ loop-closure numerics. The Rust implementation lives in
 existing defaults. Each measured REAL leg has independent Cartesian uncertainty
 with `sigma_m=1.0`; customize `sigma_m` for the caller's declared placement
 uncertainty. VIRTUAL legs are exact hard offsets. Only original explicit XY
-coordinates become hard geographic controls. Missing measured origins and
-uncontrolled translation are rejected.
+coordinates become hard geographic controls. The shared cleanup drops
+measurements with unavailable origins before preparation. Uncontrolled numerical
+translation is still rejected.
 
 `LeastSquaresSpatialSolver` uses the same weighting and graph settings with
 `LoopClosureMode.SPATIAL`. Z is solved in local ENU coordinates and export
@@ -252,3 +253,13 @@ models already carry coordinate provenance.
 Preset names are stable artifact labels. The weighted private goldens retain the
 suffix `-InverseLengthWeightedLeastSquaresHorizontalSolver.geojson.encrypted`
 when a preset is customized with numerically equivalent backend settings.
+
+## Shared graph cleanup
+
+Every preset consumes the same GPS-connected graph as measured export. Ordinary
+connections are bidirectional for reachability; closures connect equivalent
+stations. Excluded records and unanchored components never reach numerical
+preparation. Dangling measurements and closures are removed with warnings, while
+stations with another valid GPS connection survive. Preset options for floating
+numerical components do not restore geographically disconnected input. See
+[graph validation](graph-validation.md) for the complete policy and tests.

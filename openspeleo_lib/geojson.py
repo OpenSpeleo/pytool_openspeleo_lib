@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections import deque
-from itertools import count
 from typing import TYPE_CHECKING
 
 from geojson import Feature
@@ -16,6 +15,9 @@ from openspeleo_lib.colors import normalize_shot_color
 from openspeleo_lib.constants import OSPL_GEOJSON_DIGIT_PRECISION
 from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.enums import LengthUnits
+from openspeleo_lib.survey_graph import closure_endpoints
+from openspeleo_lib.survey_graph import prepare_graph
+from openspeleo_lib.survey_graph import records
 
 if TYPE_CHECKING:
     from openspeleo_lib.loop_closure import LoopClosureSolver
@@ -278,100 +280,90 @@ def _classify_invalid_shots(
     return orphans, cycles
 
 
-def propagate_coordinates(survey: Survey, shots_map: dict[int, Shot]) -> None:
-    graph = build_shot_graph(survey.sections)
+def reverse_position(latitude, longitude, length_m, azimuth_deg):
+    """Invert the original forward bearing, including meridian convergence."""
+    lon, lat, _ = GEOD.fwd(longitude, latitude, azimuth_deg + 180, length_m)
+    for _ in range(32):
+        end_lon, end_lat, _ = GEOD.fwd(lon, lat, azimuth_deg, length_m)
+        correction, _, residual = GEOD.inv(end_lon, end_lat, longitude, latitude)
+        if residual < 1e-5:
+            return lat, lon
+        lon, lat, _ = GEOD.fwd(lon, lat, correction, residual)
+    raise ValueError("Reverse shot placement did not converge")
 
-    anchors = [s for s in shots_map.values() if s.is_geolocation_known()]
-    logging.info("Found %d anchor shots with known coordinates.", len(anchors))
 
-    if not anchors:
+def _propagation_edges(survey, selection):
+    forward = defaultdict(list)
+    reverse = defaultdict(list)
+    equivalences = defaultdict(list)
+    for key, shot in records(survey):
+        if key in selection.legs:
+            forward[shot.id_start].append(shot)
+            reverse[shot.id_stop].append(shot)
+        if key in selection.closures:
+            a, b = closure_endpoints(shot)
+            equivalences[a].append(b)
+            equivalences[b].append(a)
+    return forward, reverse, equivalences
+
+
+def propagate_coordinates(survey, shots_map, *, selection=None):
+    selection = selection or prepare_graph(survey)
+    if not any(s.is_geolocation_known() for s in shots_map.values()):
         raise NoKnownAnchorError(
             "This survey has no anchor shots with known coordinates."
         )
+    forward, reverse, equivalences = _propagation_edges(survey, selection)
+    placed = {i for i, s in shots_map.items() if s.is_geolocation_known()}
+    queue = deque(i for i in shots_map if i in placed)
 
-    if logger.isEnabledFor(logging.DEBUG):
-        for a in anchors:
-            logger.debug(
-                "[*] Anchor: id_stop=%04d, name=%s, latitude=%.7f, longitude=%.7f",
-                a.id_stop,
-                a.name,
-                a.latitude,
-                a.longitude,
+    def place_leg(shot, *, backwards=False):
+        parent = shots_map[shot.id_start]
+        length = length_to_meters(shot.length_2d(parent.depth), survey.unit)
+        bearing = shot.azimuth_true if survey.use_magnetic_azimuth else shot.azimuth
+        start = shots_map[shot.id_stop] if backwards else parent
+        target = parent if backwards else shots_map[shot.id_stop]
+        if backwards:
+            target.latitude, target.longitude = reverse_position(
+                start.latitude, start.longitude, length, bearing
             )
-
-    queue = deque(a.id_stop for a in anchors)
-    visited = set()
-
-    max_iterations = 1e6  # ridiculously high for any realistic survey
-    iteration_count = count(0)
-    while queue:
-        if next(iteration_count) > max_iterations:
-            raise IterationLimitExceededError(
-                "Exceeded maximum iterations while propagating coordinates."
+        else:
+            target.latitude, target.longitude = propagate_position(
+                start.latitude, start.longitude, length, bearing
             )
+        placed.add(target.id_stop)
+        queue.append(target.id_stop)
 
-        current_id = queue.popleft()
-
-        if current_id in visited:
-            continue
-
-        visited.add(current_id)
-        current_shot = shots_map[current_id]
-
-        logger.debug(
-            "[*] Processing Shot ID=%04d, name=%s, latitude=%.7f, longitude=%.7f",
-            current_id,
-            current_shot.name,
-            current_shot.latitude,
-            current_shot.longitude,
-        )
-
-        for child_id in graph.get(current_id, []):
-            if child_id in visited or child_id in queue:
+    # Exhaust the original forward traversal before using additional connections.
+    while True:
+        while queue:
+            identity = queue.popleft()
+            for shot in forward[identity]:
+                if shot.id_stop not in placed:
+                    place_leg(shot)
+        if len(placed) == len(shots_map):
+            break
+        progressed = False
+        for identity in shots_map:
+            if identity not in placed:
                 continue
-
-            child_shot = shots_map[child_id]
-
-            if child_shot.length is None:
-                raise IncorrectShotDataError(
-                    shot=child_shot, message="Missing length for propagation"
-                )
-
-            if child_shot.azimuth is None:
-                raise IncorrectShotDataError(
-                    shot=child_shot, message="Missing azimuth for propagation"
-                )
-
-            if child_shot.depth is None:
-                raise IncorrectShotDataError(
-                    shot=child_shot, message="Missing depth for propagation"
-                )
-
-            length_m = length_to_meters(
-                child_shot.length_2d(origin_depth=current_shot.depth),
-                unit=survey.unit,
+            for other in equivalences[identity]:
+                if other not in placed:
+                    shots_map[other].latitude = shots_map[identity].latitude
+                    shots_map[other].longitude = shots_map[identity].longitude
+                    placed.add(other)
+                    queue.append(other)
+                    progressed = True
+            for shot in reverse[identity]:
+                if shot.id_start not in placed:
+                    place_leg(shot, backwards=True)
+                    progressed = True
+            if progressed:
+                break
+        if not progressed:
+            raise DisconnectedShotError(
+                "Retained graph could not be placed from GPS anchors"
             )
-
-            child_shot.latitude, child_shot.longitude = propagate_position(
-                base_lat=current_shot.latitude,
-                base_lon=current_shot.longitude,
-                length_m=length_m,
-                azimuth_deg=(
-                    child_shot.azimuth_true
-                    if survey.use_magnetic_azimuth
-                    else child_shot.azimuth
-                ),
-            )
-
-            logger.debug(
-                "Propagated ID=%04d: lat=%.7f lon=%.7f from=%04d",
-                child_id,
-                child_shot.latitude,
-                child_shot.longitude,
-                current_id,
-            )
-
-            queue.append(child_id)
 
 
 def validate_explicit_shot_coordinates(
@@ -435,7 +427,12 @@ def validate_explicit_shot_coordinates(
 
 
 def shot_to_geojson_feature(
-    shot: Shot, shots_dict: dict[int, Shot], name: str, unit: LengthUnits
+    shot: Shot,
+    shots_dict: dict[int, Shot],
+    name: str,
+    unit: LengthUnits,
+    *,
+    include_origin=True,
 ) -> dict | None:
     props = {
         "id": shot.id_stop,
@@ -460,7 +457,7 @@ def shot_to_geojson_feature(
             props["color"] = color
 
     start_coords = None
-    if shot.id_start != -1 and shot.id_start in shots_dict:
+    if include_origin and shot.id_start != -1 and shot.id_start in shots_dict:
         from_shot = shots_dict[shot.id_start]
         start_coords = (
             from_shot.coordinates.as_tuple() if from_shot.coordinates else None
@@ -493,43 +490,41 @@ def shot_to_geojson_feature(
     )
 
 
-def measured_survey_to_geojson(survey: Survey) -> dict:
-    """Convert a survey to GeoJSON after validating explicit shot coordinates.
-
-    Raises:
-        InconsistentShotCoordinatesError: If a connected shot's explicit endpoint
-            is more than 500 metres from the endpoint implied by its measurements.
-    """
-    shots_map: dict[int, Shot] = build_shots_map(survey)
-    graph = build_shot_graph(survey.sections)
-    explicit_coordinate_ids = {
-        shot.id_stop for shot in shots_map.values() if shot.is_geolocation_known()
-    }
-
-    # Find valid shots (reachable from anchors, excluding orphans and cycles)
-    valid_shot_ids = find_valid_shot_ids(shots_map, graph)
-
-    logger.debug("Starting coordinate propagation ...")
-    propagate_coordinates(survey, shots_map)
-
+def measured_survey_to_geojson(survey: Survey, *, selection=None, nodes=None) -> dict:
+    """Place and validate only the selected GPS-connected physical graph."""
+    selection = selection or prepare_graph(survey)
+    shots_map = selection.nodes(survey) if nodes is None else nodes
+    explicit = {i for i, s in shots_map.items() if s.is_geolocation_known()}
+    propagate_coordinates(survey, shots_map, selection=selection)
+    # Retain the safety guard for comparable excluded explicit endpoints without
+    # allowing them to provide connectivity, positions, or numerical controls.
+    validation_nodes = dict(shots_map)
+    for shot in survey.shots:
+        if (
+            shot.excluded
+            and shot.shot_type != ArianeShotType.CLOSURE
+            and shot.is_geolocation_known()
+        ):
+            validation_nodes.setdefault(shot.id_stop, shot)
+            explicit.add(shot.id_stop)
     validate_explicit_shot_coordinates(
-        survey=survey,
-        shots_map=shots_map,
-        explicit_coordinate_ids=explicit_coordinate_ids,
-        valid_shot_ids=valid_shot_ids,
+        survey, validation_nodes, explicit, set(validation_nodes)
     )
-
-    features = [
-        shot_to_geojson_feature(shot, shots_map, section.name, survey.unit)
-        for section in survey.sections
-        for shot in section.shots
-        if shot.shot_type in [ArianeShotType.REAL, ArianeShotType.START]
-        # if shot.shot_type != ArianeShotType.CLOSURE
-        if not shot.excluded
-        if shot.id_stop in valid_shot_ids  # Filter out orphans and cycles
-    ]
-
-    return FeatureCollection(features=features)
+    return FeatureCollection(
+        features=[
+            shot_to_geojson_feature(
+                shot,
+                shots_map,
+                shot.section.name,
+                survey.unit,
+                include_origin=key in selection.legs,
+            )
+            for key, shot in records(survey)
+            if not shot.excluded
+            and shot.id_stop in selection.stations
+            and shot.shot_type in {ArianeShotType.REAL, ArianeShotType.START}
+        ]
+    )
 
 
 def survey_to_geojson(

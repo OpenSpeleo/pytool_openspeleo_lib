@@ -26,8 +26,9 @@ from pyproj import Transformer
 
 from openspeleo_lib import geojson
 from openspeleo_lib.enums import ArianeShotType
-from openspeleo_lib.models import Shot
 from openspeleo_lib.models import Survey
+from openspeleo_lib.survey_graph import SurveyGraph
+from openspeleo_lib.survey_graph import prepare_graph
 
 
 def _digest(value):
@@ -293,6 +294,7 @@ class LoopClosureSnapshot:
     prepared: object
     mode: LoopClosureMode
     algorithm: LoopClosureAlgorithm | None
+    graph: SurveyGraph
 
     def solve(self, **kwargs):
         report = self.prepared.solve(**kwargs)
@@ -312,48 +314,6 @@ def geographic_projection(origin):
     return Transformer.from_crs(
         "EPSG:4326", local, always_xy=True
     ), Transformer.from_crs(local, "EPSG:4326", always_xy=True)
-
-
-def _add_closure_alias_stations(survey):
-    """Materialize identity-only station IDs on disposable solver views.
-
-    Identity records without ClosureToID can introduce a station solely through
-    ID == FromID. Targeted Ariane closure IDs identify records, not stations.
-    Ordinary measured export retains its existing filtering.
-    """
-    nodes = geojson.build_shots_map(survey)
-    pending = [
-        s
-        for s in survey.shots
-        if s.shot_type == ArianeShotType.CLOSURE and s.closure_to_id < 0
-    ]
-    added = {}
-    while pending:
-        remaining = []
-        for closure in pending:
-            left, right = closure.id_start, closure.id_stop
-            if (left in nodes) == (right in nodes):
-                remaining.append(closure)
-                continue
-            parent_id, alias_id = (left, right) if left in nodes else (right, left)
-            parent = nodes[parent_id]
-            if parent.excluded:
-                continue
-            alias = Shot(
-                id_start=parent_id,
-                id_stop=alias_id,
-                length=0.0,
-                depth=parent.depth,
-                azimuth=0.0,
-                shot_type=ArianeShotType.VIRTUAL,
-            )
-            alias.section = parent.section
-            parent.section.shots.append(alias)
-            nodes[alias_id] = added[alias_id] = alias
-        if len(remaining) == len(pending):
-            break
-        pending = remaining
-    return added
 
 
 def prepare_loop_closure(
@@ -509,6 +469,19 @@ def _prepare_l1_problem(source_request, options, *, compute):
     return _L1Preparation(_prepare_l1_loop_closure(request), aliases, station_ids)
 
 
+def _retained_vertical_controls(source, graph, controls):
+    if controls is None:
+        return None
+    defined = {
+        shot.id_stop
+        for shot in source.shots
+        if shot.shot_type != ArianeShotType.CLOSURE
+    } | graph.defined_stations
+    if set(controls) - defined:
+        raise ValueError("vertical_controls refers to an unknown station")
+    return {key: value for key, value in controls.items() if key in graph.stations}
+
+
 def _build_loop_closure_snapshot(
     source: Survey,
     *,
@@ -603,18 +576,14 @@ def _build_loop_closure_snapshot(
     for i, shot in nodes.items():
         if i not in explicit:
             shot.latitude = shot.longitude = None
-    aliases = _add_closure_alias_stations(baseline)
-    for identity, alias in aliases.items():
-        nodes[identity] = alias
-        origins[identity] = "derived"
-    geojson.measured_survey_to_geojson(
-        baseline
-    )  # Preserves the existing 500 m guard on raw geometry.
-    valid = geojson.find_valid_shot_ids(
-        nodes, geojson.build_shot_graph(baseline.sections)
-    )
-    nodes = {key: value for key, value in nodes.items() if key in valid}
-    origins = {key: value for key, value in origins.items() if key in valid}
+    graph = prepare_graph(baseline)
+    nodes = graph.nodes(baseline)
+    aliases = dict(graph.aliases)
+    origins = {key: value for key, value in origins.items() if key in graph.stations}
+    origins.update(dict.fromkeys(aliases, "derived"))
+    explicit = explicit & graph.stations
+    geojson.measured_survey_to_geojson(baseline, selection=graph, nodes=nodes)
+    vertical_controls = _retained_vertical_controls(baseline, graph, vertical_controls)
     first = nodes[min(explicit)]
     origin = (first.latitude, first.longitude)
     forward, _ = geographic_projection(origin)
@@ -627,6 +596,7 @@ def _build_loop_closure_snapshot(
         virtual_shot_policy=virtual_shot_policy,
         skip_missing_origins=skip_missing_origins,
         alias_ids=frozenset(aliases),
+        graph=graph,
     )
     fixed_xy = explicit | (
         {i for i, shot in nodes.items() if shot.shot_type == ArianeShotType.START}
@@ -706,6 +676,7 @@ def _build_loop_closure_snapshot(
         prepared,
         mode,
         algorithm,
+        graph,
     )
 
 
@@ -723,8 +694,7 @@ def loop_closed_survey_to_geojson(
         snapshot.validate_source(source)
     origin = snapshot.origin
     view = Survey.model_validate_json(snapshot.source_json)
-    _add_closure_alias_stations(view)
-    nodes = geojson.build_shots_map(view)
+    nodes = snapshot.graph.nodes(view)
     _, inverse = geographic_projection(origin)
     solved_ids = {int(identity) for identity, _ in result.report.coordinates}
     for identity, value in result.report.coordinates:
@@ -734,9 +704,15 @@ def loop_closed_survey_to_geojson(
             node.depth = -value[2] / geojson.length_to_meters(1.0, view.unit)
     return FeatureCollection(
         features=[
-            geojson.shot_to_geojson_feature(shot, nodes, section.name, view.unit)
-            for section in view.sections
-            for shot in section.shots
+            geojson.shot_to_geojson_feature(
+                shot,
+                nodes,
+                section.name,
+                view.unit,
+                include_origin=(si, sj) in snapshot.graph.legs,
+            )
+            for si, section in enumerate(view.sections)
+            for sj, shot in enumerate(section.shots)
             if not shot.excluded
             and shot.id_stop in solved_ids
             and shot.shot_type in {ArianeShotType.REAL, ArianeShotType.START}
@@ -752,12 +728,16 @@ def _prepare_rows(
     virtual_shot_policy=VirtualShotPolicy.HARD_OFFSET,
     skip_missing_origins=False,
     alias_ids=frozenset(),
+    graph,
 ):
     relationships, observations = [], []
     for section_index, section in enumerate(baseline.sections):
         for shot_index, shot in enumerate(section.shots):
             identity = f"section:{section_index}/shot:{shot_index}"
+            key = (section_index, shot_index)
             if shot.shot_type == ArianeShotType.CLOSURE:
+                if key not in graph.closures:
+                    continue
                 left = shot.id_start
                 right = shot.closure_to_id if shot.closure_to_id >= 0 else shot.id_stop
                 if left not in nodes and right not in nodes:
@@ -785,10 +765,8 @@ def _prepare_rows(
                 and shot.id_stop in alias_ids
             ):
                 continue
-            if shot.id_start not in nodes:
-                if skip_missing_origins:
-                    continue
-                raise ValueError(f"{identity}: missing origin station")
+            if key not in graph.legs:
+                continue
             parent = nodes[shot.id_start]
             depth_start = (
                 shot.depth_start

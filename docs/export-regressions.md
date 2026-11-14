@@ -60,8 +60,8 @@ survey locations.
 
 The walls example introduces a station ID through a CLOSURE identity. The solver
 materializes this alias on its disposable view, preserving ID equals FromID and
-adding no measured observation. Default measured export retains its existing
-orphan filtering, so its feature count can differ from adjusted export.
+adding no measured observation. Measured and adjusted exports both retain this
+alias-connected geometry through the shared physical-connectivity pass.
 
 ## Regeneration and verification
 

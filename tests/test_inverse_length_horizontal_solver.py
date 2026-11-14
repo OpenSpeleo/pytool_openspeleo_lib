@@ -11,7 +11,6 @@ from cave_closure import LoopClosureAlgorithm
 from openspeleo_lib.enums import ArianeShotType
 from openspeleo_lib.enums import LengthUnits
 from openspeleo_lib.geojson import survey_to_geojson
-from openspeleo_lib.loop_closure import geographic_projection
 from openspeleo_lib.loop_closure.presets import (
     InverseLengthWeightedLeastSquaresHorizontalSolver,
 )
@@ -118,7 +117,7 @@ def test_explicit_connected_coordinates_remain_authoritative():
     assert points["4242"][:2] == pytest.approx((0, 0), abs=1e-10)
 
 
-def test_floating_component_keeps_unadjusted_centroid():
+def test_excluded_bridge_does_not_anchor_floating_component():
     source = make_synthetic_geolocation_survey(child_id=2, child_excluded=True)
     source.use_magnetic_azimuth = False
     section = source.sections[0]
@@ -127,22 +126,11 @@ def test_floating_component_keeps_unadjusted_centroid():
         shot.section = section
         section.shots.append(shot)
     before = source.model_dump_json()
-    measured = source.model_copy(deep=True)
-    survey_to_geojson(measured)
-    forward, _ = geographic_projection((40, -70))
-    expected = [
-        forward.transform(s.longitude, s.latitude)
-        for s in measured.shots
-        if s.id_stop in (3, 4)
-    ]
     solver = replace(
         InverseLengthWeightedLeastSquaresHorizontalSolver, source_is_fresh=True
     )
     points = dict(solver.prepare(source).solve().report.coordinates)
-    for axis in (0, 1):
-        assert sum(points[str(i)][axis] for i in (3, 4)) / 2 == pytest.approx(
-            sum(p[axis] for p in expected) / 2, abs=1e-9
-        )
+    assert set(points) == {"1"}
     assert source.model_dump_json() == before
 
 

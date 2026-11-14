@@ -87,7 +87,10 @@ def test_closure_to_id_closes_measured_ring(tmp_path):
     )
 
 
-def test_unknown_closure_to_id_is_rejected(tmp_path):
+def test_unknown_closure_to_id_is_dropped(tmp_path, caplog):
     source = read_targeted_closure(tmp_path, target=100)
-    with pytest.raises(ValueError, match="CLOSURE refers to an unknown station"):
-        InverseLengthWeightedLeastSquaresHorizontalSolver.prepare(source)
+    result = InverseLengthWeightedLeastSquaresHorizontalSolver.prepare(source).solve()
+    assert len(result.report.observations) == 3
+    assert set(dict(result.report.coordinates)) == {"1", "2", "3", "4"}
+    assert "[Shot 99]" in caplog.text
+    assert "dropping closure" in caplog.text

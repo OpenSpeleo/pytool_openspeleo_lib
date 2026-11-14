@@ -417,7 +417,7 @@ class Survey(BaseModel):
 
         # Get the first section's anchor point
         for shot in self.shots:
-            if (geoloc := shot.coordinates) is not None:
+            if not shot.excluded and (geoloc := shot.coordinates) is not None:
                 return geoloc
 
         # No shot with "known location found".
